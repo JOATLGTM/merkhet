@@ -1,0 +1,13 @@
+-- Seed after auth users exist. For local Supabase, create users first:
+--   email: chris@merkat.studio / password
+--   email: sana@merkat.studio / password
+-- with raw_user_meta_data role admin/staff, then run this against public tables.
+--
+-- Demo mode in the app does not need this file — it uses lib/db/demo-store.ts.
+
+-- Example once auth.users rows exist:
+-- insert into public.customers (id, name, contact_name, contact_email)
+-- values
+--   ('11111111-1111-1111-1111-111111111111', 'Halden Trust', 'Priya Raman', 'p.raman@haldentrust.org'),
+--   ('22222222-2222-2222-2222-222222222222', 'Marchmont Homes', 'Evan Marchmont', 'evan@marchmont.homes'),
+--   ('33333333-3333-3333-3333-333333333333', 'Corran Estates', 'Lila Corran', 'lila@corran.co');

@@ -1,0 +1,14 @@
+---
+description: Load Merkat session handoff context before continuing product work
+alwaysApply: true
+---
+
+# Session handoff
+
+Before implementing Merkat features or UI changes, read:
+
+1. `docs/handoff/README.md`
+2. `docs/handoff/CURRENT_STATE.md`
+3. `docs/handoff/DECISIONS.md` (especially PRD vs Lovable authority)
+
+PRD at `docs/PRD.md` is authoritative for product behavior. Lovable showcase URLs in the handoff are the visual reference. Do not invent Datum-mockup patterns that contradict the PRD.
