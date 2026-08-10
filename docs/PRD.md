@@ -4,12 +4,13 @@
 **Status:** Draft for client review
 **Last updated:** 2026-08-07
 
-> **This document is authoritative.** The *Datum* mockup
+> **This document is authoritative.** The _Datum_ mockup
 > (`Merkat.dc.html`) is a **non-binding visual reference** — it exists to show roughly what the
 > product will feel like, not to specify it. Where the two disagree, the PRD wins. Do not import the
 > mockup's palette, typefaces, board grouping, or motion timings; §12 below is the spec.
 >
 > **Changes from 1.0** are deliberately narrow and none are mockup-driven:
+>
 > 1. **§9.2** — three factual corrections about Next.js 16.3, verified against the bundled docs. v1.0
 >    described two APIs in ways that would fail during slice 1.
 > 2. **§5.2** — `projects.project_number` and `projects.on_hold_since` added, resolving part of
@@ -55,10 +56,10 @@ The MVP is successful if:
 
 Internal Merkat staff only. **Customers never log in.** Customers are data records, not authentication principals.
 
-| Role | Capabilities |
-|---|---|
+| Role  | Capabilities                                            |
+| ----- | ------------------------------------------------------- |
 | Admin | Everything, plus manage users and default phase routing |
-| Staff | Full read/write on projects and customers |
+| Staff | Full read/write on projects and customers               |
 
 Role distinction is minimal in MVP. Do not build granular permissions; a two-value enum on `users.role` is sufficient, with admin gating only the settings screen.
 
@@ -119,7 +120,7 @@ A project has both a **lifecycle status** and, when active, a **design phase**. 
 **Lifecycle status** (`projects.status`):
 
 - `backlog` — won, not yet started
-- `pending` — awaiting kickoff (deposit, survey, site selection, client input) — *definition pending client confirmation, see §10*
+- `pending` — awaiting kickoff (deposit, survey, site selection, client input) — _definition pending client confirmation, see §10_
 - `active` — currently in a design phase
 - `completed` — delivered
 
@@ -152,7 +153,7 @@ Rationale: the board's purpose is answering "where is everything." Collapsing fi
 
 - **No parallel phases.** A project is in exactly one phase at a time. At most one `project_phases` row per project may have `status = 'in_progress'`, enforced by a partial unique index.
 - **Phases are skippable.** Do not enforce linear progression. A user may drag from Schematic design directly to Permitting. Log it; do not block it.
-- **On hold is a flag, not a column.** `projects.on_hold` is a boolean. An on-hold project stays in its current column, renders dimmed with an indicator, and sorts to the top. This preserves the information about *where* it stalled. `projects.on_hold_since` records when, so a project that has quietly stalled for four months is distinguishable from one paused yesterday.
+- **On hold is a flag, not a column.** `projects.on_hold` is a boolean. An on-hold project stays in its current column, renders dimmed with an indicator, and sorts to the top. This preserves the information about _where_ it stalled. `projects.on_hold_since` records when, so a project that has quietly stalled for four months is distinguishable from one paused yesterday.
 - **Phase rows are seeded at creation.** When a project is created, insert one `project_phases` row for each of the five phases with `status = 'not_started'`. The board and calendar read these rows. This is what makes per-project-type phase templates a purely additive change later (see §10).
 
 ---
@@ -277,7 +278,7 @@ create table phase_subscribers (
 
 `phase_subscribers` is the standing routing table: anyone subscribed to a phase is notified whenever a project enters it, on every project. A phase may have zero, one, or several subscribers.
 
-This is distinct from `project_phases.assignee_id`, which records who owns that phase *on that specific project*. See §8.3 for how the two combine.
+This is distinct from `project_phases.assignee_id`, which records who owns that phase _on that specific project_. See §8.3 for how the two combine.
 
 ### 5.3 Phase 2 additions
 
@@ -335,11 +336,20 @@ Phase presentation metadata — a static lookup in application code, not a table
 
 ```ts
 const PHASE_PRESENTATION = {
-  schematic_design:        { customerLabel: 'Schematic Design',        customerVisible: true  },
-  design_development:      { customerLabel: 'Design Development',      customerVisible: true  },
-  construction_documents:  { customerLabel: 'Construction Documents',  customerVisible: true  },
-  review:                  { customerLabel: 'Internal Review',         customerVisible: false },
-  permitting:              { customerLabel: 'Permitting',              customerVisible: true  },
+	schematic_design: {
+		customerLabel: "Schematic Design",
+		customerVisible: true,
+	},
+	design_development: {
+		customerLabel: "Design Development",
+		customerVisible: true,
+	},
+	construction_documents: {
+		customerLabel: "Construction Documents",
+		customerVisible: true,
+	},
+	review: { customerLabel: "Internal Review", customerVisible: false },
+	permitting: { customerLabel: "Permitting", customerVisible: true },
 } as const;
 ```
 
@@ -364,13 +374,13 @@ Repeat for each table. Do **not** build tenant scoping, per-project ACLs, or own
 
 ### 5.5 Activity log event types
 
-| `event_type` | `payload` shape |
-|---|---|
-| `project.created` | `{}` |
-| `project.updated` | `{ changed: { field: [old, new] } }` |
-| `phase.changed` | `{ from, to, from_status, to_status }` |
-| `phase.assignee_changed` | `{ phase, from_user_id, to_user_id }` |
-| `project.hold_toggled` | `{ on_hold, reason }` |
+| `event_type`             | `payload` shape                        |
+| ------------------------ | -------------------------------------- |
+| `project.created`        | `{}`                                   |
+| `project.updated`        | `{ changed: { field: [old, new] } }`   |
+| `phase.changed`          | `{ from, to, from_status, to_status }` |
+| `phase.assignee_changed` | `{ phase, from_user_id, to_user_id }`  |
+| `project.hold_toggled`   | `{ on_hold, reason }`                  |
 
 ---
 
@@ -397,6 +407,7 @@ Putting this on the column rather than in Settings is deliberate — it is disco
 Backlog, Pending, and Completed have no subscriber control in MVP.
 
 **Card** displays, in this order:
+
 - Project number
 - Project name
 - Customer name (secondary text)
@@ -406,6 +417,7 @@ Backlog, Pending, and Completed have no subscriber control in MVP.
 - On-hold indicator if applicable
 
 **Drag behavior:**
+
 - Dragging a card to a new column changes its board position
 - Dropping into a phase column sets `status = 'active'` and `current_phase` to that phase
 - Dropping into backlog / pending / completed sets `status` accordingly and nulls `current_phase`
@@ -521,31 +533,31 @@ The approval queue for customer emails. Kept deliberately minimal so it can be d
 
 Each slice is independently shippable and sized for roughly one Cursor session. Build in order.
 
-| # | Slice | Deliverable |
-|---|---|---|
-| 1 | Project scaffold | Next 16.3 App Router, Tailwind v4, shadcn/ui init with the KokonutUI registry, Motion, Supabase client, design tokens from §12.1, env config |
-| 2 | Schema and RLS | All migrations from §5, seed script with 2 users, 3 customers, 8 projects across varied columns |
-| 3 | Auth and shell | Sign in / sign out, protected routes, left nav rail, empty page stubs |
-| 4 | Customers | List, detail, create, edit. No project list yet. |
-| 5 | Projects read-only | Board rendering all eight columns with cards. No drag. |
-| 6 | Project detail panel | Slide-over with all sections, inline editing, deep link |
-| 7 | Drag to advance | dnd-kit wiring, phase transition transaction, activity log, optimistic update |
-| 8 | Board toolbar | Search, assignee filter, on-hold toggle, new project modal |
-| 8.5 | Command palette | ⌘K overlay, project and customer search, phase-move and create actions, keyboard-only operation (see §12.7) |
-| 9 | Customer → project link | Project list on customer detail, wired to the shared slide-over |
-| 10 | Calendar | Timeline view with phase segments and zoom |
-| 11 | Settings | Team management, phase subscribers table |
-| 12 | Polish | Empty states, loading skeletons, error boundaries, mobile behavior for the nav rail |
+| #   | Slice                   | Deliverable                                                                                                                                  |
+| --- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Project scaffold        | Next 16.3 App Router, Tailwind v4, shadcn/ui init with the KokonutUI registry, Motion, Supabase client, design tokens from §12.1, env config |
+| 2   | Schema and RLS          | All migrations from §5, seed script with 2 users, 3 customers, 8 projects across varied columns                                              |
+| 3   | Auth and shell          | Sign in / sign out, protected routes, left nav rail, empty page stubs                                                                        |
+| 4   | Customers               | List, detail, create, edit. No project list yet.                                                                                             |
+| 5   | Projects read-only      | Board rendering all eight columns with cards. No drag.                                                                                       |
+| 6   | Project detail panel    | Slide-over with all sections, inline editing, deep link                                                                                      |
+| 7   | Drag to advance         | dnd-kit wiring, phase transition transaction, activity log, optimistic update                                                                |
+| 8   | Board toolbar           | Search, assignee filter, on-hold toggle, new project modal                                                                                   |
+| 8.5 | Command palette         | ⌘K overlay, project and customer search, phase-move and create actions, keyboard-only operation (see §12.7)                                  |
+| 9   | Customer → project link | Project list on customer detail, wired to the shared slide-over                                                                              |
+| 10  | Calendar                | Timeline view with phase segments and zoom                                                                                                   |
+| 11  | Settings                | Team management, phase subscribers table                                                                                                     |
+| 12  | Polish                  | Empty states, loading skeletons, error boundaries, mobile behavior for the nav rail                                                          |
 
 **Phase 2 slices:**
 
-| # | Slice | Deliverable |
-|---|---|---|
-| 13 | Notifications schema + outbox write | `notifications` table, opt-out columns, subscriber-union recipient resolution, forward-only guard |
-| 14 | Worker and internal email | Cron route, debounce re-check, Resend integration, internal template |
-| 15 | Customer email template | Customer template, phase description copy, reply-to and BCC config, SPF/DKIM/DMARC setup |
-| 16 | Approval queue | `/client-updates` list, preview, send/discard, nav badge, staleness job |
-| 17 | Preferences and unsubscribe | Per-user opt-out, per-customer and per-project toggles, unsubscribe handling, failed-send visibility |
+| #   | Slice                               | Deliverable                                                                                          |
+| --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 13  | Notifications schema + outbox write | `notifications` table, opt-out columns, subscriber-union recipient resolution, forward-only guard    |
+| 14  | Worker and internal email           | Cron route, debounce re-check, Resend integration, internal template                                 |
+| 15  | Customer email template             | Customer template, phase description copy, reply-to and BCC config, SPF/DKIM/DMARC setup             |
+| 16  | Approval queue                      | `/client-updates` list, preview, send/discard, nav badge, staleness job                              |
+| 17  | Preferences and unsubscribe         | Per-user opt-out, per-customer and per-project toggles, unsubscribe handling, failed-send visibility |
 
 ---
 
@@ -555,14 +567,14 @@ Each slice is independently shippable and sized for roughly one Cursor session. 
 
 When a project enters a new phase, send **two** emails with different audiences and different content:
 
-| | Internal | Customer |
-|---|---|---|
-| Recipient | Phase subscribers ∪ project-phase assignee | Customer's contact email |
-| Purpose | "It's your turn to work on this" | "Here's where your project is" |
-| Content | Full project context, deep link into the app | Project name and current phase only |
-| Fires on | Every phase entry | Forward moves into customer-visible phases only |
-| Send behavior | Auto-send after a 5-minute debounce | Drafted, requires staff approval |
-| Opt-out | Per user | Per customer, with per-project override |
+|               | Internal                                     | Customer                                        |
+| ------------- | -------------------------------------------- | ----------------------------------------------- |
+| Recipient     | Phase subscribers ∪ project-phase assignee   | Customer's contact email                        |
+| Purpose       | "It's your turn to work on this"             | "Here's where your project is"                  |
+| Content       | Full project context, deep link into the app | Project name and current phase only             |
+| Fires on      | Every phase entry                            | Forward moves into customer-visible phases only |
+| Send behavior | Auto-send after a 5-minute debounce          | Drafted, requires staff approval                |
+| Opt-out       | Per user                                     | Per customer, with per-project override         |
 
 The customer email is deliberately thin: **project name, the phase it has entered, and a short friendly description of what that phase means.** No dates, no assignees, no internal notes, no deep link. There is no customer login, so there is nowhere for a link to go.
 
@@ -570,7 +582,7 @@ The customer email is deliberately thin: **project name, the phase it has entere
 
 An internal notification firing on a mis-drag costs someone thirty seconds of confusion. A customer notification firing on a mis-drag means Merkat has told a client their project reached permitting when it hasn't. That asymmetry drives four rules:
 
-1. **Forward-only.** Never email a customer when a project moves *backward* in the sequence. Compare `sort_order` of the outgoing and incoming phase; if the new one is lower, enqueue nothing. Backward moves are corrections, and telling a client "your project has returned to schematic design" is never the intent.
+1. **Forward-only.** Never email a customer when a project moves _backward_ in the sequence. Compare `sort_order` of the outgoing and incoming phase; if the new one is lower, enqueue nothing. Backward moves are corrections, and telling a client "your project has returned to schematic design" is never the intent.
 2. **Skips do not fan out.** Dragging from Schematic design to Permitting sends one email about Permitting, not four about every phase crossed. The internal side marks the intermediate rows `skipped`; the customer side ignores them entirely.
 3. **Nothing leaves the building unreviewed.** Customer emails are drafted, not sent. See §8.2.
 4. **Every send is attributable.** `approved_by` and `approved_at` record who released each client email, so "did we tell them?" has an answer.
@@ -581,7 +593,7 @@ Customer emails do not auto-send. Entering a customer-visible phase creates a **
 
 **Flow:**
 
-1. Drag triggers the draft. Toast confirms: *"Moved to Construction Documents. A client update to jane@example.com is ready to review."* with a **Review** action.
+1. Drag triggers the draft. Toast confirms: _"Moved to Construction Documents. A client update to jane@example.com is ready to review."_ with a **Review** action.
 2. The draft appears in a pending-approval list and as an indicator on the project detail panel.
 3. A staff member opens it, sees the exact rendered email, and either **Send now** (sets `pending`, `send_after = now()`, records `approved_by` and `approved_at`) or **Discard** (sets `cancelled`).
 4. The worker only picks up rows in `pending`. Rows in `awaiting_approval` are invisible to it.
@@ -614,6 +626,7 @@ deduplicated by user id. One `notifications` row per resulting recipient:
 If the union is empty, write a warning to the activity log rather than failing silently — a phase nobody is subscribed to is a configuration mistake worth surfacing.
 
 **Customer recipient** — one row, only when **all** of the following hold:
+
 - The move is forward (`sort_order` increases, or the project entered `completed`)
 - `PHASE_PRESENTATION[phase].customerVisible` is true
 - `customers.notify_on_phase_change` is true
@@ -621,6 +634,7 @@ If the union is empty, write a warning to the activity log rather than failing s
 - `customers.contact_email` is non-null and parses as an email
 
 Then:
+
 - `audience` = `customer`
 - `recipient_customer_id`, `recipient_email` snapshotted
 - `idempotency_key` = `customer:{project_id}:{phase}:{entered_at}`
@@ -632,6 +646,7 @@ Snapshotting `recipient_email` matters: if someone edits the customer's contact 
 **Step 2 — deliver (asynchronous worker):**
 
 A cron job runs every minute and:
+
 1. Selects `pending` notifications where `send_after <= now()`, limit 50, `for update skip locked`
 2. **Re-checks that the project is still in that phase.** If not, mark `cancelled` and move on.
 3. Re-checks the opt-out flags for customer rows — a customer may have been switched off during the window
@@ -670,7 +685,7 @@ Warm, brief, and free of internal detail. The customer should finish reading in 
 **Body structure:**
 
 1. Greeting by contact first name, falling back to a neutral greeting when unknown
-2. One line: *{Project name} has moved into {phase label}.*
+2. One line: _{Project name} has moved into {phase label}._
 3. A short, plain-English description of what that phase means (see the copy below)
 4. One line inviting them to reply with questions
 5. Sign-off from Merkat
@@ -678,13 +693,13 @@ Warm, brief, and free of internal detail. The customer should finish reading in 
 
 **Phase descriptions — draft copy for client approval:**
 
-| Phase | Customer-facing description |
-|---|---|
-| Schematic Design | We're developing the initial concepts and overall layout for your project — the big-picture ideas that everything else builds on. |
-| Design Development | We're refining the design and working through materials, systems, and detail. The concept is becoming a concrete plan. |
-| Construction Documents | We're preparing the detailed drawings and specifications your builder will work from. |
-| Permitting | Your drawings have been submitted for permit review. Timing here depends on the local building department. |
-| Completed | Your project is complete. It's been a pleasure working with you. |
+| Phase                  | Customer-facing description                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Schematic Design       | We're developing the initial concepts and overall layout for your project — the big-picture ideas that everything else builds on. |
+| Design Development     | We're refining the design and working through materials, systems, and detail. The concept is becoming a concrete plan.            |
+| Construction Documents | We're preparing the detailed drawings and specifications your builder will work from.                                             |
+| Permitting             | Your drawings have been submitted for permit review. Timing here depends on the local building department.                        |
+| Completed              | Your project is complete. It's been a pleasure working with you.                                                                  |
 
 Merkat should review and rewrite this copy in their own voice — it is a starting point, not a specification. The structure and length are what matter.
 
@@ -703,11 +718,13 @@ Sending to client domains means deliverability matters in a way internal mail do
 These are deliberately unresolved and should be confirmed with Merkat before slice 13:
 
 **Internal:**
+
 - Does the **outgoing** assignee get a "your phase is complete" confirmation?
 - Do project leads want a **daily digest** instead of per-event email?
 - What happens when the incoming phase has **no assignee**? (Recommendation: notify all admins.)
 
 **Customer:**
+
 - Should a customer email fire when a project reaches **Completed**? (Recommendation: yes, with distinct closing copy.)
 - Should moving a project **on hold** notify the customer? (Recommendation: no — that is a conversation, not an automated email.)
 - Should a copy of every customer email be **BCC'd to a Merkat mailbox** so there is a record outside the app? (Recommendation: yes, though §6.7 History covers the in-app case.)
@@ -718,21 +735,21 @@ These are deliberately unresolved and should be confirmed with Merkat before sli
 
 ## 9. Technical decisions
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Framework | Next.js 16.3.0, App Router | Instant Navigations and per-route shell prefetching suit a sidebar app where every click is a lateral move; Turbopack is the stable default |
-| React | 19.2 | Ships with Next 16.3. View Transitions and `<Activity>` are directly useful here |
-| Runtime | Node 20.9+, TypeScript 5.1+ | Hard requirements of Next 16 |
-| Hosting | Vercel | Zero-config for Next.js; cron routes cover the Phase 2 worker without a separate service |
-| Database + auth | Supabase | Postgres with RLS, auth included, no separate auth service to run |
-| Styling | Tailwind CSS v4 | Required by KokonutUI; CSS-variable-native theming |
-| Component base | shadcn/ui | Source lives in the repo, no runtime dependency, fully restyleable |
-| Component accents | KokonutUI, selective | Installs through the same shadcn registry; its animations are already built on Motion, so it composes rather than conflicts. Cherry-picked only — see §12.5 |
-| Animation | Motion (`motion/react`) | Declarative and tied to React state; layout animations are the core of the board experience. See §12 |
-| Drag and drop | dnd-kit | Accessible by default, keyboard support, composes cleanly with Motion's `layout` prop |
-| Icons | Lucide | KokonutUI's dependency; uniform line weight suits the design direction |
-| Email (Phase 2) | Resend + React Email | Simple API, templates authored in the same component model |
-| Worker (Phase 2) | Vercel Cron | Single-org volume does not justify a separate service |
+| Concern           | Choice                      | Rationale                                                                                                                                                   |
+| ----------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework         | Next.js 16.3.0, App Router  | Instant Navigations and per-route shell prefetching suit a sidebar app where every click is a lateral move; Turbopack is the stable default                 |
+| React             | 19.2                        | Ships with Next 16.3. View Transitions and `<Activity>` are directly useful here                                                                            |
+| Runtime           | Node 20.9+, TypeScript 5.1+ | Hard requirements of Next 16                                                                                                                                |
+| Hosting           | Vercel                      | Zero-config for Next.js; cron routes cover the Phase 2 worker without a separate service                                                                    |
+| Database + auth   | Supabase                    | Postgres with RLS, auth included, no separate auth service to run                                                                                           |
+| Styling           | Tailwind CSS v4             | Required by KokonutUI; CSS-variable-native theming                                                                                                          |
+| Component base    | shadcn/ui                   | Source lives in the repo, no runtime dependency, fully restyleable                                                                                          |
+| Component accents | KokonutUI, selective        | Installs through the same shadcn registry; its animations are already built on Motion, so it composes rather than conflicts. Cherry-picked only — see §12.5 |
+| Animation         | Motion (`motion/react`)     | Declarative and tied to React state; layout animations are the core of the board experience. See §12                                                        |
+| Drag and drop     | dnd-kit                     | Accessible by default, keyboard support, composes cleanly with Motion's `layout` prop                                                                       |
+| Icons             | Lucide                      | KokonutUI's dependency; uniform line weight suits the design direction                                                                                      |
+| Email (Phase 2)   | Resend + React Email        | Simple API, templates authored in the same component model                                                                                                  |
+| Worker (Phase 2)  | Vercel Cron                 | Single-org volume does not justify a separate service                                                                                                       |
 
 **Not used: Anime.js.** Evaluated and rejected — see §12.4.
 
@@ -757,13 +774,13 @@ Three claims in v1.0 §9 were wrong in ways that would surface during slice 1.
 **Instant Navigations require Cache Components.** v1.0 said to wrap route content in `<Suspense>` and "use the `instant()` test helper to verify each route," implying both are available by default. Neither is. The validation apparatus is gated on `cacheComponents: true` in `next.config.ts`, and `instant()` ships in the separate `@next/playwright` package alongside `@playwright/test` — it is an end-to-end test helper, not a unit-test utility.
 
 ```ts filename="next.config.ts"
-import type { NextConfig } from 'next'
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-}
+	cacheComponents: true,
+};
 
-export default nextConfig
+export default nextConfig;
 ```
 
 With Cache Components on, validation runs on every Page and Default segment in development and surfaces anything that would block a navigation. `export const instant = false` opts a page or layout out.
@@ -781,14 +798,13 @@ Blocking questions to resolve with Merkat before or during the relevant slice.
 ### High priority
 
 1. **Does the phase list match reality?** The proposed sequence (schematic design → design development → construction documents → review → permitting) is close to but not identical to AIA standard, which runs schematic design → design development → construction documents → bidding/negotiation → construction administration.
-
-   - **What is "review"?** Internal QA/QC before documents go out, or client review of the design set? If it is internal QA that recurs after *every* phase, it belongs as a checklist item on each phase, not as a standalone column.
-   - **Where is construction administration?** If Merkat's involvement continues through construction, `completed` is currently hiding months of billable work with real deadlines.
-   - **Where does pre-design / programming live?** This may be what `backlog` is actually holding.
+    - **What is "review"?** Internal QA/QC before documents go out, or client review of the design set? If it is internal QA that recurs after _every_ phase, it belongs as a checklist item on each phase, not as a standalone column.
+    - **Where is construction administration?** If Merkat's involvement continues through construction, `completed` is currently hiding months of billable work with real deadlines.
+    - **Where does pre-design / programming live?** This may be what `backlog` is actually holding.
 
 2. **What does "pending" mean?** Currently undefined, which means it will become a junk-drawer column used inconsistently. Working assumption: signed but not yet started, awaiting a prerequisite (deposit, survey, site selection). If confirmed, rename the column to something concrete such as **"Awaiting kickoff."** If it actually means "stalled mid-project," it is a flag rather than a column and the model changes.
 
-3. **Do all projects run the same five phases?** Assumption for MVP is yes, with skipping allowed. If different project types (new build, tenant improvement, feasibility study, permit-only) run different phase sets, that is a Phase 3 addition: a `project_types` table and a `phase_templates` table, changing only *which* `project_phases` rows are seeded at creation. Seeding phase rows in the MVP is what keeps this additive rather than a migration.
+3. **Do all projects run the same five phases?** Assumption for MVP is yes, with skipping allowed. If different project types (new build, tenant improvement, feasibility study, permit-only) run different phase sets, that is a Phase 3 addition: a `project_types` table and a `phase_templates` table, changing only _which_ `project_phases` rows are seeded at creation. Seeding phase rows in the MVP is what keeps this additive rather than a migration.
 
 ### Lower priority
 
@@ -798,7 +814,7 @@ Blocking questions to resolve with Merkat before or during the relevant slice.
 
 5a. **What is Merkat's existing project numbering?** Three things need confirming before the slice 2 migration runs: whether the `MK-` prefix is right, how many digits, and what value `project_number_seq` should start at so new projects continue the existing series rather than colliding with it. If the current numbering encodes anything — year, project type, office — say so now, because a smart key is a different design than a counter.
 
-6. **Does Merkat need more than one contact per customer?** Resolved for notification purposes — customer updates go to a single `contact_email`. Still worth asking whether they need to *record* additional contacts (owner, client-side PM, GC) for reference, even if only one receives email. If yes, that is a `customer_contacts` table with a `is_primary` flag, and it is cheaper to add in slice 4 than later.
+6. **Does Merkat need more than one contact per customer?** Resolved for notification purposes — customer updates go to a single `contact_email`. Still worth asking whether they need to _record_ additional contacts (owner, client-side PM, GC) for reference, even if only one receives email. If yes, that is a `customer_contacts` table with a `is_primary` flag, and it is cheaper to add in slice 4 than later.
 
 7. **Is `review` internal or client-facing?** Now consequential in three places: whether it is a board column at all (Q1), whether entering it generates a customer email, and whether it needs phase subscribers. Currently set to `customerVisible: false` on the assumption it is internal QA.
 
@@ -830,23 +846,23 @@ The direction is **drafting-precise, not blueprint-kitsch.** No cyan grids, no f
 **Palette** — two colors and a neutral ramp. Nothing else.
 
 ```css
---paper:        #FBFBFA;  /* page */
---surface:      #FFFFFF;  /* cards */
---rule:         #E4E4E1;  /* hairlines, 1px, everywhere */
---rule-strong:  #C9CAC5;
---ink:          #16181A;  /* primary text */
---ink-mid:      #5F6469;  /* secondary text */
---ink-soft:     #8E9298;  /* hints, disabled */
+--paper: #fbfbfa; /* page */
+--surface: #ffffff; /* cards */
+--rule: #e4e4e1; /* hairlines, 1px, everywhere */
+--rule-strong: #c9cac5;
+--ink: #16181a; /* primary text */
+--ink-mid: #5f6469; /* secondary text */
+--ink-soft: #8e9298; /* hints, disabled */
 
 /* Phase ramp — ONE hue, five values. Progression reads as progression. */
---phase-1:      #D7E4E2;  /* schematic design */
---phase-2:      #A8C6C2;  /* design development */
---phase-3:      #6FA29C;  /* construction documents */
---phase-4:      #3D7A74;  /* review */
---phase-5:      #1B5450;  /* permitting */
+--phase-1: #d7e4e2; /* schematic design */
+--phase-2: #a8c6c2; /* design development */
+--phase-3: #6fa29c; /* construction documents */
+--phase-4: #3d7a74; /* review */
+--phase-5: #1b5450; /* permitting */
 
---redline:      #C8382A;  /* overdue, on hold, destructive — the red pen */
---focus:        #1B5450;  /* focus rings, primary actions */
+--redline: #c8382a; /* overdue, on hold, destructive — the red pen */
+--focus: #1b5450; /* focus rings, primary actions */
 ```
 
 The phase ramp is the one decision to defend hardest. Five arbitrary hues is what every kanban tool does, and it's wrong here: phases are a **sequence**, and a rainbow encodes no order. A single hue darkening left to right means someone can read progress off the board's color alone, from across the room, without learning a legend. Backlog and Pending sit outside the ramp in neutral gray; Completed sits outside it in `--ink-soft`.
@@ -874,18 +890,18 @@ Motion here is functional, not decorative. Every animation answers a question th
 
 ### 12.3 Motion features and where each applies
 
-| Feature | Where | Why |
-|---|---|---|
-| `layout` prop | Board cards | When a card leaves a column, the cards below close the gap smoothly instead of snapping. This is the single highest-value animation in the product — it makes the board feel like objects rather than a re-rendered list |
-| `layoutId` | Card → detail panel | The card's title and phase rule morph into the panel header, so the panel is visibly *that project* opening rather than a generic drawer appearing |
-| `AnimatePresence` | Slide-over, toasts, modals, drafts leaving the approval queue | Exit animations. Without it, dismissing anything is a hard cut |
-| `whileHover` / `whileTap` | Cards, buttons, column subscriber avatars | A 1.01 lift on hover and a 0.98 press on tap. Small enough to feel like physics, not decoration |
-| `useOptimistic` + `layout` | Drag to advance | The card lands in the new column instantly and the phase rule fills; rollback on server error animates it back, which reads as a genuine failure rather than a glitch |
-| `AnimatePresence` `mode="popLayout"` | Column card counts | Counts increment without layout jump |
-| `useReducedMotion` | Phase rule, drag feedback | Swap the fill animation for an instant state change |
-| `MotionConfig` | Root layout | Global reduced-motion and default transition config in one place |
-| `LazyMotion` + `domAnimation` | Root | Cuts the Motion bundle to roughly a third by loading only DOM features |
-| Stagger via `delay` | Board first paint, calendar bars | Cards enter in a 20ms cascade per column. Enough to feel composed, short enough not to delay work |
+| Feature                              | Where                                                         | Why                                                                                                                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `layout` prop                        | Board cards                                                   | When a card leaves a column, the cards below close the gap smoothly instead of snapping. This is the single highest-value animation in the product — it makes the board feel like objects rather than a re-rendered list |
+| `layoutId`                           | Card → detail panel                                           | The card's title and phase rule morph into the panel header, so the panel is visibly _that project_ opening rather than a generic drawer appearing                                                                       |
+| `AnimatePresence`                    | Slide-over, toasts, modals, drafts leaving the approval queue | Exit animations. Without it, dismissing anything is a hard cut                                                                                                                                                           |
+| `whileHover` / `whileTap`            | Cards, buttons, column subscriber avatars                     | A 1.01 lift on hover and a 0.98 press on tap. Small enough to feel like physics, not decoration                                                                                                                          |
+| `useOptimistic` + `layout`           | Drag to advance                                               | The card lands in the new column instantly and the phase rule fills; rollback on server error animates it back, which reads as a genuine failure rather than a glitch                                                    |
+| `AnimatePresence` `mode="popLayout"` | Column card counts                                            | Counts increment without layout jump                                                                                                                                                                                     |
+| `useReducedMotion`                   | Phase rule, drag feedback                                     | Swap the fill animation for an instant state change                                                                                                                                                                      |
+| `MotionConfig`                       | Root layout                                                   | Global reduced-motion and default transition config in one place                                                                                                                                                         |
+| `LazyMotion` + `domAnimation`        | Root                                                          | Cuts the Motion bundle to roughly a third by loading only DOM features                                                                                                                                                   |
+| Stagger via `delay`                  | Board first paint, calendar bars                              | Cards enter in a 20ms cascade per column. Enough to feel composed, short enough not to delay work                                                                                                                        |
 
 **Deliberately not used:** `useScroll` and scroll-linked parallax (no scroll narrative in an app), `Reorder` (dnd-kit owns dragging), SVG path drawing, and every Motion+ paid component. `AnimateNumber`, `Ticker`, `Typewriter`, and `ScrambleText` are all behind Motion+ and none is worth a license for an internal tool.
 
@@ -909,12 +925,12 @@ The caveat that matters: **most of the library is designed for marketing sites.*
 
 **Take:**
 
-| Category | Use | Why |
-|---|---|---|
-| Navigation | Left rail, collapsible behavior | Solves the collapse/expand animation and the icon-only state well |
-| Cards | Base for the project card | Structure and hover states; restyle entirely to the palette |
-| Inputs | Command palette (⌘K), search, selects | The command palette is the highest-leverage single component in the whole product — see below |
-| Buttons | Primary actions | Take the press interaction; drop the particle variants |
+| Category   | Use                                   | Why                                                                                           |
+| ---------- | ------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Navigation | Left rail, collapsible behavior       | Solves the collapse/expand animation and the icon-only state well                             |
+| Cards      | Base for the project card             | Structure and hover states; restyle entirely to the palette                                   |
+| Inputs     | Command palette (⌘K), search, selects | The command palette is the highest-leverage single component in the whole product — see below |
+| Buttons    | Primary actions                       | Take the press interaction; drop the particle variants                                        |
 
 **Skip:** every Backgrounds component (animated gradients on a data-dense tool are noise), the AI category (not applicable), and Texts (animated headline effects belong on a landing page).
 
@@ -934,8 +950,8 @@ The caveat that matters: **most of the library is designed for marketing sites.*
 
 ### 12.7 Additional MVP slice
 
-| # | Slice | Deliverable |
-|---|---|---|
+| #   | Slice           | Deliverable                                                                                     |
+| --- | --------------- | ----------------------------------------------------------------------------------------------- |
 | 8.5 | Command palette | ⌘K overlay, project and customer search, phase-move and create actions, keyboard-only operation |
 
 Insert after slice 8. It depends on the board and detail panel existing, and everything after it benefits from having it.
