@@ -1,6 +1,6 @@
 -- Seed after auth users exist. For local Supabase, create users first:
---   email: chris@merkat.studio / password
---   email: sana@merkat.studio / password
+--   email: chris@merkhet.studio / password
+--   email: sana@merkhet.studio / password
 -- with raw_user_meta_data role admin/staff, then run this against public tables.
 --
 -- Demo mode in the app does not need this file — it uses lib/db/demo-store.ts.

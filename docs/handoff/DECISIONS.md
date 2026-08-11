@@ -37,8 +37,60 @@ User correction (explicit): *“Follow the PRD. The mockup is just a design.”*
 - Nav: 208px → 56px collapsed; teal “M”; active = white + 2px inset left `--phase-5`
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
+- Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
 - Detail sheet `--container-xl` (36rem / 576px); BACKLOG badge + Put on hold; CUSTOMER “FULL RECORD” in phase-5 teal
   - Set as `data-[side=right]:sm:max-w-xl`. **The variant prefix must match** `components/ui/sheet.tsx`'s own `data-[side=right]:sm:max-w-sm` — tailwind-merge keys on the full prefix, so a plain `sm:max-w-*` override does **not** replace it. Both classes survive and the more specific base rule wins. That is how the sheet rendered at 384px for months while the source said `sm:max-w-[520px]`. Same trap applies to any `SheetContent` override.
+
+## Board drag-and-drop
+
+**Collision detection is custom — do not revert it to a single dnd-kit strategy.**
+
+`closestCorners` ranks droppables by corner-to-corner distance. An empty column's only droppable is its full-height container, so its corners sit at the very top and bottom; a pointer aimed at the middle is far from both, and a neighbouring column's *card* — a small rect with corners right there — wins instead. A populated column has cards scattered down it, which is why dropping got easy the moment one card landed. Reproduced directly against dnd-kit with real column geometry:
+
+```
+aiming at middle of EMPTY column B:
+  closestCorners -> cardA1   (a card in the WRONG column)
+  pointerWithin  -> colB     (correct)
+```
+
+`boardCollisionDetection` therefore tries, in order:
+
+1. `pointerWithin` — any point inside a column is a valid target, so column height stops mattering
+2. `rectIntersection` — **required**: `pointerWithin` returns nothing when there is no pointer, i.e. keyboard dragging
+3. `closestCorners` — last resort
+
+**Collapsed columns must keep `ref={setNodeRef}`.** Without it they are not drop targets at all, and Completed ships collapsed (§6.2) — so completing a project by drag was impossible until you expanded it.
+
+Dropping onto a card resolves to that card's column in `onDragEnd`, so `pointerWithin` returning both the card and its column is harmless.
+
+## Calendar bar labels
+
+Bar text is contrast-switched, not one colour. The phase ramp spans `#d7e4e2` → `#1b5450`, so no single text colour clears WCAG AA across it (§12.6 calls this out for the two darkest segments specifically). Computed, not estimated:
+
+| Segment | ink | paper | uses |
+|---|---|---|---|
+| phase-1 | 13.63 | 1.26 | ink |
+| phase-2 | 9.77 | 1.76 | ink |
+| phase-3 | 6.21 | 2.77 | ink |
+| phase-4 | **3.59** | 4.79 | paper |
+| phase-5 | **2.06** | 8.34 | paper |
+
+Two consequences worth preserving:
+
+- **The fill is its own layer.** A completed phase dims to `opacity: 0.4`; if that opacity sat on the element it would drag the label down with it. Dimming only the fill keeps the label at full strength — and a dimmed fill reads as a pale tint, so completed segments use ink regardless of phase.
+- **Labels are width-fitted** (`fitLabel`): full label → AIA shorthand (`SD`/`DD`/`CD`/`REV`/`PERM`) → nothing. Bar widths are already known in px, so this is arithmetic, not DOM measurement. Row labels in the sticky left column repeat the status, because narrow bars and the undated grey bar can't hold text at any zoom.
+
+## SSR determinism (hydration)
+
+Cache Components prerenders these routes, so anything non-deterministic between Node and the browser surfaces as a hydration mismatch. Three were fixed on Aug 10; the patterns generalise:
+
+| Cause | Fix |
+|---|---|
+| `Math.sin`/`Math.cos` in SVG path `d` — ECMAScript does **not** require them to be correctly rounded, so Node and the browser engine differ in the last few ulp | Quantise coordinates (`toFixed(2)`) before they reach the attribute |
+| `Math.random()` for React keys | Deterministic ids (`primary-0`, …) |
+| dnd-kit derives a11y ids from a module-level counter that drifts across server/client (`DndDescribedBy-0` vs `-1`) | Pass an explicit `id` to `DndContext` |
+
+**Where to look:** hydration errors are reported by the *browser*, so `curl` will never reproduce one. They land in `.next/dev/logs/next-development.log` (`"source":"Browser"`) and the dev overlay.
 
 ## shadcn here is Base UI, not Radix
 

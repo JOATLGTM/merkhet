@@ -1,4 +1,4 @@
--- Merkat MVP schema (§5)
+-- Merkhet MVP schema (§5)
 
 create type project_status as enum ('backlog', 'pending', 'active', 'completed');
 create type design_phase as enum (

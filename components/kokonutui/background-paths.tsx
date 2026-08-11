@@ -6,7 +6,7 @@
  * @license: MIT
  * @website: https://kokonutui.com/docs/backgrounds/background-paths
  *
- * Merkat changes:
+ * Merkhet changes:
  * - `m.*` instead of `motion.*` (root LazyMotion runs in strict mode)
  * - Palette swapped to the §12.1 phase ramp; no ad-hoc hex
  * - Hairline stroke weights instead of the original 4–7px rounded strokes
@@ -152,7 +152,7 @@ const PathGroup = memo(function PathGroup({
         <m.path
           key={path.id}
           d={path.d}
-          stroke="url(#merkat-path-ramp)"
+          stroke="url(#merkhet-path-ramp)"
           strokeLinecap="round"
           strokeWidth={path.width}
           initial={{ opacity: 0 }}
@@ -218,7 +218,7 @@ export const BackgroundPaths = memo(function BackgroundPaths({
       >
         <defs>
           <linearGradient
-            id="merkat-path-ramp"
+            id="merkhet-path-ramp"
             x1="0%"
             x2="100%"
             y1="0%"

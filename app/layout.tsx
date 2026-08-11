@@ -17,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Merkat",
-  description: "Internal project tracking for Merkat",
+  title: "Merkhet",
+  description: "Internal project tracking for Merkhet",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

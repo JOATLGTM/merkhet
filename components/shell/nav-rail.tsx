@@ -62,7 +62,7 @@ export function NavRail({ user }: NavRailProps) {
         >
           M
         </span>
-        {!collapsed && <span className="label-caps text-ink">Merkat</span>}
+        {!collapsed && <span className="label-caps text-ink">Merkhet</span>}
       </div>
 
       <ul className="flex-1 space-y-0.5 p-2">

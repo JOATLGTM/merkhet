@@ -20,13 +20,13 @@ export default function LoginPage() {
         <div className="mb-8 flex items-center gap-2">
           <span className="size-2 bg-ink" />
           <span className="font-mono text-[11px] font-medium uppercase tracking-[0.32em] text-ink">
-            Merkat
+            Merkhet
           </span>
         </div>
         <h1 className="text-[20px] text-ink">Sign in</h1>
         <p className="mt-2 text-[13px] text-ink-mid">
           Internal project record. Demo:{" "}
-          <span className="font-mono text-ink">chris@merkat.studio</span> /{" "}
+          <span className="font-mono text-ink">chris@merkhet.studio</span> /{" "}
           <span className="font-mono text-ink">password</span>
         </p>
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
               autoComplete="email"
               required
               className="rounded-[2px] border-rule"
-              defaultValue="chris@merkat.studio"
+              defaultValue="chris@merkhet.studio"
             />
           </div>
           <div className="space-y-2">

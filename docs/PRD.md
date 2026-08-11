@@ -1,4 +1,4 @@
-# Merkat Project Management Platform — PRD
+# Merkhet Project Management Platform — PRD
 
 **Version:** 1.1 (MVP)
 **Status:** Draft for client review
@@ -23,7 +23,7 @@
 
 ### 1.1 Problem
 
-Merkat is an architecture firm managing multiple concurrent projects, each moving through a defined sequence of design phases. Today there is no single place to answer three questions:
+Merkhet is an architecture firm managing multiple concurrent projects, each moving through a defined sequence of design phases. Today there is no single place to answer three questions:
 
 1. Where is every project right now?
 2. Who is responsible for the current phase of each project?
@@ -45,7 +45,7 @@ MVP is read/write project tracking. Phase 2 adds automated email handoff notific
 
 The MVP is successful if:
 
-- Every active Merkat project exists in the system with an owner per phase
+- Every active Merkhet project exists in the system with an owner per phase
 - Staff can determine any project's status without asking anyone
 - A phase handoff is a single drag action, logged with who and when
 - The team stops maintaining the current spreadsheet
@@ -54,7 +54,7 @@ The MVP is successful if:
 
 ## 2. Users and roles
 
-Internal Merkat staff only. **Customers never log in.** Customers are data records, not authentication principals.
+Internal Merkhet staff only. **Customers never log in.** Customers are data records, not authentication principals.
 
 | Role  | Capabilities                                            |
 | ----- | ------------------------------------------------------- |
@@ -198,7 +198,7 @@ create table customers (
   updated_at timestamptz not null default now()
 );
 
--- Seeded to continue Merkat's existing numbering; confirm the starting value
+-- Seeded to continue Merkhet's existing numbering; confirm the starting value
 -- before running the migration (see §10.5).
 create sequence project_number_seq start 1;
 
@@ -511,7 +511,7 @@ Phase dates are **not** required. The calendar must degrade gracefully when they
 
 ### 6.7 Client updates (`/client-updates`, Phase 2)
 
-The approval queue for customer emails. Kept deliberately minimal so it can be deleted cheaply if Merkat later switches to auto-send.
+The approval queue for customer emails. Kept deliberately minimal so it can be deleted cheaply if Merkhet later switches to auto-send.
 
 **List:** drafts in `awaiting_approval`, newest first. Each row shows project name, customer name, phase, recipient email, and age. A count badge appears on the nav item when drafts exist.
 
@@ -580,7 +580,7 @@ The customer email is deliberately thin: **project name, the phase it has entere
 
 ### 8.1.1 Why customer email changes the design
 
-An internal notification firing on a mis-drag costs someone thirty seconds of confusion. A customer notification firing on a mis-drag means Merkat has told a client their project reached permitting when it hasn't. That asymmetry drives four rules:
+An internal notification firing on a mis-drag costs someone thirty seconds of confusion. A customer notification firing on a mis-drag means Merkhet has told a client their project reached permitting when it hasn't. That asymmetry drives four rules:
 
 1. **Forward-only.** Never email a customer when a project moves _backward_ in the sequence. Compare `sort_order` of the outgoing and incoming phase; if the new one is lower, enqueue nothing. Backward moves are corrections, and telling a client "your project has returned to schematic design" is never the intent.
 2. **Skips do not fan out.** Dragging from Schematic design to Permitting sends one email about Permitting, not four about every phase crossed. The internal side marks the intermediate rows `skipped`; the customer side ignores them entirely.
@@ -667,9 +667,9 @@ The unique constraint on `idempotency_key` guarantees that a worker crash mid-ru
 
 ### 8.5 Email content — internal
 
-- **Subject:** `[Merkat] {project name} is ready for {phase name}`
+- **Subject:** `[Merkhet] {project name} is ready for {phase name}`
 - **Body:** project name, customer name, phase entered, who moved it, target completion date, any phase planned dates, and a deep link to `/?project={id}`
-- **From:** `Merkat Projects <projects@{domain}>`
+- **From:** `Merkhet Projects <projects@{domain}>`
 - **Footer:** link to notification preferences
 
 Plain and functional. This is a work queue notification, not marketing.
@@ -679,8 +679,8 @@ Plain and functional. This is a work queue notification, not marketing.
 Warm, brief, and free of internal detail. The customer should finish reading in under fifteen seconds and know exactly one thing: what stage their project is in.
 
 - **Subject:** `Your project has moved to {customer phase label}`
-- **From:** `Merkat <hello@{domain}>`
-- **Reply-To:** a monitored human mailbox at Merkat — **never** `noreply@`. Clients will reply to this email, and those replies must reach someone.
+- **From:** `Merkhet <hello@{domain}>`
+- **Reply-To:** a monitored human mailbox at Merkhet — **never** `noreply@`. Clients will reply to this email, and those replies must reach someone.
 
 **Body structure:**
 
@@ -688,7 +688,7 @@ Warm, brief, and free of internal detail. The customer should finish reading in 
 2. One line: _{Project name} has moved into {phase label}._
 3. A short, plain-English description of what that phase means (see the copy below)
 4. One line inviting them to reply with questions
-5. Sign-off from Merkat
+5. Sign-off from Merkhet
 6. Footer with the firm's name, and an unsubscribe link
 
 **Phase descriptions — draft copy for client approval:**
@@ -701,21 +701,21 @@ Warm, brief, and free of internal detail. The customer should finish reading in 
 | Permitting             | Your drawings have been submitted for permit review. Timing here depends on the local building department.                        |
 | Completed              | Your project is complete. It's been a pleasure working with you.                                                                  |
 
-Merkat should review and rewrite this copy in their own voice — it is a starting point, not a specification. The structure and length are what matter.
+Merkhet should review and rewrite this copy in their own voice — it is a starting point, not a specification. The structure and length are what matter.
 
 **Explicitly not in the customer email:** target completion dates, assignee names, hours allocated, internal notes, project numbers, other projects, any link into the application, and any information about phases the project has skipped.
 
-Withholding dates is deliberate. A date in a client's inbox becomes a commitment they will hold the firm to, and the whole point of the internal target date is that it moves. If Merkat wants to communicate timing, that should be a considered decision per project, not an automatic consequence of a drag.
+Withholding dates is deliberate. A date in a client's inbox becomes a commitment they will hold the firm to, and the whole point of the internal target date is that it moves. If Merkhet wants to communicate timing, that should be a considered decision per project, not an automatic consequence of a drag.
 
 ### 8.7 Compliance and deliverability
 
-Customer email is transactional — it concerns an existing business relationship and carries no promotional content — so CAN-SPAM's commercial-message rules apply only lightly. Regardless, include a working unsubscribe that sets `customers.notify_on_phase_change = false`, and include Merkat's physical business address in the footer. Both are cheap now and awkward to retrofit.
+Customer email is transactional — it concerns an existing business relationship and carries no promotional content — so CAN-SPAM's commercial-message rules apply only lightly. Regardless, include a working unsubscribe that sets `customers.notify_on_phase_change = false`, and include Merkhet's physical business address in the footer. Both are cheap now and awkward to retrofit.
 
-Sending to client domains means deliverability matters in a way internal mail does not. Before launch: configure SPF, DKIM, and DMARC on the sending domain, and send from a subdomain (`mail.{domain}`) so a deliverability problem cannot damage the reputation of Merkat's primary domain.
+Sending to client domains means deliverability matters in a way internal mail does not. Before launch: configure SPF, DKIM, and DMARC on the sending domain, and send from a subdomain (`mail.{domain}`) so a deliverability problem cannot damage the reputation of Merkhet's primary domain.
 
 ### 8.8 Open decisions for Phase 2
 
-These are deliberately unresolved and should be confirmed with Merkat before slice 13:
+These are deliberately unresolved and should be confirmed with Merkhet before slice 13:
 
 **Internal:**
 
@@ -727,7 +727,7 @@ These are deliberately unresolved and should be confirmed with Merkat before sli
 
 - Should a customer email fire when a project reaches **Completed**? (Recommendation: yes, with distinct closing copy.)
 - Should moving a project **on hold** notify the customer? (Recommendation: no — that is a conversation, not an automated email.)
-- Should a copy of every customer email be **BCC'd to a Merkat mailbox** so there is a record outside the app? (Recommendation: yes, though §6.7 History covers the in-app case.)
+- Should a copy of every customer email be **BCC'd to a Merkhet mailbox** so there is a record outside the app? (Recommendation: yes, though §6.7 History covers the in-app case.)
 - **Resolved:** customer emails require approval rather than auto-sending. See §8.2.
 - **Resolved:** one contact per customer. Customer email goes to `customers.contact_email` only.
 
@@ -755,7 +755,7 @@ These are deliberately unresolved and should be confirmed with Merkat before sli
 
 **State management:** none. Server components plus server actions plus `useOptimistic` for the board. Do not introduce Redux, Zustand, or React Query unless a specific need emerges.
 
-**Realtime:** out of scope for MVP. Merkat's team is small enough that stale board state is not a practical problem. Supabase Realtime can be added later without schema change.
+**Realtime:** out of scope for MVP. Merkhet's team is small enough that stale board state is not a practical problem. Supabase Realtime can be added later without schema change.
 
 ### 9.1 Next.js 16.3 specifics
 
@@ -793,13 +793,13 @@ With Cache Components on, validation runs on every Page and Default segment in d
 
 ## 10. Open questions
 
-Blocking questions to resolve with Merkat before or during the relevant slice.
+Blocking questions to resolve with Merkhet before or during the relevant slice.
 
 ### High priority
 
 1. **Does the phase list match reality?** The proposed sequence (schematic design → design development → construction documents → review → permitting) is close to but not identical to AIA standard, which runs schematic design → design development → construction documents → bidding/negotiation → construction administration.
     - **What is "review"?** Internal QA/QC before documents go out, or client review of the design set? If it is internal QA that recurs after _every_ phase, it belongs as a checklist item on each phase, not as a standalone column.
-    - **Where is construction administration?** If Merkat's involvement continues through construction, `completed` is currently hiding months of billable work with real deadlines.
+    - **Where is construction administration?** If Merkhet's involvement continues through construction, `completed` is currently hiding months of billable work with real deadlines.
     - **Where does pre-design / programming live?** This may be what `backlog` is actually holding.
 
 2. **What does "pending" mean?** Currently undefined, which means it will become a junk-drawer column used inconsistently. Working assumption: signed but not yet started, awaiting a prerequisite (deposit, survey, site selection). If confirmed, rename the column to something concrete such as **"Awaiting kickoff."** If it actually means "stalled mid-project," it is a flag rather than a column and the model changes.
@@ -812,13 +812,13 @@ Blocking questions to resolve with Merkat before or during the relevant slice.
 
 5. Are there project attributes not yet captured — address, square footage, permit jurisdiction? These are cheap to add now and awkward to retrofit into forms later. **Project number is resolved** and now in the schema (§5.2); see Q5a.
 
-5a. **What is Merkat's existing project numbering?** Three things need confirming before the slice 2 migration runs: whether the `MK-` prefix is right, how many digits, and what value `project_number_seq` should start at so new projects continue the existing series rather than colliding with it. If the current numbering encodes anything — year, project type, office — say so now, because a smart key is a different design than a counter.
+5a. **What is Merkhet's existing project numbering?** Three things need confirming before the slice 2 migration runs: whether the `MK-` prefix is right, how many digits, and what value `project_number_seq` should start at so new projects continue the existing series rather than colliding with it. If the current numbering encodes anything — year, project type, office — say so now, because a smart key is a different design than a counter.
 
-6. **Does Merkat need more than one contact per customer?** Resolved for notification purposes — customer updates go to a single `contact_email`. Still worth asking whether they need to _record_ additional contacts (owner, client-side PM, GC) for reference, even if only one receives email. If yes, that is a `customer_contacts` table with a `is_primary` flag, and it is cheaper to add in slice 4 than later.
+6. **Does Merkhet need more than one contact per customer?** Resolved for notification purposes — customer updates go to a single `contact_email`. Still worth asking whether they need to _record_ additional contacts (owner, client-side PM, GC) for reference, even if only one receives email. If yes, that is a `customer_contacts` table with a `is_primary` flag, and it is cheaper to add in slice 4 than later.
 
 7. **Is `review` internal or client-facing?** Now consequential in three places: whether it is a board column at all (Q1), whether entering it generates a customer email, and whether it needs phase subscribers. Currently set to `customerVisible: false` on the assumption it is internal QA.
 
-8. **Who approves client updates?** Anyone on staff, or admins only? The PRD currently allows any staff member. If Merkat wants principal-only approval, that is a role check on the send action.
+8. **Who approves client updates?** Anyone on staff, or admins only? The PRD currently allows any staff member. If Merkhet wants principal-only approval, that is a role check on the send action.
 
 ---
 
@@ -839,7 +839,7 @@ Documented so they can be challenged rather than silently inherited.
 
 ### 12.1 Aesthetic thesis
 
-Merkat is an architecture firm. Their people spend all day inside drawing sets — hairline linework, title blocks, sheet indexes, dimension strings, red pen on check prints. That vocabulary is the source material, and it earns its place here for a functional reason as well as a visual one: this is a dense information tool, and drafting conventions are what precision-under-density looks like when it's done right.
+Merkhet is an architecture firm. Their people spend all day inside drawing sets — hairline linework, title blocks, sheet indexes, dimension strings, red pen on check prints. That vocabulary is the source material, and it earns its place here for a functional reason as well as a visual one: this is a dense information tool, and drafting conventions are what precision-under-density looks like when it's done right.
 
 The direction is **drafting-precise, not blueprint-kitsch.** No cyan grids, no faux paper texture, no drop shadows pretending to be depth. Hairline rules, a disciplined grid, tabular numerals, and one color used like a red pen.
 
@@ -913,7 +913,7 @@ The overlap is near-total for this application's needs. Anime.js ships `Layout` 
 
 Anime.js wins decisively in three areas: SVG path drawing (`createDrawable`), shape morphing (`morphTo`), and long imperative timeline orchestration. None of those appear in this product. The calendar is HTML bars, not SVG. There is no hero sequence to orchestrate. `splitText` and `scrambleText` are genuinely lovely and belong on a marketing site, not on a screen someone stares at all day.
 
-**Revisit this decision if** Merkat later wants a public marketing page for the tool, or the calendar moves to a true SVG Gantt with drawn dependency arrows. Both are real cases for Anime.js. Neither is in scope.
+**Revisit this decision if** Merkhet later wants a public marketing page for the tool, or the calendar moves to a true SVG Gantt with drawn dependency arrows. Both are real cases for Anime.js. Neither is in scope.
 
 Choosing one animation library and using it well is what makes an interface feel coherent. Two libraries is how it starts feeling assembled.
 

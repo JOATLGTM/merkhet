@@ -1,6 +1,6 @@
-# Merkat
+# Merkhet
 
-Internal project tracking for Merkat Architecture.
+Internal project tracking for Merkhet Architecture.
 
 ## Stack
 
@@ -25,8 +25,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Email | Password | Role |
 |---|---|---|
-| `chris@merkat.studio` | `password` | Admin |
-| `dana@merkat.studio` | `password` | Staff |
+| `chris@merkhet.studio` | `password` | Admin |
+| `dana@merkhet.studio` | `password` | Staff |
 
 ⌘K opens the command palette.
 

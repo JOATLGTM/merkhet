@@ -257,7 +257,7 @@ export function BoardView({
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("merkat-board-collapsed");
+      const raw = localStorage.getItem("merkhet-board-collapsed");
       if (raw) setCollapsed(JSON.parse(raw) as Record<string, boolean>);
     } catch {
       /* ignore */
@@ -265,7 +265,7 @@ export function BoardView({
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("merkat-board-collapsed", JSON.stringify(collapsed));
+    localStorage.setItem("merkhet-board-collapsed", JSON.stringify(collapsed));
   }, [collapsed]);
 
   const usersById = new Map(users.map((u) => [u.id, u]));
@@ -406,7 +406,7 @@ export function BoardView({
         // dnd-kit derives its a11y ids from a module-level counter, which
         // drifts between the server render and hydration (`DndDescribedBy-0`
         // vs `-1`). An explicit id pins it.
-        id="merkat-board"
+        id="merkhet-board"
         sensors={sensors}
         collisionDetection={boardCollisionDetection}
         onDragStart={onDragStart}

@@ -1,11 +1,11 @@
 ---
-description: Load Merkat session handoff context before continuing product work
+description: Load Merkhet session handoff context before continuing product work
 alwaysApply: true
 ---
 
 # Session handoff
 
-Before implementing Merkat features or UI changes, read:
+Before implementing Merkhet features or UI changes, read:
 
 1. `docs/handoff/README.md`
 2. `docs/handoff/CURRENT_STATE.md`

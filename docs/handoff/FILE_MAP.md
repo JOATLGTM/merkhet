@@ -35,8 +35,9 @@
 | Project card | `components/projects/project-card.tsx` |
 | Detail sheet | `components/projects/project-detail-sheet.tsx` |
 | Phase rule (5-seg) | `components/projects/phase-rule.tsx` |
-| New project dialog | `components/projects/new-project-dialog.tsx` |
+| New project dialog (incl. inline customer create) | `components/projects/new-project-dialog.tsx` |
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
+| shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |
 | Motion provider | `components/providers/motion-provider.tsx` |
 | Login background paths | `components/kokonutui/background-paths.tsx` |

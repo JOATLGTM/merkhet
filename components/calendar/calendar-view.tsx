@@ -21,7 +21,7 @@ type CalendarViewProps = {
   users: User[];
 };
 
-const ZOOM_KEY = "merkat.calendar.zoom";
+const ZOOM_KEY = "merkhet.calendar.zoom";
 
 const PHASE_COLOR: Record<DesignPhase, string> = {
   schematic_design: "var(--phase-1)",

@@ -73,7 +73,7 @@ const users: User[] = [
   {
     id: chrisId,
     name: "Chris Alvarado",
-    email: "chris@merkat.studio",
+    email: "chris@merkhet.studio",
     role: "admin",
     is_active: true,
     created_at: "2026-01-01T12:00:00.000Z",
@@ -81,7 +81,7 @@ const users: User[] = [
   {
     id: danaId,
     name: "Dana Whitfield",
-    email: "dana@merkat.studio",
+    email: "dana@merkhet.studio",
     role: "staff",
     is_active: true,
     created_at: "2026-01-01T12:00:00.000Z",
@@ -89,7 +89,7 @@ const users: User[] = [
   {
     id: inesId,
     name: "Ines Okafor",
-    email: "ines@merkat.studio",
+    email: "ines@merkhet.studio",
     role: "staff",
     is_active: true,
     created_at: "2026-01-01T12:00:00.000Z",
@@ -97,7 +97,7 @@ const users: User[] = [
   {
     id: marcusId,
     name: "Marcus Reed",
-    email: "marcus@merkat.studio",
+    email: "marcus@merkhet.studio",
     role: "staff",
     is_active: true,
     created_at: "2026-01-01T12:00:00.000Z",
@@ -105,7 +105,7 @@ const users: User[] = [
   {
     id: priyaId,
     name: "Priya Raman",
-    email: "priya@merkat.studio",
+    email: "priya@merkhet.studio",
     role: "staff",
     is_active: true,
     created_at: "2026-01-01T12:00:00.000Z",
@@ -777,7 +777,7 @@ export type DemoStore = {
 };
 
 const globalForDemo = globalThis as unknown as {
-  __merkatDemoV2?: DemoStore;
+  __merkhetDemoV2?: DemoStore;
 };
 
 function createStore(): DemoStore {
@@ -793,14 +793,14 @@ function createStore(): DemoStore {
 }
 
 export function getDemoStore(): DemoStore {
-  if (!globalForDemo.__merkatDemoV2) {
-    globalForDemo.__merkatDemoV2 = createStore();
+  if (!globalForDemo.__merkhetDemoV2) {
+    globalForDemo.__merkhetDemoV2 = createStore();
   }
-  return globalForDemo.__merkatDemoV2;
+  return globalForDemo.__merkhetDemoV2;
 }
 
 export function resetDemoStore() {
-  globalForDemo.__merkatDemoV2 = createStore();
+  globalForDemo.__merkhetDemoV2 = createStore();
 }
 
 export function nextProjectNumber(store: DemoStore) {
