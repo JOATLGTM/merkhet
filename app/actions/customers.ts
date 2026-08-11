@@ -25,6 +25,9 @@ export async function createCustomerAction(input: {
     notes: input.notes ?? null,
   });
   revalidatePath("/customers");
+  // The board's New Project dialog can create customers too, so the board's
+  // own customer list (and the nav rail count) has to pick them up as well.
+  revalidatePath("/");
   return customer;
 }
 

@@ -5,9 +5,12 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -58,6 +61,26 @@ type BoardViewProps = {
   currentUser: User;
 };
 
+/**
+ * Empty columns were close to undroppable under plain `closestCorners`: it
+ * ranks by corner-to-corner distance, and an empty column's only droppable is
+ * the full-height container, whose corners sit far from a pointer aimed at its
+ * middle. A neighbouring column's card — a small rect with corners right next
+ * to the pointer — would win instead. A populated column has cards scattered
+ * down it, which is why dropping got easy as soon as one card landed there.
+ *
+ * `pointerWithin` makes any point inside a column a valid target, so column
+ * height stops mattering. It returns nothing when there is no pointer (the
+ * keyboard sensor), hence the rect/corner fallbacks — see PRD §12.6, which
+ * requires the board to stay fully keyboard-operable.
+ */
+const boardCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+  const intersections = rectIntersection(args);
+  return intersections.length > 0 ? intersections : closestCorners(args);
+};
+
 function sortColumn(items: ProjectWithRelations[]) {
   return [...items].sort((a, b) => {
     if (a.on_hold !== b.on_hold) return a.on_hold ? -1 : 1;
@@ -94,11 +117,16 @@ function Column({
     return (
       <button
         type="button"
+        // Without the ref a collapsed column is not a drop target at all, and
+        // Completed ships collapsed (§6.2) — so finishing a project by drag was
+        // impossible until you expanded it first.
+        ref={setNodeRef}
         onClick={onToggle}
         className={cn(
-          "flex w-11 shrink-0 flex-col items-center border border-rule bg-surface pt-3",
+          "flex w-11 shrink-0 flex-col items-center border border-rule bg-surface pt-3 transition-colors",
           "border-t-2",
           columnTopBorder(column),
+          isOver && "bg-phase-1/60",
         )}
       >
         <span className="label-caps writing-mode-vertical rotate-180 text-ink-mid [writing-mode:vertical-rl]">
@@ -169,8 +197,22 @@ function Column({
           ))}
         </SortableContext>
         {items.length === 0 && (
-          <div className="flex flex-1 items-center justify-center border border-dashed border-rule-strong px-3 py-8 text-center">
-            <span className="label-caps text-ink-soft">Drop here</span>
+          <div
+            className={cn(
+              "flex flex-1 items-center justify-center border border-dashed px-3 py-8 text-center transition-colors",
+              isOver
+                ? "border-solid border-phase-5 bg-phase-1/60"
+                : "border-rule-strong",
+            )}
+          >
+            <span
+              className={cn(
+                "label-caps",
+                isOver ? "text-phase-5" : "text-ink-soft",
+              )}
+            >
+              Drop here
+            </span>
           </div>
         )}
       </div>
@@ -320,6 +362,11 @@ export function BoardView({
             className="h-8 w-56 rounded-none border-rule-strong bg-paper"
           />
           <Select
+            // Base UI renders the raw value in the trigger without an items map
+            items={[
+              { label: "All assignees", value: "all" },
+              ...users.map((u) => ({ label: u.name, value: u.id })),
+            ]}
             value={assigneeId}
             onValueChange={(value) => setAssigneeId(value ?? "all")}
           >
@@ -356,8 +403,12 @@ export function BoardView({
       </header>
 
       <DndContext
+        // dnd-kit derives its a11y ids from a module-level counter, which
+        // drifts between the server render and hydration (`DndDescribedBy-0`
+        // vs `-1`). An explicit id pins it.
+        id="merkat-board"
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={boardCollisionDetection}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >

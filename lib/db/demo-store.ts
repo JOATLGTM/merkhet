@@ -41,7 +41,10 @@ function seedPhases(
       }
     }
     return {
-      id: id("ph", Number(projectId.slice(3, 7)) * 10 + index + 1),
+      // Project ids look like `proj-0001-0000-...`, so the numeric block
+      // starts at index 5. slice(3, 7) read "j-00" → NaN, which collapsed
+      // every phase row in the seed onto the id `ph-0NaN-...`.
+      id: id("ph", Number(projectId.slice(5, 9)) * 10 + index + 1),
       project_id: projectId,
       phase,
       assignee_id: assignees[phase] ?? null,
@@ -150,9 +153,58 @@ const customers: Customer[] = [
     created_at: "2026-01-18T12:00:00.000Z",
     updated_at: "2026-01-18T12:00:00.000Z",
   },
+  {
+    id: id("cust", 5),
+    name: "Cardinal & Vine",
+    contact_name: "Rosa Delgado",
+    contact_email: "rosa@cardinalvine.com",
+    contact_phone: "(312) 555-0177",
+    notes: "Restaurant group; three sites in progress.",
+    created_at: "2026-02-02T12:00:00.000Z",
+    updated_at: "2026-02-02T12:00:00.000Z",
+  },
+  {
+    id: id("cust", 6),
+    name: "Bellweather Housing Trust",
+    contact_name: "Théo Marchand",
+    contact_email: "tmarchand@bellweathertrust.org",
+    contact_phone: "(773) 555-0121",
+    notes: null,
+    created_at: "2026-02-09T12:00:00.000Z",
+    updated_at: "2026-02-09T12:00:00.000Z",
+  },
+  {
+    id: id("cust", 7),
+    name: "Pilsen Arts Collective",
+    contact_name: "Nadia Okonkwo",
+    contact_email: "nadia@pilsenarts.org",
+    contact_phone: "(312) 555-0198",
+    notes: null,
+    created_at: "2026-02-20T12:00:00.000Z",
+    updated_at: "2026-02-20T12:00:00.000Z",
+  },
+  {
+    id: id("cust", 8),
+    name: "Sable & Roe Dental",
+    contact_name: "Dr. Priya Venkataraman",
+    contact_email: "office@sableroe.com",
+    contact_phone: "(847) 555-0155",
+    notes: null,
+    created_at: "2026-03-04T12:00:00.000Z",
+    updated_at: "2026-03-04T12:00:00.000Z",
+  },
 ];
 
-const [halcyon, northbank, waverly, ortega] = customers;
+const [
+  halcyon,
+  northbank,
+  waverly,
+  ortega,
+  cardinal,
+  bellweather,
+  pilsen,
+  sableroe,
+] = customers;
 
 function makeProject(
   n: number,
@@ -299,9 +351,148 @@ const projects: Project[] = [
     target_completion: "2025-11-20",
     hours_per_week: 0,
   }),
+
+  // 410–419 broaden the seed to 20 projects. Beyond filling the columns out,
+  // these deliberately cover states the original ten never produced: on hold
+  // (both freshly paused and long-stalled), an overdue target, targets inside
+  // the 14-day amber window, an unassigned current phase, skipped phases, and
+  // partial/absent phase dates so the calendar's degradation paths are visible.
+  makeProject(410, {
+    customer_id: cardinal.id,
+    name: "Cardinal & Vine — West Loop taproom",
+    description: "Won; kickoff pending lease execution.",
+    status: "backlog",
+    current_phase: null,
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: null,
+    target_completion: "2027-01-15",
+    hours_per_week: null,
+  }),
+  makeProject(411, {
+    customer_id: bellweather.id,
+    name: "Bellweather — Humboldt Park 24-unit",
+    description: "Awaiting site survey before kickoff.",
+    status: "pending",
+    current_phase: null,
+    // Stalled since early April — the "quietly stuck for four months" case
+    // PRD §4.3 wants distinguishable from something paused yesterday.
+    on_hold: true,
+    on_hold_since: "2026-04-02T15:20:00.000Z",
+    on_hold_reason: "Survey not returned by the city",
+    start_date: null,
+    target_completion: "2026-11-30",
+    hours_per_week: null,
+  }),
+  makeProject(412, {
+    customer_id: pilsen.id,
+    name: "Pilsen Arts — gallery conversion",
+    description: "Warehouse to gallery; occupancy change.",
+    status: "active",
+    current_phase: "schematic_design",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2026-07-06",
+    target_completion: "2026-08-18", // inside the 14-day amber window
+    hours_per_week: 10,
+  }),
+  makeProject(413, {
+    customer_id: sableroe.id,
+    name: "Sable & Roe — Lincoln Park clinic",
+    description: "Four-operatory clinic fit-out.",
+    status: "active",
+    current_phase: "schematic_design",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2026-08-03",
+    target_completion: "2026-12-11",
+    hours_per_week: 5,
+  }),
+  makeProject(414, {
+    customer_id: cardinal.id,
+    name: "Cardinal & Vine — Fulton pop-up",
+    description: "Short-run pop-up; target date already blown.",
+    status: "active",
+    current_phase: "design_development",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2026-06-15",
+    target_completion: "2026-07-24", // past — renders redline
+    hours_per_week: 12,
+  }),
+  makeProject(415, {
+    customer_id: halcyon.id,
+    name: "Halcyon — Bucktown infill duplex",
+    description: null,
+    status: "active",
+    current_phase: "design_development",
+    // Paused days ago, not months — the other end of the §4.3 comparison.
+    on_hold: true,
+    on_hold_since: "2026-08-05T11:00:00.000Z",
+    on_hold_reason: "Client reviewing budget",
+    start_date: "2026-05-04",
+    target_completion: "2026-10-30",
+    hours_per_week: 9,
+  }),
+  makeProject(416, {
+    customer_id: bellweather.id,
+    name: "Bellweather — Garfield Park rehab",
+    description: "Gut rehab of a 1920s courtyard building.",
+    status: "active",
+    current_phase: "construction_documents",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2025-06-02", // long runway; widest bar on the calendar
+    target_completion: "2026-10-16",
+    hours_per_week: 20,
+  }),
+  makeProject(417, {
+    customer_id: waverly.id,
+    name: "Waverly MS — cafeteria remodel",
+    description: "Jumped straight from schematic to review.",
+    status: "active",
+    current_phase: "review",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2026-03-02",
+    target_completion: "2026-08-21", // amber
+    hours_per_week: 7,
+  }),
+  makeProject(418, {
+    customer_id: pilsen.id,
+    name: "Pilsen Arts — mural pavilion",
+    description: "Small outdoor pavilion; permit set submitted.",
+    status: "active",
+    current_phase: "permitting",
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2026-02-02",
+    target_completion: "2026-09-18",
+    hours_per_week: 3,
+  }),
+  makeProject(419, {
+    customer_id: sableroe.id,
+    name: "Sable & Roe — Andersonville build-out",
+    description: "Delivered.",
+    status: "completed",
+    current_phase: null,
+    on_hold: false,
+    on_hold_since: null,
+    on_hold_reason: null,
+    start_date: "2025-02-03",
+    target_completion: "2026-01-30",
+    hours_per_week: 0,
+  }),
 ];
 
-let projectSeq = 409;
+let projectSeq = 419;
 
 const phases: ProjectPhase[] = [
   ...seedPhases(projects[0].id, null, {}),
@@ -384,6 +575,97 @@ const phases: ProjectPhase[] = [
     status: "completed" as const,
     completed_at: "2025-11-20T12:00:00.000Z",
   })),
+
+  // --- 410–419 ---
+
+  // Backlog / pending: no phase has started, so no dates either.
+  ...seedPhases(projects[10].id, null, {}),
+  ...seedPhases(projects[11].id, null, {}),
+
+  ...seedPhases(
+    projects[12].id,
+    "schematic_design",
+    { schematic_design: priyaId },
+    {
+      schematic_design: { start: "2026-07-06", end: "2026-08-18" },
+      design_development: { start: "2026-08-19", end: "2026-10-02" },
+    },
+  ),
+  // Deliberately no assignee anywhere: an active phase nobody owns is the
+  // gap PRD §8.8 asks about, and it should be visible on the board.
+  ...seedPhases(
+    projects[13].id,
+    "schematic_design",
+    {},
+    { schematic_design: { start: "2026-08-03", end: "2026-10-09" } },
+  ),
+  ...seedPhases(
+    projects[14].id,
+    "design_development",
+    { schematic_design: marcusId, design_development: marcusId },
+    {
+      schematic_design: { start: "2026-06-15", end: "2026-07-03" },
+      design_development: { start: "2026-07-06", end: "2026-07-24" },
+    },
+  ),
+  ...seedPhases(
+    projects[15].id,
+    "design_development",
+    { schematic_design: danaId, design_development: priyaId },
+    {
+      schematic_design: { start: "2026-05-04", end: "2026-06-26" },
+      design_development: { start: "2026-06-29", end: "2026-09-04" },
+      construction_documents: { start: "2026-09-07", end: "2026-10-30" },
+    },
+  ),
+  ...seedPhases(
+    projects[16].id,
+    "construction_documents",
+    {
+      schematic_design: inesId,
+      design_development: inesId,
+      construction_documents: chrisId,
+      review: chrisId,
+    },
+    {
+      schematic_design: { start: "2025-06-02", end: "2025-09-12" },
+      design_development: { start: "2025-09-15", end: "2026-01-30" },
+      construction_documents: { start: "2026-02-02", end: "2026-07-31" },
+      review: { start: "2026-08-03", end: "2026-08-28" },
+      permitting: { start: "2026-08-31", end: "2026-10-16" },
+    },
+  ),
+  // Dragged schematic -> review directly. PRD §4.3 allows the skip and §6.2
+  // requires the phases in between to be marked `skipped`, not left open.
+  ...seedPhases(
+    projects[17].id,
+    "review",
+    { schematic_design: danaId, review: chrisId },
+    {
+      schematic_design: { start: "2026-03-02", end: "2026-06-19" },
+      review: { start: "2026-06-22", end: "2026-08-21" },
+    },
+  ).map((p) =>
+    p.phase === "design_development" || p.phase === "construction_documents"
+      ? { ...p, status: "skipped" as const }
+      : p,
+  ),
+  // Only two phases carry dates — the calendar has to cope with the rest
+  // being blank rather than assuming a full set (PRD §6.5).
+  ...seedPhases(
+    projects[18].id,
+    "permitting",
+    { schematic_design: priyaId, permitting: marcusId },
+    {
+      schematic_design: { start: "2026-02-02", end: "2026-04-10" },
+      permitting: { start: "2026-06-01", end: "2026-09-18" },
+    },
+  ),
+  ...seedPhases(projects[19].id, null, {}).map((p) => ({
+    ...p,
+    status: "completed" as const,
+    completed_at: "2026-01-30T12:00:00.000Z",
+  })),
 ];
 
 const activity: ActivityLog[] = [
@@ -407,6 +689,47 @@ const activity: ActivityLog[] = [
     event_type: "project.updated",
     payload: { changed: { hours_per_week: [14, 18] } },
     created_at: "2026-08-04T16:40:00.000Z",
+  },
+  {
+    id: id("act", 3),
+    project_id: projects[17].id,
+    actor_id: danaId,
+    event_type: "phase.changed",
+    payload: {
+      from: "schematic_design",
+      to: "review",
+      from_status: "active",
+      to_status: "active",
+    },
+    created_at: "2026-06-22T10:05:00.000Z",
+  },
+  {
+    id: id("act", 4),
+    project_id: projects[11].id,
+    actor_id: chrisId,
+    event_type: "project.hold_toggled",
+    payload: { on_hold: true, reason: "Survey not returned by the city" },
+    created_at: "2026-04-02T15:20:00.000Z",
+  },
+  {
+    id: id("act", 5),
+    project_id: projects[15].id,
+    actor_id: priyaId,
+    event_type: "project.hold_toggled",
+    payload: { on_hold: true, reason: "Client reviewing budget" },
+    created_at: "2026-08-05T11:00:00.000Z",
+  },
+  {
+    id: id("act", 6),
+    project_id: projects[16].id,
+    actor_id: chrisId,
+    event_type: "phase.assignee_changed",
+    payload: {
+      phase: "construction_documents",
+      from_user_id: inesId,
+      to_user_id: chrisId,
+    },
+    created_at: "2026-02-02T09:30:00.000Z",
   },
 ];
 

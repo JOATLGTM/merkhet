@@ -120,6 +120,9 @@ export function SettingsClient({
                     </TableCell>
                     <TableCell>
                       <Select
+                        // Base UI renders the raw value in the trigger
+                        // without an items map — this showed "admin"/"staff".
+                        items={{ admin: "Admin", staff: "Staff" }}
                         value={user.role}
                         onValueChange={(value) => {
                           startTransition(async () => {

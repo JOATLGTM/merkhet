@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createCustomerAction } from "@/app/actions/customers";
 import { Button } from "@/components/ui/button";
@@ -26,14 +26,11 @@ import type { Customer } from "@/lib/types";
 
 type Row = Customer & { total_projects: number; active_projects: number };
 
-export function CustomersClient({
-  customers,
-  openNew,
-}: {
-  customers: Row[];
-  openNew: boolean;
-}) {
+export function CustomersClient({ customers }: { customers: Row[] }) {
   const router = useRouter();
+  // Read `?new=1` here rather than in the server page: awaiting searchParams
+  // there is runtime data that blocks the route's static shell.
+  const openNew = useSearchParams().get("new") === "1";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(openNew);
   const [pending, startTransition] = useTransition();

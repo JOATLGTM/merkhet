@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { signIn, type SignInState } from "@/app/actions/auth";
+import { BackgroundPaths } from "@/components/kokonutui/background-paths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +14,9 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(signIn, initialState);
 
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center bg-paper px-6">
-      <div className="w-full max-w-sm border border-rule bg-surface p-8">
+    <main className="relative flex min-h-full flex-1 items-center justify-center overflow-hidden bg-paper px-6">
+      <BackgroundPaths />
+      <div className="relative z-10 w-full max-w-sm border border-rule bg-surface p-8 shadow-[0_1px_24px_rgba(22,24,26,0.06)]">
         <div className="mb-8 flex items-center gap-2">
           <span className="size-2 bg-ink" />
           <span className="font-mono text-[11px] font-medium uppercase tracking-[0.32em] text-ink">

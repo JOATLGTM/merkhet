@@ -4,6 +4,13 @@ import { SettingsClient } from "@/components/settings/settings-client";
 import { getSessionUser } from "@/lib/auth/session";
 import { listPhaseSubscribers, listUsers } from "@/lib/db/repo";
 
+/**
+ * Reads the session cookie to gate on `role === 'admin'`, so the segment
+ * cannot produce a static shell. Admin-only and rarely navigated, so
+ * blocking is the right trade here rather than a private-cached shell.
+ */
+export const instant = false;
+
 export default async function SettingsPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");

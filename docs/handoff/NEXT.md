@@ -9,6 +9,21 @@ Not committed as a formal backlog — use as a resume checklist.
 3. **PRD gaps still soft** — client-updates Phase 2 (`/client-updates`), email notifications on phase change, RLS verification against live DB.
 4. **Git** — work may still be largely uncommitted; check `git status` before assuming history.
 
+## Cache Components / instant navigation
+
+Validation (dev overlay only — routes still return 200) flags any segment reading `cookies()`/`headers()`/`params`/`searchParams` outside `<Suspense>`.
+
+Current state per segment:
+
+| Segment | State | Why |
+|---|---|---|
+| `(auth)/layout.tsx` | `instant = false` | cookie-authenticated |
+| `(app)/layout.tsx` | `instant = false` | `getSessionUser()` in the shell |
+| `(app)/settings/page.tsx` | `instant = false` | admin gate reads the session cookie; rarely navigated, blocking is fine |
+| `(app)/customers/page.tsx` | validates clean | `?new=1` moved to `useSearchParams()` in `CustomersClient`, behind `<Suspense>` |
+
+**Still open:** `(app)/page.tsx` (board) and `(app)/customers/[id]/page.tsx` both `await getSessionUser()` / `searchParams` in the page body. Per PRD §9.2 the real fix is `"use cache: private"` with `stale >= 5m` so the shell can carry session-dependent content — that belongs with the **real Supabase Auth wiring**, not the demo cookie. Do not blanket-apply `instant = false` to every page; that switches off the feature the PRD chose Next 16 for (§9).
+
 ## Known quirks
 
 - Demo store resets only when the Node process restarts (or `resetDemoStore()`).

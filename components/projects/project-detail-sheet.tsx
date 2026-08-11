@@ -104,11 +104,15 @@ export function ProjectDetailSheet({
 }: ProjectDetailSheetProps) {
   const [, startTransition] = useTransition();
   const usersById = new Map(users.map((u) => [u.id, u]));
+  const assigneeItems = [
+    { label: "Unassigned", value: "none" },
+    ...users.map((u) => ({ label: u.name, value: u.id })),
+  ];
 
   if (!project) {
     return (
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent className="w-full sm:max-w-[520px]" />
+        <SheetContent className="w-full data-[side=right]:sm:max-w-xl" />
       </Sheet>
     );
   }
@@ -129,7 +133,11 @@ export function ProjectDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full gap-0 overflow-y-auto border-l border-rule bg-surface p-0 sm:max-w-[520px]">
+      {/* The variant prefix has to match sheet.tsx's own
+          `data-[side=right]:sm:max-w-sm`, or tailwind-merge keeps both classes
+          and the more specific base rule wins — which is how this panel was
+          rendering at --container-sm (384px) despite asking for 520px. */}
+      <SheetContent className="w-full gap-0 overflow-y-auto border-l border-rule bg-surface p-0 data-[side=right]:sm:max-w-xl">
         <SheetHeader className="space-y-0 border-b border-rule px-6 py-5 text-left">
           <SheetTitle className="sr-only">{project.name}</SheetTitle>
           <Input
@@ -331,6 +339,9 @@ export function ProjectDetailSheet({
                   </div>
                   <div className="mt-2 grid grid-cols-[1fr_1fr_1fr] gap-2 pl-3.5">
                     <Select
+                      // Base UI renders the raw value in the trigger without
+                      // an items map — this showed user ids, not names.
+                      items={assigneeItems}
                       value={phase.assignee_id ?? "none"}
                       onValueChange={(value) => {
                         startTransition(async () => {

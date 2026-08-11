@@ -39,6 +39,7 @@
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
 | Command palette | `components/command/command-palette.tsx` |
 | Motion provider | `components/providers/motion-provider.tsx` |
+| Login background paths | `components/kokonutui/background-paths.tsx` |
 | Auth gate / redirects | `proxy.ts` |
 
 ## Config

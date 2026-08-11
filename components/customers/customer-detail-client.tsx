@@ -94,7 +94,7 @@ export function CustomerDetailClient({
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between px-5">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink">
           Projects
         </h2>
@@ -118,7 +118,9 @@ export function CustomerDetailClient({
         </Button>
       </div>
 
-      <div className="divide-y divide-rule border border-rule bg-surface">
+      {/* Margin, not padding — the box is bordered, so its edge has to sit at
+          the same 5-unit inset as the text above rather than move inward. */}
+      <div className="mx-5 mb-8 divide-y divide-rule border border-rule bg-surface">
         {projects.length === 0 && (
           <p className="p-4 text-[13px] text-ink-soft">No projects yet.</p>
         )}

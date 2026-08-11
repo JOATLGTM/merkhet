@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
 import { Button } from "@/components/ui/button";
-import { COLUMN_LABELS, DESIGN_PHASES } from "@/lib/types";
+import { COLUMN_LABELS, DESIGN_PHASES, boardColumnOf } from "@/lib/types";
 import type { DesignPhase, ProjectWithRelations, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +30,40 @@ const PHASE_COLOR: Record<DesignPhase, string> = {
   review: "var(--phase-4)",
   permitting: "var(--phase-5)",
 };
+
+/** Standard AIA phase shorthand — what the labels collapse to on narrow bars. */
+const PHASE_ABBR: Record<DesignPhase, string> = {
+  schematic_design: "SD",
+  design_development: "DD",
+  construction_documents: "CD",
+  review: "REV",
+  permitting: "PERM",
+};
+
+/**
+ * Which segments need light text. phase-4 (#3d7a74) and phase-5 (#1b5450) are
+ * dark enough that ink fails WCAG AA (3.59:1 and 2.06:1); paper clears it at
+ * 4.79:1 and 8.34:1. Ink stays on phases 1–3 — phase-3 is the tightest at
+ * 6.21:1. Ratios computed, not estimated. See PRD §12.6.
+ */
+const PHASE_NEEDS_LIGHT_TEXT: Record<DesignPhase, boolean> = {
+  schematic_design: false,
+  design_development: false,
+  construction_documents: false,
+  review: true,
+  permitting: true,
+};
+
+/**
+ * Picks the widest label a bar can hold. Bars are laid out in px we already
+ * know, so this is a cheap arithmetic fit rather than DOM measurement — the
+ * factors approximate Archivo's advance width at 10px.
+ */
+function fitLabel(width: number, full: string, abbr?: string): string | null {
+  if (width >= full.length * 5.6 + 10) return full;
+  if (abbr && width >= abbr.length * 6.6 + 8) return abbr;
+  return null;
+}
 
 type Row = {
   project: ProjectWithRelations;
@@ -166,10 +200,20 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
               <button
                 key={project.id}
                 type="button"
-                className="block h-11 w-full truncate border-b border-rule px-3 text-left text-[13px] text-ink hover:bg-muted-fill"
+                className="flex h-11 w-full flex-col justify-center gap-0.5 border-b border-rule px-3 text-left hover:bg-muted-fill"
                 onClick={() => setProjectId(project.id)}
               >
-                {project.name}
+                <span className="w-full truncate text-[13px] leading-none text-ink">
+                  {project.name}
+                </span>
+                {/* Repeats the status here so narrow bars — which can't hold a
+                    label — still answer "where is this project". */}
+                <span className="w-full truncate text-[10px] leading-none text-ink-mid">
+                  {COLUMN_LABELS[boardColumnOf(project)]}
+                  {project.on_hold && (
+                    <span className="text-redline"> · On hold</span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
@@ -229,24 +273,56 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
                           xOf(row.planned_end) - left,
                           6,
                         );
+                        const done = row.status === "completed";
+                        const current = row.status === "in_progress";
+                        const label = fitLabel(
+                          width,
+                          COLUMN_LABELS[phase],
+                          PHASE_ABBR[phase],
+                        );
+                        // A dimmed fill reads as a pale tint, so ink wins there
+                        // regardless of which phase colour is underneath.
+                        const lightText =
+                          !done && PHASE_NEEDS_LIGHT_TEXT[phase];
+
                         return (
                           <button
                             key={phase}
                             type="button"
                             onClick={() => setProjectId(project.id)}
                             title={`${COLUMN_LABELS[phase]} — ${row.planned_start} → ${row.planned_end}`}
-                            className="absolute top-3 h-5 origin-left border border-surface"
+                            className="absolute top-3 flex h-5 origin-left items-center overflow-hidden border border-surface"
                             style={{
                               left,
                               width,
-                              backgroundColor: PHASE_COLOR[phase],
-                              opacity: row.status === "completed" ? 0.4 : 1,
                               transitionDelay: `${index * 20}ms`,
                             }}
                           >
+                            {/* Fill is its own layer so dimming a completed
+                                phase doesn't drag its label below AA. */}
+                            <span
+                              aria-hidden="true"
+                              className="absolute inset-0"
+                              style={{
+                                backgroundColor: PHASE_COLOR[phase],
+                                opacity: done ? 0.4 : 1,
+                              }}
+                            />
                             <span className="sr-only">
-                              {COLUMN_LABELS[phase]}
+                              {`${COLUMN_LABELS[phase]}, ${row.status.replaceAll("_", " ")}`}
                             </span>
+                            {label && (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "relative truncate px-1 text-[10px] leading-none",
+                                  current && "font-semibold",
+                                  lightText ? "text-paper" : "text-ink",
+                                )}
+                              >
+                                {label}
+                              </span>
+                            )}
                           </button>
                         );
                       })
@@ -258,20 +334,29 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
                           dates[dates.length - 1] ??
                           start;
                         const left = xOf(start);
+                        const width = Math.max(xOf(end) - left, 6);
+                        const statusLabel =
+                          COLUMN_LABELS[boardColumnOf(project)];
+                        const label = fitLabel(width, statusLabel);
                         return (
                           <button
                             type="button"
                             onClick={() => setProjectId(project.id)}
-                            className="absolute top-3 h-5 border border-rule-strong bg-rule"
-                            style={{
-                              left,
-                              width: Math.max(xOf(end) - left, 6),
-                            }}
-                            title={`${project.name} — no phase dates set`}
+                            className="absolute top-3 flex h-5 items-center overflow-hidden border border-rule-strong bg-rule"
+                            style={{ left, width }}
+                            title={`${project.name} — ${statusLabel}, no phase dates set`}
                           >
                             <span className="sr-only">
-                              {project.name} — no phase dates set
+                              {`${project.name} — ${statusLabel}, no phase dates set`}
                             </span>
+                            {label && (
+                              <span
+                                aria-hidden="true"
+                                className="truncate px-1 text-[10px] leading-none text-ink-mid"
+                              >
+                                {label}
+                              </span>
+                            )}
                           </button>
                         );
                       })()}

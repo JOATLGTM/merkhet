@@ -1,14 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { CustomersClient } from "@/components/customers/customers-client";
 import { listCustomers } from "@/lib/db/repo";
 
-export default async function CustomersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ new?: string }>;
-}) {
-  const params = await searchParams;
+export default async function CustomersPage() {
   const customers = await listCustomers();
 
   return (
@@ -25,7 +21,10 @@ export default async function CustomersPage({
           New customer
         </Link>
       </header>
-      <CustomersClient customers={customers} openNew={params.new === "1"} />
+      {/* useSearchParams() needs a boundary so the shell can prerender. */}
+      <Suspense>
+        <CustomersClient customers={customers} />
+      </Suspense>
     </div>
   );
 }
