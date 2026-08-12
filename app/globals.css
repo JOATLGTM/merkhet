@@ -60,6 +60,61 @@
   --sidebar-ring: var(--phase-5);
 }
 
+/* Dark palette — same structure, charcoal paper + lifted teal phases */
+.dark {
+  --paper: #0f1113;
+  --surface: #171a1d;
+  --sidebar: #131517;
+  --sidebar-accent: #1f2327;
+  --muted-fill: #1c2024;
+  --rule: #2a2e33;
+  --rule-strong: #3f454c;
+  --ink: #eceeef;
+  --ink-mid: #9aa1a8;
+  --ink-soft: #6f767e;
+
+  --phase-1: #1e3532;
+  --phase-2: #2a4f4a;
+  --phase-3: #3d7a74;
+  --phase-4: #4f968e;
+  --phase-5: #5fafa5;
+  --phase-6: #8ec9c1;
+
+  --redline: #e05448;
+  --warn: #d4922a;
+  --focus: #5fafa5;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--phase-5);
+  --primary-foreground: #0f1113;
+  --secondary: var(--muted-fill);
+  --secondary-foreground: var(--ink);
+  --muted: var(--muted-fill);
+  --muted-foreground: var(--ink-mid);
+  --accent: var(--muted-fill);
+  --accent-foreground: var(--ink);
+  --destructive: var(--redline);
+  --border: var(--rule);
+  --input: var(--rule-strong);
+  --ring: var(--phase-5);
+  --chart-1: var(--phase-1);
+  --chart-2: var(--phase-2);
+  --chart-3: var(--phase-3);
+  --chart-4: var(--phase-4);
+  --chart-5: var(--phase-5);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--phase-5);
+  --sidebar-primary-foreground: #0f1113;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--phase-5);
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);

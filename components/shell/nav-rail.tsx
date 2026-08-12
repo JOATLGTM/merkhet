@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { signOut } from "@/app/actions/auth";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { initials, type User } from "@/lib/types";
@@ -118,6 +119,8 @@ export function NavRail({ user }: NavRailProps) {
             </>
           )}
         </Button>
+
+        <ThemeToggle collapsed={collapsed} />
 
         <div
           className={cn(
