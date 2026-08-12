@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import {
   createProject,
+  getContractViewUrl,
   moveProject,
   toggleHold,
   updatePhaseAssignee,
   updatePhaseDates,
   updateProject,
+  uploadContractAndActivate,
 } from "@/lib/db/repo";
 import type { BoardColumn, DesignPhase } from "@/lib/types";
 
@@ -27,6 +29,24 @@ export async function moveProjectAction(
   const project = await moveProject(projectId, toColumn, user.id);
   revalidateAll();
   return project;
+}
+
+export async function uploadContractAction(formData: FormData) {
+  const user = await requireUser();
+  const projectId = String(formData.get("projectId") ?? "");
+  const file = formData.get("file");
+  if (!projectId) throw new Error("Missing project.");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Choose a PDF to upload.");
+  }
+  const project = await uploadContractAndActivate(projectId, file, user.id);
+  revalidateAll();
+  return project;
+}
+
+export async function getContractViewUrlAction(projectId: string) {
+  await requireUser();
+  return getContractViewUrl(projectId);
 }
 
 export async function updateProjectFieldAction(
@@ -97,7 +117,7 @@ export async function createProjectAction(input: {
   customer_id: string;
   name: string;
   description?: string | null;
-  status?: "backlog" | "pending" | "active";
+  status?: "pending" | "active";
   current_phase?: DesignPhase | null;
   start_date?: string | null;
   target_completion?: string | null;

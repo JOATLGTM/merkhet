@@ -14,30 +14,37 @@ merely written.
 
 ## Status
 
-**Slice 0 (recon) is complete.** See `docs/handoff/RECON.md`.
+**Slice 0 (recon) is complete.** See `docs/handoff/SLICE0_RECON.md`.
 
-**Persistence decision: resolved.** Standing up hosted Supabase. Slice 1A below.
+**Slice 1A is complete (2026-08-12).** Hosted Supabase + Auth + seeded data; demo store no longer serves reads/writes. Verified: auth, board, create, drag persist, detail, hold, restart survival.
 
-**One blocker remains:** task granularity (`WORKFLOW-2.md` §8). Blocks **Slice 1B only**.
-Everything up to and including 1A is unblocked, as is Slice 7.
+**Slice 1B is complete (2026-08-12).** Workflow schema applied; re-seeded. Board columns:
+Pending / Active / SD / DD / Review / CD / Final Review / Permitting. No backlog.
+Verified: 20 projects × 6 phases, 5 pending, 0 backlog, `final_review` present.
+
+**Slice 2 is complete (2026-08-12).** Private `contracts` bucket; Pending exit only via PDF
+upload → Active; View PDF via signed URL; drag/⌘K blocked without contract; Active notify stub.
+
+**Slice 3 intake expansion was reverted (2026-08-12)** — does not match client direction yet.
+Hold until requirements are clarified.
+
+**Next:** Confirm intake with client, or proceed to Slice 4 (Delegation) / Slice 7 (Consultants).
 
 ### Execution order
 
-| Order | Slice                                      | State                      |
-| ----- | ------------------------------------------ | -------------------------- |
-| 1     | 1A — Supabase connection + baseline schema | **Ready now**              |
-| 2     | 1B — Workflow schema migration             | Blocked: task granularity  |
-| 3     | 2 — Pending→Active gate + contract upload  | After 1B                   |
-| 4     | 3 — Intake form expansion                  | After 1B                   |
-| 5     | 4 — Delegation                             | After 1B                   |
-| 6     | 5 — Approval gates + rework loops          | After 4                    |
-| 7     | 6 — Notifications                          | After 5                    |
-| —     | 7 — Consultants                            | **Ready now**, independent |
-| 8     | 8 — Permitting exit + archive              | After 1B                   |
-| 9     | 9 — Staff view                             | Confirm need first         |
-| 10    | 10 — Calendar                              | Blocked: Austin            |
-
-Slice 7 is fully independent and can run at any point, including alongside 1A.
+| Order | Slice                                      | State                         |
+| ----- | ------------------------------------------ | ----------------------------- |
+| 1     | 1A — Supabase connection + baseline schema | **Done**                      |
+| 2     | 1B — Workflow schema migration             | **Done**                      |
+| 3     | 2 — Pending→Active gate + contract upload  | **Done**                      |
+| 4     | 3 — Intake form expansion                  | **Reverted — on hold**        |
+| 5     | 4 — Delegation                             | After 1B                      |
+| 6     | 5 — Approval gates + rework loops          | After 4                       |
+| 7     | 6 — Notifications                          | After 5                       |
+| —     | 7 — Consultants                            | Ready now, independent        |
+| 8     | 8 — Permitting exit + archive              | After 1B                      |
+| 9     | 9 — Staff view                             | Confirm need first            |
+| 10    | 10 — Calendar                              | Blocked: Austin               |
 
 ---
 
@@ -197,9 +204,7 @@ Do not proceed to 1B until every item passes.
 
 # Slice 1B — Workflow schema migration
 
-**Blocked on:** task granularity (`WORKFLOW-2.md` §8). Resolve before writing the migration —
-if "task" means a sub-entity beneath phases, that table belongs in _this_ migration, not
-bolted on in Phase 2.
+**Unblocked.** Task = phase; do **not** add a `tasks` table.
 
 One new migration file on top of the baseline. Do not edit `20260807100000_init.sql`.
 

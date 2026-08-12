@@ -51,6 +51,7 @@ function seedPhases(
       status,
       planned_start: dates[phase]?.start?.slice(0, 10) ?? null,
       planned_end: dates[phase]?.end?.slice(0, 10) ?? null,
+      duration_days: null,
       entered_at,
       completed_at,
       sort_order: index + 1,
@@ -120,6 +121,7 @@ const customers: Customer[] = [
     contact_email: "jane@halcyondev.com",
     contact_phone: "(312) 555-0144",
     notes: null,
+    spouse_name: null,
     created_at: "2026-01-10T12:00:00.000Z",
     updated_at: "2026-01-10T12:00:00.000Z",
   },
@@ -130,6 +132,7 @@ const customers: Customer[] = [
     contact_email: "elias@northbank.coffee",
     contact_phone: "(773) 555-0190",
     notes: null,
+    spouse_name: null,
     created_at: "2026-01-12T12:00:00.000Z",
     updated_at: "2026-01-12T12:00:00.000Z",
   },
@@ -140,6 +143,7 @@ const customers: Customer[] = [
     contact_email: "acole@waverlysd.org",
     contact_phone: "(847) 555-0112",
     notes: null,
+    spouse_name: null,
     created_at: "2026-01-15T12:00:00.000Z",
     updated_at: "2026-01-15T12:00:00.000Z",
   },
@@ -150,6 +154,7 @@ const customers: Customer[] = [
     contact_email: "luis.ortega@example.com",
     contact_phone: "(773) 555-0166",
     notes: null,
+    spouse_name: "Maria Ortega",
     created_at: "2026-01-18T12:00:00.000Z",
     updated_at: "2026-01-18T12:00:00.000Z",
   },
@@ -160,6 +165,7 @@ const customers: Customer[] = [
     contact_email: "rosa@cardinalvine.com",
     contact_phone: "(312) 555-0177",
     notes: "Restaurant group; three sites in progress.",
+    spouse_name: null,
     created_at: "2026-02-02T12:00:00.000Z",
     updated_at: "2026-02-02T12:00:00.000Z",
   },
@@ -170,6 +176,7 @@ const customers: Customer[] = [
     contact_email: "tmarchand@bellweathertrust.org",
     contact_phone: "(773) 555-0121",
     notes: null,
+    spouse_name: null,
     created_at: "2026-02-09T12:00:00.000Z",
     updated_at: "2026-02-09T12:00:00.000Z",
   },
@@ -180,6 +187,7 @@ const customers: Customer[] = [
     contact_email: "nadia@pilsenarts.org",
     contact_phone: "(312) 555-0198",
     notes: null,
+    spouse_name: null,
     created_at: "2026-02-20T12:00:00.000Z",
     updated_at: "2026-02-20T12:00:00.000Z",
   },
@@ -190,6 +198,7 @@ const customers: Customer[] = [
     contact_email: "office@sableroe.com",
     contact_phone: "(847) 555-0155",
     notes: null,
+    spouse_name: null,
     created_at: "2026-03-04T12:00:00.000Z",
     updated_at: "2026-03-04T12:00:00.000Z",
   },
@@ -208,7 +217,34 @@ const [
 
 function makeProject(
   n: number,
-  partial: Omit<Project, "id" | "project_number" | "created_at" | "updated_at">,
+  partial: Omit<
+    Project,
+    | "id"
+    | "project_number"
+    | "created_at"
+    | "updated_at"
+    | "client_desired_completion"
+    | "project_budget"
+    | "design_budget"
+    | "client_contact_id"
+        | "archived_at"
+    | "contract_path"
+    | "contract_filename"
+    | "contract_uploaded_at"
+  > &
+    Partial<
+      Pick<
+        Project,
+        | "client_desired_completion"
+        | "project_budget"
+        | "design_budget"
+        | "client_contact_id"
+                | "archived_at"
+        | "contract_path"
+        | "contract_filename"
+        | "contract_uploaded_at"
+      >
+    >,
 ): Project {
   const stamp = now();
   return {
@@ -216,6 +252,14 @@ function makeProject(
     project_number: `MK-${String(n).padStart(4, "0")}`,
     created_at: stamp,
     updated_at: stamp,
+    client_desired_completion: null,
+    project_budget: null,
+    design_budget: null,
+    client_contact_id: null,
+    archived_at: null,
+    contract_path: null,
+    contract_filename: null,
+    contract_uploaded_at: null,
     ...partial,
   };
 }
@@ -225,7 +269,7 @@ const projects: Project[] = [
     customer_id: ortega.id,
     name: "Ortega — garage studio",
     description: "Detached 380 sf studio above a new two-car garage.",
-    status: "backlog",
+    status: "pending",
     current_phase: null,
     on_hold: false,
     on_hold_since: null,
@@ -238,7 +282,7 @@ const projects: Project[] = [
     customer_id: waverly.id,
     name: "Waverly ES — roof replacement",
     description: null,
-    status: "backlog",
+    status: "pending",
     current_phase: null,
     on_hold: false,
     on_hold_since: null,
@@ -337,6 +381,7 @@ const projects: Project[] = [
     start_date: "2025-01-01",
     target_completion: "2026-03-15",
     hours_per_week: 0,
+    archived_at: "2026-03-15T12:00:00.000Z",
   }),
   makeProject(409, {
     customer_id: northbank.id,
@@ -350,6 +395,7 @@ const projects: Project[] = [
     start_date: "2025-03-01",
     target_completion: "2025-11-20",
     hours_per_week: 0,
+    archived_at: "2025-11-20T12:00:00.000Z",
   }),
 
   // 410–419 broaden the seed to 20 projects. Beyond filling the columns out,
@@ -361,7 +407,7 @@ const projects: Project[] = [
     customer_id: cardinal.id,
     name: "Cardinal & Vine — West Loop taproom",
     description: "Won; kickoff pending lease execution.",
-    status: "backlog",
+    status: "pending",
     current_phase: null,
     on_hold: false,
     on_hold_since: null,
@@ -489,6 +535,7 @@ const projects: Project[] = [
     start_date: "2025-02-03",
     target_completion: "2026-01-30",
     hours_per_week: 0,
+    archived_at: "2026-01-30T12:00:00.000Z",
   }),
 ];
 
@@ -646,7 +693,7 @@ const phases: ProjectPhase[] = [
       review: { start: "2026-06-22", end: "2026-08-21" },
     },
   ).map((p) =>
-    p.phase === "design_development" || p.phase === "construction_documents"
+    p.phase === "design_development"
       ? { ...p, status: "skipped" as const }
       : p,
   ),
@@ -792,6 +839,10 @@ function createStore(): DemoStore {
   };
 }
 
+export function getDemoSeedData(): DemoStore {
+  return createStore();
+}
+
 export function getDemoStore(): DemoStore {
   if (!globalForDemo.__merkhetDemoV2) {
     globalForDemo.__merkhetDemoV2 = createStore();
@@ -817,6 +868,7 @@ export function seedPhasesForProject(projectId: string): ProjectPhase[] {
     status: "not_started" as const,
     planned_start: null,
     planned_end: null,
+    duration_days: null,
     entered_at: null,
     completed_at: null,
     sort_order: index + 1,
@@ -828,7 +880,7 @@ export { adminId, staffId, chrisId, danaId };
 export function applyPhaseMove(
   store: DemoStore,
   projectId: string,
-  toColumn: ProjectStatus | DesignPhase,
+  toColumn: ProjectStatus | DesignPhase | "active",
   actorId: string,
 ) {
   const project = store.projects.find((p) => p.id === projectId);
@@ -842,7 +894,17 @@ export function applyPhaseMove(
   const nowIso = now();
   project.updated_at = nowIso;
 
-  if (isPhase) {
+  if (toColumn === "active") {
+    for (const row of store.phases.filter((p) => p.project_id === projectId)) {
+      if (row.status === "in_progress") {
+        row.status = "not_started";
+        row.entered_at = null;
+        row.completed_at = null;
+      }
+    }
+    project.status = "active";
+    project.current_phase = null;
+  } else if (isPhase) {
     const toPhase = toColumn as DesignPhase;
     const toOrder = designPhases.indexOf(toPhase);
     const fromOrder = fromPhase ? designPhases.indexOf(fromPhase) : -1;
@@ -885,8 +947,12 @@ export function applyPhaseMove(
         row.completed_at = row.completed_at ?? nowIso;
       }
     }
-    project.status = toColumn as ProjectStatus;
+    project.status =
+      toColumn === "backlog" ? "pending" : (toColumn as ProjectStatus);
     project.current_phase = null;
+    if (toColumn === "completed") {
+      project.archived_at = project.archived_at ?? nowIso;
+    }
   }
 
   store.activity.unshift({

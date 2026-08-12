@@ -26,31 +26,31 @@ const ZOOM_KEY = "merkhet.calendar.zoom";
 const PHASE_COLOR: Record<DesignPhase, string> = {
   schematic_design: "var(--phase-1)",
   design_development: "var(--phase-2)",
-  construction_documents: "var(--phase-3)",
-  review: "var(--phase-4)",
-  permitting: "var(--phase-5)",
+  review: "var(--phase-3)",
+  construction_documents: "var(--phase-4)",
+  final_review: "var(--phase-5)",
+  permitting: "var(--phase-6)",
 };
 
 /** Standard AIA phase shorthand — what the labels collapse to on narrow bars. */
 const PHASE_ABBR: Record<DesignPhase, string> = {
   schematic_design: "SD",
   design_development: "DD",
-  construction_documents: "CD",
   review: "REV",
+  construction_documents: "CD",
+  final_review: "FR",
   permitting: "PERM",
 };
 
 /**
- * Which segments need light text. phase-4 (#3d7a74) and phase-5 (#1b5450) are
- * dark enough that ink fails WCAG AA (3.59:1 and 2.06:1); paper clears it at
- * 4.79:1 and 8.34:1. Ink stays on phases 1–3 — phase-3 is the tightest at
- * 6.21:1. Ratios computed, not estimated. See PRD §12.6.
+ * Which segments need light text. Darker teal tokens fail WCAG on ink.
  */
 const PHASE_NEEDS_LIGHT_TEXT: Record<DesignPhase, boolean> = {
   schematic_design: false,
   design_development: false,
-  construction_documents: false,
-  review: true,
+  review: false,
+  construction_documents: true,
+  final_review: true,
   permitting: true,
 };
 
@@ -209,7 +209,14 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
                 {/* Repeats the status here so narrow bars — which can't hold a
                     label — still answer "where is this project". */}
                 <span className="w-full truncate text-[10px] leading-none text-ink-mid">
-                  {COLUMN_LABELS[boardColumnOf(project)]}
+                  {(() => {
+                    const col = boardColumnOf(project);
+                    return col
+                      ? COLUMN_LABELS[col]
+                      : project.status === "completed"
+                        ? "Complete"
+                        : "—";
+                  })()}
                   {project.on_hold && (
                     <span className="text-redline"> · On hold</span>
                   )}
@@ -335,8 +342,12 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
                           start;
                         const left = xOf(start);
                         const width = Math.max(xOf(end) - left, 6);
-                        const statusLabel =
-                          COLUMN_LABELS[boardColumnOf(project)];
+                        const col = boardColumnOf(project);
+                        const statusLabel = col
+                          ? COLUMN_LABELS[col]
+                          : project.status === "completed"
+                            ? "Complete"
+                            : "—";
                         const label = fitLabel(width, statusLabel);
                         return (
                           <button

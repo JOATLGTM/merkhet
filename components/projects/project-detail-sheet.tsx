@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CirclePause } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { ArrowUpRight, CirclePause, ExternalLink, FileUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  getContractViewUrlAction,
   toggleHoldAction,
   updateAssigneeAction,
   updatePhaseDatesAction,
   updateProjectFieldAction,
+  uploadContractAction,
 } from "@/app/actions/projects";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { Button } from "@/components/ui/button";
@@ -30,7 +33,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatActivity } from "@/lib/activity";
 import { formatFullDate } from "@/lib/dates";
-import { COLUMN_LABELS } from "@/lib/types";
+import { COLUMN_LABELS, boardColumnOf } from "@/lib/types";
 import type { DesignPhase, ProjectWithRelations, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +106,8 @@ export function ProjectDetailSheet({
   onClose,
 }: ProjectDetailSheetProps) {
   const [, startTransition] = useTransition();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const usersById = new Map(users.map((u) => [u.id, u]));
   const assigneeItems = [
     { label: "Unassigned", value: "none" },
@@ -117,19 +122,23 @@ export function ProjectDetailSheet({
     );
   }
 
-  const statusLabel =
-    project.status === "active" && project.current_phase
-      ? COLUMN_LABELS[project.current_phase]
-      : project.status === "active"
-        ? "Active"
-        : COLUMN_LABELS[project.status];
+  const column = boardColumnOf(project);
+  const statusLabel = column
+    ? COLUMN_LABELS[column]
+    : project.status === "completed"
+      ? "Complete"
+      : "—";
+  const isPending =
+    project.status === "pending" || project.status === "backlog";
 
   const phaseFill =
     project.status === "completed"
-      ? 4
+      ? 5
       : project.current_phase
         ? undefined
-        : 0;
+        : project.status === "active"
+          ? 0
+          : -1;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -197,6 +206,88 @@ export function ProjectDetailSheet({
         </SheetHeader>
 
         <div className="px-6">
+          {isPending && (
+            <section className="border-b border-rule py-5">
+              <FieldLabel>Contract / LOI</FieldLabel>
+              <p className="mt-2 text-[13px] text-ink-mid">
+                Upload a PDF to move this project to Active. Dragging out of
+                Pending is blocked until then.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  startTransition(async () => {
+                    try {
+                      const fd = new FormData();
+                      fd.set("projectId", project.id);
+                      fd.set("file", file);
+                      await uploadContractAction(fd);
+                      toast.success("Contract uploaded — project is Active");
+                      router.refresh();
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Upload failed.",
+                      );
+                    }
+                  });
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-auto rounded-none border-rule-strong px-3 py-2 text-[13px] font-normal text-ink"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileUp className="h-3.5 w-3.5 text-ink-mid" />
+                Upload PDF
+              </Button>
+            </section>
+          )}
+
+          {!isPending && project.contract_path && (
+            <section className="border-b border-rule py-5">
+              <FieldLabel>Contract / LOI</FieldLabel>
+              <p className="mt-2 font-mono text-[12px] text-ink-mid">
+                {project.contract_filename ?? "contract.pdf"}
+                {project.contract_uploaded_at
+                  ? ` · ${formatFullDate(project.contract_uploaded_at)}`
+                  : null}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 h-auto rounded-none border-rule-strong px-3 py-2 text-[13px] font-normal text-ink"
+                onClick={() => {
+                  startTransition(async () => {
+                    try {
+                      const { url } = await getContractViewUrlAction(
+                        project.id,
+                      );
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Could not open contract.",
+                      );
+                    }
+                  });
+                }}
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-ink-mid" />
+                View PDF
+              </Button>
+            </section>
+          )}
+
           <section className="border-b border-rule py-5">
             <FieldLabel>Details</FieldLabel>
             <div className="mt-4">

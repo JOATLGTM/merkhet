@@ -116,7 +116,7 @@ export function NewProjectDialog({
 					name: name.trim(),
 					customer_id: targetCustomerId,
 					description: description.trim() || null,
-					status: "backlog",
+					status: "pending",
 				});
 
 				onOpenChange(false);

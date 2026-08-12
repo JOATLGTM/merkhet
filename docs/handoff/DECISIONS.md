@@ -2,11 +2,26 @@
 
 ## Authority order
 
-1. **`docs/PRD.md` wins** on product behavior, data model, columns, phases, RLS intent.
-2. **Lovable showcase** is the current **visual** target (layout, density, tokens usage).
-3. Early Datum mockup (`Merkat.dc.html`) was only inspirational — do **not** override the PRD with it.
+1. **`docs/handoff/WORKFLOW-2.md`** wins on phase sequence, board columns, transition
+   rules, gates, approvals, delegation, and notification routing.
+2. **`docs/PRD.md`** wins on everything else (screens, auth, activity, on-hold, components).
+3. **Lovable showcase** is the visual reference only.
+4. Early Datum mockup was inspirational only.
 
-User correction (explicit): *“Follow the PRD. The mockup is just a design.”*
+## Board model (post–Slice 1B)
+
+- **8 live columns:** Pending, Active, SD, DD, Review, CD, Final Review, Permitting
+- **Backlog dropped**; creation → Pending
+- **Complete is archive** (`archived_at` + `status=completed`), off-board
+- **Active holding:** `status=active` and `current_phase=null`
+- Phase order: SD → DD → Review → CD → Final Review → Permitting
+- On-hold remains a flag on any column
+- **Task = phase** — no `tasks` table
+
+## Data / backend
+
+- Hosted Supabase (Slice 1A). Reads/writes via `lib/db/repo.ts` + Supabase clients.
+- `lib/db/demo-store.ts` remains only as the seed source for `npm run seed`.
 
 ## Stack (from PRD)
 
@@ -16,20 +31,7 @@ User correction (explicit): *“Follow the PRD. The mockup is just a design.”*
 - Proxy (not middleware): `proxy.ts`
 - Tailwind v4, shadcn + KokonutUI registry
 - Motion (`LazyMotion`, `reducedMotion="user"`), dnd-kit, Lucide
-- Design: Archivo + JetBrains Mono; paper/ink; teal phase ramp `--phase-1`…`--phase-5`; redline `#C8382A`; sharp corners
-
-## Data / backend
-
-- **No Docker locally** → no local Supabase yet
-- All CRUD goes through `lib/db/repo.ts` → `lib/db/demo-store.ts`
-- Supabase client stubs exist (`lib/supabase/*`, `lib/env.ts`); wire when env + Docker available
-- Schema SQL is written; app does not apply it automatically
-
-## Board model
-
-- Flat **8 columns**: Backlog, Pending, five design phases, Completed
-- Active projects have `current_phase`; backlog/pending/completed have `current_phase = null`
-- On-hold is a flag on the project, not a column
+- Design: Archivo + JetBrains Mono; paper/ink; teal phase ramp `--phase-1`…`--phase-6`; redline `#C8382A`; sharp corners
 
 ## UI conventions (post-Lovable pass)
 
@@ -38,7 +40,7 @@ User correction (explicit): *“Follow the PRD. The mockup is just a design.”*
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
 - Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
-- Detail sheet `--container-xl` (36rem / 576px); BACKLOG badge + Put on hold; CUSTOMER “FULL RECORD” in phase-5 teal
+- Detail sheet `--container-xl` (36rem / 576px); status badge + Put on hold; CUSTOMER “FULL RECORD” in phase-5 teal
   - Set as `data-[side=right]:sm:max-w-xl`. **The variant prefix must match** `components/ui/sheet.tsx`'s own `data-[side=right]:sm:max-w-sm` — tailwind-merge keys on the full prefix, so a plain `sm:max-w-*` override does **not** replace it. Both classes survive and the more specific base rule wins. That is how the sheet rendered at 384px for months while the source said `sm:max-w-[520px]`. Same trap applies to any `SheetContent` override.
 
 ## Board drag-and-drop
@@ -59,7 +61,7 @@ aiming at middle of EMPTY column B:
 2. `rectIntersection` — **required**: `pointerWithin` returns nothing when there is no pointer, i.e. keyboard dragging
 3. `closestCorners` — last resort
 
-**Collapsed columns must keep `ref={setNodeRef}`.** Without it they are not drop targets at all, and Completed ships collapsed (§6.2) — so completing a project by drag was impossible until you expanded it.
+**Collapsed columns must keep `ref={setNodeRef}`.** Without it they are not drop targets at all.
 
 Dropping onto a card resolves to that card's column in `onDragEnd`, so `pointerWithin` returning both the card and its column is harmless.
 

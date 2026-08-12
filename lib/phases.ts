@@ -13,30 +13,36 @@ export const PHASE_PRESENTATION = {
     token: "phase-2" as const,
     sortOrder: 2,
   },
-  construction_documents: {
-    customerLabel: "Construction Documents",
-    customerVisible: true,
+  review: {
+    customerLabel: "Review",
+    customerVisible: false,
     token: "phase-3" as const,
     sortOrder: 3,
   },
-  review: {
-    customerLabel: "Internal Review",
-    customerVisible: false,
+  construction_documents: {
+    customerLabel: "Construction Documents",
+    customerVisible: true,
     token: "phase-4" as const,
     sortOrder: 4,
+  },
+  final_review: {
+    customerLabel: "Final Review",
+    customerVisible: false,
+    token: "phase-5" as const,
+    sortOrder: 5,
   },
   permitting: {
     customerLabel: "Permitting",
     customerVisible: true,
-    token: "phase-5" as const,
-    sortOrder: 5,
+    token: "phase-6" as const,
+    sortOrder: 6,
   },
 } satisfies Record<
   DesignPhase,
   {
     customerLabel: string;
     customerVisible: boolean;
-    token: `phase-${1 | 2 | 3 | 4 | 5}`;
+    token: `phase-${1 | 2 | 3 | 4 | 5 | 6}`;
     sortOrder: number;
   }
 >;
@@ -44,21 +50,23 @@ export const PHASE_PRESENTATION = {
 export const PHASE_TOKEN_CLASS: Record<DesignPhase, string> = {
   schematic_design: "bg-phase-1",
   design_development: "bg-phase-2",
-  construction_documents: "bg-phase-3",
-  review: "bg-phase-4",
-  permitting: "bg-phase-5",
+  review: "bg-phase-3",
+  construction_documents: "bg-phase-4",
+  final_review: "bg-phase-5",
+  permitting: "bg-phase-6",
 };
 
 export const PHASE_BORDER_CLASS: Record<DesignPhase, string> = {
   schematic_design: "border-t-phase-1",
   design_development: "border-t-phase-2",
-  construction_documents: "border-t-phase-3",
-  review: "border-t-phase-4",
-  permitting: "border-t-phase-5",
+  review: "border-t-phase-3",
+  construction_documents: "border-t-phase-4",
+  final_review: "border-t-phase-5",
+  permitting: "border-t-phase-6",
 };
 
 export function columnTopBorder(column: BoardColumn): string {
-  if (column === "backlog" || column === "pending" || column === "completed") {
+  if (column === "pending" || column === "active") {
     return "border-t-rule-strong";
   }
   return PHASE_BORDER_CLASS[column];

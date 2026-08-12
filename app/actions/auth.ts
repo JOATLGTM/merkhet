@@ -1,10 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { SESSION_COOKIE } from "@/lib/auth/constants";
-import { authenticate } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 
 export type SignInState = { error?: string } | null;
 
@@ -19,24 +17,17 @@ export async function signIn(
     return { error: "Email and password are required." };
   }
 
-  const user = await authenticate(email, password);
-  if (!user) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
     return { error: "Invalid email or password." };
   }
-
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, user.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-  });
 
   redirect("/");
 }
 
 export async function signOut() {
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
+  const supabase = await createClient();
+  await supabase.auth.signOut();
   redirect("/login");
 }

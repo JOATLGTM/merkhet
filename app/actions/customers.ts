@@ -14,6 +14,7 @@ export async function createCustomerAction(input: {
   contact_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
+  spouse_name?: string | null;
   notes?: string | null;
 }) {
   await requireUser();
@@ -22,6 +23,7 @@ export async function createCustomerAction(input: {
     contact_name: input.contact_name ?? null,
     contact_email: input.contact_email ?? null,
     contact_phone: input.contact_phone ?? null,
+    spouse_name: input.spouse_name ?? null,
     notes: input.notes ?? null,
   });
   revalidatePath("/customers");
@@ -38,6 +40,7 @@ export async function updateCustomerAction(
     contact_name?: string | null;
     contact_email?: string | null;
     contact_phone?: string | null;
+    spouse_name?: string | null;
     notes?: string | null;
   },
 ) {

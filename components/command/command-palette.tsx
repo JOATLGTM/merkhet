@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { moveProjectAction, toggleHoldAction } from "@/app/actions/projects";
 import {
@@ -125,10 +126,18 @@ export function CommandPalette({ projects, customers }: CommandPaletteProps) {
                   key={column}
                   onSelect={() => {
                     startTransition(async () => {
-                      await moveProjectAction(moveFor, column);
-                      setOpen(false);
-                      setMoveFor(null);
-                      router.push(`/?project=${moveFor}`);
+                      try {
+                        await moveProjectAction(moveFor, column);
+                        setOpen(false);
+                        setMoveFor(null);
+                        router.push(`/?project=${moveFor}`);
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error
+                            ? e.message
+                            : "Could not move project.",
+                        );
+                      }
                     });
                   }}
                 >

@@ -1,19 +1,35 @@
 export type UserRole = "admin" | "staff";
+
+/** `backlog` retained for DB compatibility; creation uses `pending`. */
 export type ProjectStatus = "backlog" | "pending" | "active" | "completed";
+
+/**
+ * Workflow order: SD → DD → Review → CD → Final Review → Permitting
+ * (@see docs/handoff/WORKFLOW-2.md)
+ */
 export type DesignPhase =
   | "schematic_design"
   | "design_development"
-  | "construction_documents"
   | "review"
+  | "construction_documents"
+  | "final_review"
   | "permitting";
+
 export type PhaseStatus =
   | "not_started"
   | "in_progress"
   | "completed"
   | "skipped";
 
-/** Board columns flatten `active` into the five design phases. */
-export type BoardColumn = Exclude<ProjectStatus, "active"> | DesignPhase;
+export type ApprovalParty = "client_contact" | "austin" | "client";
+export type ApprovalStatus = "pending" | "approved";
+export type TransitionDirection = "forward" | "backward";
+
+/**
+ * Live board columns. Complete/archived projects are off-board.
+ * `active` is the holding column (status=active, current_phase=null).
+ */
+export type BoardColumn = "pending" | "active" | DesignPhase;
 
 export type User = {
   id: string;
@@ -27,9 +43,11 @@ export type User = {
 export type Customer = {
   id: string;
   name: string;
+  /** External client contact — not the internal client contact on the project. */
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  spouse_name: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -48,7 +66,15 @@ export type Project = {
   on_hold_reason: string | null;
   start_date: string | null;
   target_completion: string | null;
+  client_desired_completion: string | null;
+  project_budget: number | null;
+  design_budget: number | null;
+  client_contact_id: string | null;
   hours_per_week: number | null;
+  archived_at: string | null;
+  contract_path: string | null;
+  contract_filename: string | null;
+  contract_uploaded_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -61,6 +87,7 @@ export type ProjectPhase = {
   status: PhaseStatus;
   planned_start: string | null;
   planned_end: string | null;
+  duration_days: number | null;
   entered_at: string | null;
   completed_at: string | null;
   sort_order: number;
@@ -81,6 +108,39 @@ export type PhaseSubscriber = {
   created_at: string;
 };
 
+export type ProjectApproval = {
+  id: string;
+  project_id: string;
+  phase: DesignPhase;
+  party: ApprovalParty;
+  status: ApprovalStatus;
+  approved_at: string | null;
+  recorded_by: string | null;
+  created_at: string;
+};
+
+export type PhaseTransition = {
+  id: string;
+  project_id: string;
+  from_column: string | null;
+  to_column: string;
+  direction: TransitionDirection;
+  actor_id: string | null;
+  created_at: string;
+};
+
+export type Consultant = {
+  id: string;
+  name: string;
+  company: string | null;
+  discipline: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ProjectWithRelations = Project & {
   customer: Customer;
   phases: ProjectPhase[];
@@ -90,45 +150,65 @@ export type ProjectWithRelations = Project & {
 export const DESIGN_PHASES: DesignPhase[] = [
   "schematic_design",
   "design_development",
-  "construction_documents",
   "review",
+  "construction_documents",
+  "final_review",
   "permitting",
 ];
 
-export const BOARD_COLUMNS: BoardColumn[] = [
-  "backlog",
-  "pending",
+/** Phases that receive a delegate + duration at Active. Review excluded. */
+export const DELEGATED_PHASES: DesignPhase[] = [
   "schematic_design",
   "design_development",
   "construction_documents",
-  "review",
+  "final_review",
   "permitting",
-  "completed",
+];
+
+export const GATE_PHASES: DesignPhase[] = ["review", "final_review"];
+
+export const BOARD_COLUMNS: BoardColumn[] = [
+  "pending",
+  "active",
+  "schematic_design",
+  "design_development",
+  "review",
+  "construction_documents",
+  "final_review",
+  "permitting",
 ];
 
 export const COLUMN_LABELS: Record<BoardColumn, string> = {
-  backlog: "Backlog",
   pending: "Pending",
+  active: "Active",
   schematic_design: "Schematic design",
   design_development: "Design development",
-  construction_documents: "Construction documents",
   review: "Review",
+  construction_documents: "Construction documents",
+  final_review: "Final review",
   permitting: "Permitting",
-  completed: "Completed",
 };
 
-export function boardColumnOf(project: Project): BoardColumn {
+export function boardColumnOf(project: Project): BoardColumn | null {
+  if (project.archived_at || project.status === "completed") {
+    return null;
+  }
+  if (project.status === "pending" || project.status === "backlog") {
+    return "pending";
+  }
   if (project.status === "active") {
-    if (!project.current_phase) {
-      throw new Error("Active project missing current_phase");
-    }
+    if (!project.current_phase) return "active";
     return project.current_phase;
   }
-  return project.status;
+  return null;
 }
 
 export function isDesignPhase(column: BoardColumn): column is DesignPhase {
   return DESIGN_PHASES.includes(column as DesignPhase);
+}
+
+export function isOnBoard(project: Project): boolean {
+  return boardColumnOf(project) != null;
 }
 
 export function initials(name: string): string {

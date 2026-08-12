@@ -18,4 +18,8 @@ export const env = {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     );
   },
+  /** Optional until seeding / admin invite needs it. */
+  get supabaseServiceRoleKey() {
+    return process.env.SUPABASE_SERVICE_ROLE_KEY || null;
+  },
 };

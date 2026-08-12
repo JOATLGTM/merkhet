@@ -1,82 +1,208 @@
-import {
-  applyPhaseMove,
-  getDemoStore,
-  nextProjectNumber,
-  seedPhasesForProject,
-} from "@/lib/db/demo-store";
+import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import type {
   BoardColumn,
   Customer,
   DesignPhase,
   Project,
+  ProjectPhase,
   ProjectWithRelations,
+  ActivityLog,
+  PhaseSubscriber,
   User,
   UserRole,
 } from "@/lib/types";
-import { DESIGN_PHASES, isDesignPhase } from "@/lib/types";
+import { DESIGN_PHASES, boardColumnOf, isDesignPhase } from "@/lib/types";
 
-function stamp() {
-  return new Date().toISOString();
+type Db = Awaited<ReturnType<typeof createServerSupabase>>;
+
+async function db(): Promise<Db> {
+  return createServerSupabase();
+}
+
+function asNumber(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mapUser(row: Record<string, unknown>): User {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    role: row.role as UserRole,
+    is_active: Boolean(row.is_active),
+    created_at: String(row.created_at),
+  };
+}
+
+function mapCustomer(row: Record<string, unknown>): Customer {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    contact_name: (row.contact_name as string | null) ?? null,
+    contact_email: (row.contact_email as string | null) ?? null,
+    contact_phone: (row.contact_phone as string | null) ?? null,
+    spouse_name: (row.spouse_name as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+function mapProject(row: Record<string, unknown>): Project {
+  return {
+    id: String(row.id),
+    customer_id: String(row.customer_id),
+    project_number: String(row.project_number),
+    name: String(row.name),
+    description: (row.description as string | null) ?? null,
+    status: row.status as Project["status"],
+    current_phase: (row.current_phase as DesignPhase | null) ?? null,
+    on_hold: Boolean(row.on_hold),
+    on_hold_since: (row.on_hold_since as string | null) ?? null,
+    on_hold_reason: (row.on_hold_reason as string | null) ?? null,
+    start_date: (row.start_date as string | null) ?? null,
+    target_completion: (row.target_completion as string | null) ?? null,
+    client_desired_completion:
+      (row.client_desired_completion as string | null) ?? null,
+    project_budget: asNumber(row.project_budget),
+    design_budget: asNumber(row.design_budget),
+    client_contact_id: (row.client_contact_id as string | null) ?? null,
+    hours_per_week: asNumber(row.hours_per_week),
+    archived_at: (row.archived_at as string | null) ?? null,
+    contract_path: (row.contract_path as string | null) ?? null,
+    contract_filename: (row.contract_filename as string | null) ?? null,
+    contract_uploaded_at: (row.contract_uploaded_at as string | null) ?? null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+function mapPhase(row: Record<string, unknown>): ProjectPhase {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    phase: row.phase as DesignPhase,
+    assignee_id: (row.assignee_id as string | null) ?? null,
+    status: row.status as ProjectPhase["status"],
+    planned_start: (row.planned_start as string | null) ?? null,
+    planned_end: (row.planned_end as string | null) ?? null,
+    duration_days: asNumber(row.duration_days),
+    entered_at: (row.entered_at as string | null) ?? null,
+    completed_at: (row.completed_at as string | null) ?? null,
+    sort_order: Number(row.sort_order),
+  };
+}
+
+function mapActivity(row: Record<string, unknown>): ActivityLog {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    actor_id: (row.actor_id as string | null) ?? null,
+    event_type: String(row.event_type),
+    payload: (row.payload as Record<string, unknown>) ?? {},
+    created_at: String(row.created_at),
+  };
+}
+
+function throwOn(
+  error: { message: string } | null | undefined,
+  fallback: string,
+) {
+  if (error) throw new Error(error.message || fallback);
 }
 
 export async function listUsers(activeOnly = true): Promise<User[]> {
-  const store = getDemoStore();
-  return store.users
-    .filter((u) => (activeOnly ? u.is_active : true))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const supabase = await db();
+  let query = supabase.from("users").select("*").order("name");
+  if (activeOnly) query = query.eq("is_active", true);
+  const { data, error } = await query;
+  throwOn(error, "Failed to list users");
+  return (data ?? []).map((row) => mapUser(row));
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  return getDemoStore().users.find((u) => u.id === id) ?? null;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwOn(error, "Failed to load user");
+  return data ? mapUser(data) : null;
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  return (
-    getDemoStore().users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase(),
-    ) ?? null
-  );
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .ilike("email", email)
+    .maybeSingle();
+  throwOn(error, "Failed to load user");
+  return data ? mapUser(data) : null;
 }
 
 export async function listCustomers(): Promise<
   (Customer & { total_projects: number; active_projects: number })[]
 > {
-  const store = getDemoStore();
-  return store.customers
-    .map((c) => {
-      const related = store.projects.filter((p) => p.customer_id === c.id);
-      return {
-        ...c,
-        total_projects: related.length,
-        active_projects: related.filter((p) => p.status === "active").length,
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const supabase = await db();
+  const [{ data: customers, error: cErr }, { data: projects, error: pErr }] =
+    await Promise.all([
+      supabase.from("customers").select("*").order("name"),
+      supabase.from("projects").select("customer_id, status"),
+    ]);
+  throwOn(cErr, "Failed to list customers");
+  throwOn(pErr, "Failed to list projects");
+
+  return (customers ?? []).map((row) => {
+    const related = (projects ?? []).filter((p) => p.customer_id === row.id);
+    return {
+      ...mapCustomer(row),
+      total_projects: related.length,
+      active_projects: related.filter((p) => p.status === "active").length,
+    };
+  });
 }
 
 export async function getCustomer(id: string): Promise<Customer | null> {
-  return getDemoStore().customers.find((c) => c.id === id) ?? null;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwOn(error, "Failed to load customer");
+  return data ? mapCustomer(data) : null;
 }
 
 export async function createCustomer(
   input: Pick<
     Customer,
-    "name" | "contact_name" | "contact_email" | "contact_phone" | "notes"
+    | "name"
+    | "contact_name"
+    | "contact_email"
+    | "contact_phone"
+    | "spouse_name"
+    | "notes"
   >,
 ): Promise<Customer> {
-  const store = getDemoStore();
-  const customer: Customer = {
-    id: crypto.randomUUID(),
-    name: input.name,
-    contact_name: input.contact_name,
-    contact_email: input.contact_email,
-    contact_phone: input.contact_phone,
-    notes: input.notes,
-    created_at: stamp(),
-    updated_at: stamp(),
-  };
-  store.customers.unshift(customer);
-  return customer;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      name: input.name,
+      contact_name: input.contact_name,
+      contact_email: input.contact_email,
+      contact_phone: input.contact_phone,
+      spouse_name: input.spouse_name ?? null,
+      notes: input.notes,
+    })
+    .select("*")
+    .single();
+  throwOn(error, "Failed to create customer");
+  return mapCustomer(data);
 }
 
 export async function updateCustomer(
@@ -84,51 +210,148 @@ export async function updateCustomer(
   patch: Partial<
     Pick<
       Customer,
-      "name" | "contact_name" | "contact_email" | "contact_phone" | "notes"
+      | "name"
+      | "contact_name"
+      | "contact_email"
+      | "contact_phone"
+      | "spouse_name"
+      | "notes"
     >
   >,
 ): Promise<Customer> {
-  const store = getDemoStore();
-  const customer = store.customers.find((c) => c.id === id);
-  if (!customer) throw new Error("Customer not found");
-  Object.assign(customer, patch, { updated_at: stamp() });
-  return customer;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("customers")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  throwOn(error, "Failed to update customer");
+  return mapCustomer(data);
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
-  const store = getDemoStore();
-  if (store.projects.some((p) => p.customer_id === id)) {
+  const supabase = await db();
+  const { count, error: countError } = await supabase
+    .from("projects")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", id);
+  throwOn(countError, "Failed to check customer projects");
+  if ((count ?? 0) > 0) {
     throw new Error("Cannot delete a customer that has projects.");
   }
-  store.customers = store.customers.filter((c) => c.id !== id);
+  const { error } = await supabase.from("customers").delete().eq("id", id);
+  throwOn(error, "Failed to delete customer");
+}
+
+async function hydrateProject(
+  supabase: Db,
+  project: Project,
+): Promise<ProjectWithRelations> {
+  const [{ data: customer, error: cErr }, { data: phases, error: pErr }, { data: activity, error: aErr }] =
+    await Promise.all([
+      supabase
+        .from("customers")
+        .select("*")
+        .eq("id", project.customer_id)
+        .single(),
+      supabase
+        .from("project_phases")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("sort_order"),
+      supabase
+        .from("activity_log")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("created_at", { ascending: false }),
+    ]);
+  throwOn(cErr, "Missing customer");
+  throwOn(pErr, "Failed to load phases");
+  throwOn(aErr, "Failed to load activity");
+
+  return {
+    ...project,
+    customer: mapCustomer(customer),
+    phases: (phases ?? []).map((row) => mapPhase(row)),
+    activity: (activity ?? []).map((row) => mapActivity(row)),
+  };
 }
 
 export async function listProjects(): Promise<ProjectWithRelations[]> {
-  const store = getDemoStore();
-  return store.projects.map((project) => hydrate(project));
+  const supabase = await db();
+  const { data: projects, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+  throwOn(error, "Failed to list projects");
+  if (!projects?.length) return [];
+
+  const ids = projects.map((p) => p.id);
+  const customerIds = [...new Set(projects.map((p) => p.customer_id))];
+
+  const [
+    { data: customers, error: cErr },
+    { data: phases, error: pErr },
+    { data: activity, error: aErr },
+  ] = await Promise.all([
+    supabase.from("customers").select("*").in("id", customerIds),
+    supabase
+      .from("project_phases")
+      .select("*")
+      .in("project_id", ids)
+      .order("sort_order"),
+    supabase
+      .from("activity_log")
+      .select("*")
+      .in("project_id", ids)
+      .order("created_at", { ascending: false }),
+  ]);
+  throwOn(cErr, "Failed to load customers");
+  throwOn(pErr, "Failed to load phases");
+  throwOn(aErr, "Failed to load activity");
+
+  const customersById = new Map(
+    (customers ?? []).map((c) => [c.id, mapCustomer(c)]),
+  );
+  const phasesByProject = new Map<string, ProjectPhase[]>();
+  for (const row of phases ?? []) {
+    const list = phasesByProject.get(row.project_id) ?? [];
+    list.push(mapPhase(row));
+    phasesByProject.set(row.project_id, list);
+  }
+  const activityByProject = new Map<string, ActivityLog[]>();
+  for (const row of activity ?? []) {
+    const list = activityByProject.get(row.project_id) ?? [];
+    list.push(mapActivity(row));
+    activityByProject.set(row.project_id, list);
+  }
+
+  return projects.map((row) => {
+    const project = mapProject(row);
+    const customer = customersById.get(project.customer_id);
+    if (!customer) throw new Error("Missing customer");
+    return {
+      ...project,
+      customer,
+      phases: phasesByProject.get(project.id) ?? [],
+      activity: activityByProject.get(project.id) ?? [],
+    };
+  });
 }
 
 export async function getProject(
   id: string,
 ): Promise<ProjectWithRelations | null> {
-  const project = getDemoStore().projects.find((p) => p.id === id);
-  return project ? hydrate(project) : null;
-}
-
-function hydrate(project: Project): ProjectWithRelations {
-  const store = getDemoStore();
-  const customer = store.customers.find((c) => c.id === project.customer_id);
-  if (!customer) throw new Error("Missing customer");
-  return {
-    ...project,
-    customer,
-    phases: store.phases
-      .filter((p) => p.project_id === project.id)
-      .sort((a, b) => a.sort_order - b.sort_order),
-    activity: store.activity
-      .filter((a) => a.project_id === project.id)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-  };
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwOn(error, "Failed to load project");
+  if (!data) return null;
+  return hydrateProject(supabase, mapProject(data));
 }
 
 export async function createProject(input: {
@@ -142,49 +365,48 @@ export async function createProject(input: {
   hours_per_week?: number | null;
   actor_id: string;
 }): Promise<ProjectWithRelations> {
-  const store = getDemoStore();
-  if (!store.customers.some((c) => c.id === input.customer_id)) {
-    throw new Error("Customer not found");
-  }
-  const status = input.status ?? "backlog";
+  const supabase = await db();
+  const status = input.status ?? "pending";
   const current_phase =
-    status === "active" ? (input.current_phase ?? "schematic_design") : null;
-  const project: Project = {
-    id: crypto.randomUUID(),
-    customer_id: input.customer_id,
-    project_number: nextProjectNumber(store),
-    name: input.name,
-    description: input.description ?? null,
-    status,
-    current_phase,
-    on_hold: false,
-    on_hold_since: null,
-    on_hold_reason: null,
-    start_date: input.start_date ?? null,
-    target_completion: input.target_completion ?? null,
-    hours_per_week: input.hours_per_week ?? null,
-    created_at: stamp(),
-    updated_at: stamp(),
-  };
-  store.projects.unshift(project);
-  const phases = seedPhasesForProject(project.id);
+    status === "active" ? (input.current_phase ?? null) : null;
+
+  const { data: projectRow, error } = await supabase
+    .from("projects")
+    .insert({
+      customer_id: input.customer_id,
+      name: input.name,
+      description: input.description ?? null,
+      status,
+      current_phase,
+      start_date: input.start_date ?? null,
+      target_completion: input.target_completion ?? null,
+      hours_per_week: input.hours_per_week ?? null,
+    })
+    .select("*")
+    .single();
+  throwOn(error, "Failed to create project");
+
   if (current_phase) {
-    const row = phases.find((p) => p.phase === current_phase);
-    if (row) {
-      row.status = "in_progress";
-      row.entered_at = stamp();
-    }
+    const { error: phaseError } = await supabase
+      .from("project_phases")
+      .update({
+        status: "in_progress",
+        entered_at: new Date().toISOString(),
+      })
+      .eq("project_id", projectRow.id)
+      .eq("phase", current_phase);
+    throwOn(phaseError, "Failed to start phase");
   }
-  store.phases.push(...phases);
-  store.activity.unshift({
-    id: crypto.randomUUID(),
-    project_id: project.id,
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectRow.id,
     actor_id: input.actor_id,
     event_type: "project.created",
     payload: {},
-    created_at: stamp(),
   });
-  return hydrate(project);
+  throwOn(activityError, "Failed to log project create");
+
+  return (await getProject(projectRow.id))!;
 }
 
 export async function updateProject(
@@ -202,30 +424,30 @@ export async function updateProject(
   >,
   actorId: string,
 ): Promise<ProjectWithRelations> {
-  const store = getDemoStore();
-  const project = store.projects.find((p) => p.id === id);
-  if (!project) throw new Error("Project not found");
+  const supabase = await db();
+  const before = await getProject(id);
+  if (!before) throw new Error("Project not found");
+
   const changed: Record<string, [unknown, unknown]> = {};
   for (const [key, value] of Object.entries(patch)) {
-    const prev = project[key as keyof Project];
-    if (prev !== value) {
-      changed[key] = [prev, value];
-      // @ts-expect-error dynamic assign
-      project[key] = value;
-    }
+    const prev = before[key as keyof Project];
+    if (prev !== value) changed[key] = [prev, value];
   }
-  project.updated_at = stamp();
+
+  const { error } = await supabase.from("projects").update(patch).eq("id", id);
+  throwOn(error, "Failed to update project");
+
   if (Object.keys(changed).length) {
-    store.activity.unshift({
-      id: crypto.randomUUID(),
+    const { error: activityError } = await supabase.from("activity_log").insert({
       project_id: id,
       actor_id: actorId,
       event_type: "project.updated",
       payload: { changed },
-      created_at: stamp(),
     });
+    throwOn(activityError, "Failed to log project update");
   }
-  return hydrate(project);
+
+  return (await getProject(id))!;
 }
 
 export async function toggleHold(
@@ -234,22 +456,26 @@ export async function toggleHold(
   reason: string | null,
   actorId: string,
 ): Promise<ProjectWithRelations> {
-  const store = getDemoStore();
-  const project = store.projects.find((p) => p.id === id);
-  if (!project) throw new Error("Project not found");
-  project.on_hold = onHold;
-  project.on_hold_since = onHold ? stamp() : null;
-  project.on_hold_reason = onHold ? reason : null;
-  project.updated_at = stamp();
-  store.activity.unshift({
-    id: crypto.randomUUID(),
+  const supabase = await db();
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      on_hold: onHold,
+      on_hold_since: onHold ? new Date().toISOString() : null,
+      on_hold_reason: onHold ? reason : null,
+    })
+    .eq("id", id);
+  throwOn(error, "Failed to toggle hold");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
     project_id: id,
     actor_id: actorId,
     event_type: "project.hold_toggled",
     payload: { on_hold: onHold, reason },
-    created_at: stamp(),
   });
-  return hydrate(project);
+  throwOn(activityError, "Failed to log hold toggle");
+
+  return (await getProject(id))!;
 }
 
 export async function moveProject(
@@ -257,8 +483,112 @@ export async function moveProject(
   toColumn: BoardColumn,
   actorId: string,
 ): Promise<ProjectWithRelations> {
-  applyPhaseMove(getDemoStore(), id, toColumn, actorId);
+  const current = await getProject(id);
+  if (!current) throw new Error("Project not found");
+
+  const from = boardColumnOf(current);
+  // Pending exits only via contract upload (uploadContractAndActivate), not drag/⌘K.
+  if (
+    (from === "pending" || current.status === "backlog") &&
+    toColumn !== "pending"
+  ) {
+    throw new Error(
+      "Upload an LOI or contract to move this project out of Pending.",
+    );
+  }
+
+  const supabase = await db();
+  const { error } = await supabase.rpc("move_project", {
+    p_project_id: id,
+    p_to_column: toColumn,
+    p_actor_id: actorId,
+  });
+  throwOn(error, "Failed to move project");
   return (await getProject(id))!;
+}
+
+/**
+ * Stores the LOI/contract and advances Pending → Active.
+ * This is the only supported path out of Pending.
+ */
+export async function uploadContractAndActivate(
+  projectId: string,
+  file: File,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const project = await getProject(projectId);
+  if (!project) throw new Error("Project not found");
+  if (project.status !== "pending" && project.status !== "backlog") {
+    throw new Error("Only Pending projects accept a contract upload.");
+  }
+  if (file.type !== "application/pdf") {
+    throw new Error("Contract must be a PDF.");
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    throw new Error("PDF must be 20 MB or smaller.");
+  }
+
+  const safeName = file.name.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 180);
+  const path = `${projectId}/${Date.now()}-${safeName}`;
+
+  const supabase = await db();
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { error: uploadError } = await supabase.storage
+    .from("contracts")
+    .upload(path, bytes, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+  throwOn(uploadError, "Failed to upload contract");
+
+  const { error: updateError } = await supabase
+    .from("projects")
+    .update({
+      contract_path: path,
+      contract_filename: file.name,
+      contract_uploaded_at: new Date().toISOString(),
+    })
+    .eq("id", projectId);
+  throwOn(updateError, "Failed to save contract metadata");
+
+  const { error: moveError } = await supabase.rpc("move_project", {
+    p_project_id: projectId,
+    p_to_column: "active",
+    p_actor_id: actorId,
+  });
+  throwOn(moveError, "Failed to activate project");
+
+  const { notifyProjectEnteredActive } = await import("@/lib/notifications");
+  await notifyProjectEnteredActive({
+    projectId,
+    projectName: project.name,
+    projectNumber: project.project_number,
+    actorId,
+  });
+
+  return (await getProject(projectId))!;
+}
+
+/** Short-lived signed URL for the private contracts bucket (view/download). */
+export async function getContractViewUrl(
+  projectId: string,
+): Promise<{ url: string; filename: string }> {
+  const project = await getProject(projectId);
+  if (!project?.contract_path) {
+    throw new Error("No contract on file for this project.");
+  }
+
+  const supabase = await db();
+  const { data, error } = await supabase.storage
+    .from("contracts")
+    .createSignedUrl(project.contract_path, 60 * 15); // 15 minutes
+  throwOn(error, "Failed to open contract");
+  if (!data?.signedUrl) throw new Error("Failed to open contract");
+
+  return {
+    url: data.signedUrl,
+    filename: project.contract_filename ?? "contract.pdf",
+  };
 }
 
 export async function updatePhaseAssignee(
@@ -267,21 +597,35 @@ export async function updatePhaseAssignee(
   assigneeId: string | null,
   actorId: string,
 ): Promise<ProjectWithRelations> {
-  const store = getDemoStore();
-  const row = store.phases.find(
-    (p) => p.project_id === projectId && p.phase === phase,
-  );
-  if (!row) throw new Error("Phase not found");
-  const from = row.assignee_id;
-  row.assignee_id = assigneeId;
-  store.activity.unshift({
-    id: crypto.randomUUID(),
+  const supabase = await db();
+  const { data: before, error: beforeError } = await supabase
+    .from("project_phases")
+    .select("assignee_id")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .single();
+  throwOn(beforeError, "Phase not found");
+  if (!before) throw new Error("Phase not found");
+
+  const { error } = await supabase
+    .from("project_phases")
+    .update({ assignee_id: assigneeId })
+    .eq("project_id", projectId)
+    .eq("phase", phase);
+  throwOn(error, "Failed to update assignee");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
     project_id: projectId,
     actor_id: actorId,
     event_type: "phase.assignee_changed",
-    payload: { phase, from_user_id: from, to_user_id: assigneeId },
-    created_at: stamp(),
+    payload: {
+      phase,
+      from_user_id: before.assignee_id,
+      to_user_id: assigneeId,
+    },
   });
+  throwOn(activityError, "Failed to log assignee change");
+
   return (await getProject(projectId))!;
 }
 
@@ -291,52 +635,81 @@ export async function updatePhaseDates(
   planned_start: string | null,
   planned_end: string | null,
 ): Promise<ProjectWithRelations> {
-  const store = getDemoStore();
-  const row = store.phases.find(
-    (p) => p.project_id === projectId && p.phase === phase,
-  );
-  if (!row) throw new Error("Phase not found");
-  row.planned_start = planned_start;
-  row.planned_end = planned_end;
+  const supabase = await db();
+  const { error } = await supabase
+    .from("project_phases")
+    .update({ planned_start, planned_end })
+    .eq("project_id", projectId)
+    .eq("phase", phase);
+  throwOn(error, "Failed to update phase dates");
   return (await getProject(projectId))!;
 }
 
-export async function listPhaseSubscribers() {
-  return getDemoStore().subscribers;
+export async function listPhaseSubscribers(): Promise<PhaseSubscriber[]> {
+  const supabase = await db();
+  const { data, error } = await supabase.from("phase_subscribers").select("*");
+  throwOn(error, "Failed to list subscribers");
+  return (data ?? []).map((row) => ({
+    phase: row.phase as DesignPhase,
+    user_id: String(row.user_id),
+    created_at: String(row.created_at),
+  }));
 }
 
 export async function setPhaseSubscribers(
   phase: DesignPhase,
   userIds: string[],
 ) {
-  const store = getDemoStore();
-  store.subscribers = [
-    ...store.subscribers.filter((s) => s.phase !== phase),
-    ...userIds.map((user_id) => ({
-      phase,
-      user_id,
-      created_at: stamp(),
-    })),
-  ];
-  return store.subscribers.filter((s) => s.phase === phase);
+  const supabase = await db();
+  const { error: delError } = await supabase
+    .from("phase_subscribers")
+    .delete()
+    .eq("phase", phase);
+  throwOn(delError, "Failed to clear subscribers");
+
+  if (userIds.length) {
+    const { error } = await supabase.from("phase_subscribers").insert(
+      userIds.map((user_id) => ({ phase, user_id })),
+    );
+    throwOn(error, "Failed to set subscribers");
+  }
+
+  return listPhaseSubscribers().then((rows) =>
+    rows.filter((s) => s.phase === phase),
+  );
 }
 
 export async function updateUserRole(id: string, role: UserRole) {
-  const user = getDemoStore().users.find((u) => u.id === id);
-  if (!user) throw new Error("User not found");
-  user.role = role;
-  return user;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("users")
+    .update({ role })
+    .eq("id", id)
+    .select("*")
+    .single();
+  throwOn(error, "Failed to update role");
+  return mapUser(data);
 }
 
 export async function setUserActive(id: string, isActive: boolean) {
-  const store = getDemoStore();
-  const user = store.users.find((u) => u.id === id);
-  if (!user) throw new Error("User not found");
-  user.is_active = isActive;
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("users")
+    .update({ is_active: isActive })
+    .eq("id", id)
+    .select("*")
+    .single();
+  throwOn(error, "Failed to update user active flag");
+
   if (!isActive) {
-    store.subscribers = store.subscribers.filter((s) => s.user_id !== id);
+    const { error: subError } = await supabase
+      .from("phase_subscribers")
+      .delete()
+      .eq("user_id", id);
+    throwOn(subError, "Failed to clear subscriptions");
   }
-  return user;
+
+  return mapUser(data);
 }
 
 export async function inviteUser(input: {
@@ -344,20 +717,43 @@ export async function inviteUser(input: {
   email: string;
   role: UserRole;
 }) {
-  const store = getDemoStore();
-  if (store.users.some((u) => u.email === input.email)) {
-    throw new Error("A user with that email already exists.");
+  // Prefer service-role create when available; otherwise insert is blocked by
+  // users.id FK to auth.users — surface a clear error.
+  const { createServiceClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createServiceClient();
+  } catch {
+    throw new Error(
+      "Inviting users requires SUPABASE_SERVICE_ROLE_KEY on the server.",
+    );
   }
-  const user: User = {
-    id: crypto.randomUUID(),
-    name: input.name,
-    email: input.email,
-    role: input.role,
-    is_active: true,
-    created_at: stamp(),
-  };
-  store.users.push(user);
-  return user;
+
+  const { data: created, error: authError } =
+    await admin.auth.admin.createUser({
+      email: input.email,
+      email_confirm: true,
+      password: crypto.randomUUID().slice(0, 12) + "Aa1!",
+      user_metadata: { name: input.name, role: input.role },
+    });
+  if (authError) throw new Error(authError.message);
+  if (!created.user) throw new Error("Failed to create auth user");
+
+  // Trigger may have inserted the public.users row; ensure role/name.
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("users")
+    .upsert({
+      id: created.user.id,
+      name: input.name,
+      email: input.email,
+      role: input.role,
+      is_active: true,
+    })
+    .select("*")
+    .single();
+  throwOn(error, "Failed to upsert public user");
+  return mapUser(data);
 }
 
 export function columnIsPhase(column: BoardColumn) {

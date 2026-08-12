@@ -22,6 +22,7 @@
   --phase-3: #6fa29c;
   --phase-4: #3d7a74;
   --phase-5: #1b5450;
+  --phase-6: #0f3d3a;
 
   --redline: #c8382a;
   --warn: #be7100;
@@ -75,6 +76,7 @@
   --color-phase-3: var(--phase-3);
   --color-phase-4: var(--phase-4);
   --color-phase-5: var(--phase-5);
+  --color-phase-6: var(--phase-6);
   --color-redline: var(--redline);
   --color-warn: var(--warn);
   --color-focus: var(--focus);

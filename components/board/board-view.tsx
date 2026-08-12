@@ -46,6 +46,7 @@ import {
   COLUMN_LABELS,
   boardColumnOf,
   isDesignPhase,
+  isOnBoard,
   type BoardColumn,
   type Customer,
   type PhaseSubscriber,
@@ -233,9 +234,7 @@ export function BoardView({
   const [query, setQuery] = useState("");
   const [assigneeId, setAssigneeId] = useState("all");
   const [showOnHold, setShowOnHold] = useState(true);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    completed: true,
-  });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -245,13 +244,12 @@ export function BoardView({
       state.map((p) => {
         if (p.id !== id) return p;
         if (isDesignPhase(column)) {
-          return { ...p, status: "active", current_phase: column };
+          return { ...p, status: "active" as const, current_phase: column };
         }
-        return {
-          ...p,
-          status: column as ProjectWithRelations["status"],
-          current_phase: null,
-        };
+        if (column === "active") {
+          return { ...p, status: "active" as const, current_phase: null };
+        }
+        return { ...p, status: "pending" as const, current_phase: null };
       }),
   );
 
@@ -274,6 +272,7 @@ export function BoardView({
   );
 
   const filtered = optimistic.filter((p) => {
+    if (!isOnBoard(p)) return false;
     if (!showOnHold && p.on_hold) return false;
     const q = query.trim().toLowerCase();
     if (
@@ -324,7 +323,9 @@ export function BoardView({
     if (!BOARD_COLUMNS.includes(toColumn)) {
       const overProject = optimistic.find((p) => p.id === String(over.id));
       if (!overProject) return;
-      toColumn = boardColumnOf(overProject);
+      const overColumn = boardColumnOf(overProject);
+      if (!overColumn) return;
+      toColumn = overColumn;
     }
     const project = optimistic.find((p) => p.id === id);
     if (!project || boardColumnOf(project) === toColumn) return;
@@ -333,8 +334,12 @@ export function BoardView({
       setOptimistic({ id, column: toColumn });
       try {
         await moveProjectAction(id, toColumn);
-      } catch {
-        toast.error("Could not move project. Rolling back.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : "Could not move project. Rolling back.",
+        );
         router.refresh();
       }
     });

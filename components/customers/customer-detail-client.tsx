@@ -42,7 +42,13 @@ export function CustomerDetailClient({
   const selected = projects.find((p) => p.id === projectId) ?? null;
 
   const saveField = (
-    field: "name" | "contact_name" | "contact_email" | "contact_phone" | "notes",
+    field:
+      | "name"
+      | "contact_name"
+      | "contact_email"
+      | "contact_phone"
+      | "spouse_name"
+      | "notes",
     value: string,
   ) => {
     startTransition(async () => {
@@ -62,9 +68,10 @@ export function CustomerDetailClient({
         {(
           [
             ["name", "Name", customer.name],
-            ["contact_name", "Contact name", customer.contact_name ?? ""],
-            ["contact_email", "Contact email", customer.contact_email ?? ""],
-            ["contact_phone", "Contact phone", customer.contact_phone ?? ""],
+            ["contact_name", "Client name", customer.contact_name ?? ""],
+            ["contact_email", "Client email", customer.contact_email ?? ""],
+            ["contact_phone", "Client phone", customer.contact_phone ?? ""],
+            ["spouse_name", "Spouse name", customer.spouse_name ?? ""],
           ] as const
         ).map(([field, label, value]) => (
           <div key={field} className="space-y-1.5">
@@ -147,7 +154,14 @@ export function CustomerDetailClient({
                 </div>
                 <div className="mt-1 flex items-center gap-3">
                   <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-mid">
-                    {COLUMN_LABELS[boardColumnOf(project)]}
+                    {(() => {
+                      const col = boardColumnOf(project);
+                      return col
+                        ? COLUMN_LABELS[col]
+                        : project.status === "completed"
+                          ? "Complete"
+                          : "—";
+                    })()}
                   </span>
                   {project.status === "active" && (
                     <PhaseRule
