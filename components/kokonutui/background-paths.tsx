@@ -11,10 +11,27 @@
  * - Palette swapped to the §12.1 phase ramp; no ad-hoc hex
  * - Hairline stroke weights instead of the original 4–7px rounded strokes
  * - Deterministic path ids (the original used Math.random per render)
- * - Per-path opacity is animated rather than set inline, so the layered
+ * - Per-path opacity is set inline and the *layer* fades in, so the layered
  *   depth survives the fade-in instead of being flattened to 1
  * - Decorative only: aria-hidden, no <title>, and the float loop is
  *   dropped entirely under prefers-reduced-motion (§12.2)
+ *
+ * ── Why the float lives on a <div>, not on the paths ────────────────────
+ * The original animated `y` on all 32 `m.path` elements. Motion renders that
+ * as a CSS `transform` on each path (see motion-dom buildSVGAttrs), and Blink
+ * cannot promote SVG *children* to their own compositor layers — so every
+ * frame invalidated the entire SVG raster on the main thread. At full-window
+ * width that is ~2x the pixels of a half-window and blows the frame budget;
+ * Chrome drops the tiles and the whole document layer flashes, login card
+ * included (it is `relative z-10`, a stacking context but not a layer).
+ *
+ * Each depth is now its own absolutely-positioned div holding a static SVG.
+ * The div is an HTML element, so `y`/`opacity` run on the compositor and the
+ * SVG rasters exactly once. Do not move the float back onto the paths.
+ *
+ * Consequence: FLOAT_DISTANCE is now CSS pixels rather than SVG user units
+ * (which the `slice` scale shrank by ~0.55x), so the values are pre-scaled to
+ * land on the same on-screen travel.
  */
 
 import { m, useReducedMotion } from "motion/react";
@@ -123,10 +140,11 @@ function buildPaths(
   }));
 }
 
+/** CSS pixels — see the unit note in the file header. */
 const FLOAT_DISTANCE: Record<PathKind, number> = {
-  primary: -15,
-  secondary: -10,
-  accent: -5,
+  primary: -9,
+  secondary: -6,
+  accent: -3,
 };
 
 const FLOAT_DURATION: Record<PathKind, number> = {
@@ -135,44 +153,67 @@ const FLOAT_DURATION: Record<PathKind, number> = {
   accent: 4,
 };
 
-const PathGroup = memo(function PathGroup({
+const PathLayer = memo(function PathLayer({
   kind,
   paths,
-  groupOpacity,
+  layerOpacity,
   reduced,
 }: {
   kind: PathKind;
   paths: PathData[];
-  groupOpacity: number;
+  layerOpacity: number;
   reduced: boolean;
 }) {
+  // Unique per layer: duplicate ids across the three SVGs would cross-wire the
+  // `url(#…)` stroke references.
+  const rampId = `merkhet-path-ramp-${kind}`;
+
   return (
-    <g style={{ opacity: groupOpacity }}>
-      {paths.map((path) => (
-        <m.path
-          key={path.id}
-          d={path.d}
-          stroke="url(#merkhet-path-ramp)"
-          strokeLinecap="round"
-          strokeWidth={path.width}
-          initial={{ opacity: 0 }}
-          animate={
-            reduced
-              ? { opacity: path.opacity }
-              : { opacity: path.opacity, y: [0, FLOAT_DISTANCE[kind], 0] }
-          }
-          transition={{
-            opacity: { duration: 1.2, ease: "easeOut" },
-            y: {
-              duration: FLOAT_DURATION[kind],
-              repeat: Number.POSITIVE_INFINITY,
-              repeatType: "reverse",
-              ease: "easeInOut",
-            },
-          }}
-        />
-      ))}
-    </g>
+    <m.div
+      // Overscan, so the float never exposes a bare strip at the clipped edge.
+      className="absolute -inset-6"
+      initial={{ opacity: 0 }}
+      animate={
+        reduced
+          ? { opacity: layerOpacity }
+          : { opacity: layerOpacity, y: [0, FLOAT_DISTANCE[kind], 0] }
+      }
+      transition={{
+        opacity: { duration: 1.2, ease: "easeOut" },
+        y: {
+          duration: FLOAT_DURATION[kind],
+          repeat: Number.POSITIVE_INFINITY,
+          repeatType: "reverse",
+          ease: "easeInOut",
+        },
+      }}
+    >
+      <svg
+        className="h-full w-full"
+        fill="none"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="-2400 -800 4800 1600"
+      >
+        <defs>
+          <linearGradient id={rampId} x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" style={{ stopColor: "var(--phase-5)" }} />
+            <stop offset="45%" style={{ stopColor: "var(--phase-3)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--phase-1)" }} />
+          </linearGradient>
+        </defs>
+
+        {paths.map((path) => (
+          <path
+            key={path.id}
+            d={path.d}
+            stroke={`url(#${rampId})`}
+            strokeLinecap="round"
+            strokeWidth={path.width}
+            opacity={path.opacity}
+          />
+        ))}
+      </svg>
+    </m.div>
   );
 });
 
@@ -210,45 +251,24 @@ export const BackgroundPaths = memo(function BackgroundPaths({
         className,
       )}
     >
-      <svg
-        className="h-full w-full"
-        fill="none"
-        preserveAspectRatio="xMidYMid slice"
-        viewBox="-2400 -800 4800 1600"
-      >
-        <defs>
-          <linearGradient
-            id="merkhet-path-ramp"
-            x1="0%"
-            x2="100%"
-            y1="0%"
-            y2="0%"
-          >
-            <stop offset="0%" style={{ stopColor: "var(--phase-5)" }} />
-            <stop offset="45%" style={{ stopColor: "var(--phase-3)" }} />
-            <stop offset="100%" style={{ stopColor: "var(--phase-1)" }} />
-          </linearGradient>
-        </defs>
-
-        <PathGroup
-          kind="primary"
-          paths={primaryPaths}
-          groupOpacity={1}
-          reduced={reduced}
-        />
-        <PathGroup
-          kind="secondary"
-          paths={secondaryPaths}
-          groupOpacity={0.8}
-          reduced={reduced}
-        />
-        <PathGroup
-          kind="accent"
-          paths={accentPaths}
-          groupOpacity={0.6}
-          reduced={reduced}
-        />
-      </svg>
+      <PathLayer
+        kind="primary"
+        paths={primaryPaths}
+        layerOpacity={1}
+        reduced={reduced}
+      />
+      <PathLayer
+        kind="secondary"
+        paths={secondaryPaths}
+        layerOpacity={0.8}
+        reduced={reduced}
+      />
+      <PathLayer
+        kind="accent"
+        paths={accentPaths}
+        layerOpacity={0.6}
+        reduced={reduced}
+      />
     </div>
   );
 });

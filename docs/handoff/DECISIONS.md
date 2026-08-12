@@ -135,8 +135,25 @@ This is knowingly against two PRD rules, approved by the user:
 - Root `MotionProvider` uses `<LazyMotion strict>`, so `motion.*` **throws at render**. Always rewrite to `m.*`.
 - CSS vars don't resolve in SVG presentation attributes — use `style={{ stopColor: "var(--phase-3)" }}`, not `stopColor="var(...)"`.
 - The registry source had two upstream bugs, fixed in our copy: per-path `opacity` was set inline *and* animated to `1` (flattening the layered depth), and path ids came from `Math.random()` on every render.
+- **Never animate `transform`/`y` on an SVG child.** See below.
 
-**Cost:** 32 infinitely-looping SVG paths while the login screen is open. Acceptable for an unauthenticated 4-second screen; revisit if the login route ever gains real work.
+**Cost:** 32 SVG paths, drawn once. Acceptable for an unauthenticated 4-second screen; revisit if the login route ever gains real work.
+
+#### Full-page flash at wide viewports — fixed Aug 11, 2026
+
+The login card and background visibly flashed on Chrome at full-window width, but not at half width.
+
+Not a remount — a full-document repaint. The float loop animated `y` on all 32 `m.path` elements; motion renders that as a CSS `transform` on each path (`motion-dom` `buildSVGAttrs`), and **Blink cannot promote SVG children to their own compositor layers**. Every frame invalidated the whole SVG raster on the main thread. The `viewBox` is 3:1 under `preserveAspectRatio="slice"`, so on any normal window the scale is height-driven and *identical* at both widths — full-width simply paints ~2x the pixels, enough to miss the frame budget. Chrome then drops the tiles, taking the login card with it (`relative z-10` is a stacking context, not a layer).
+
+Fix: each depth is now its own absolutely-positioned `m.div` wrapping a **static** SVG. Divs are HTML, so `y`/`opacity` run on the compositor and each SVG rasters exactly once.
+
+Rules this leaves behind:
+
+- The float belongs on the wrapping div. Moving it back onto the paths reintroduces the flash.
+- Per-path `opacity` is a plain attribute; the *layer* fades in. Product of layer x path opacity is unchanged, so layered depth is preserved — do not re-animate per-path opacity.
+- `FLOAT_DISTANCE` is now **CSS pixels**, not SVG user units (the `slice` scale shrank those ~0.55x). Values were pre-scaled to keep the same on-screen travel.
+- Three SVGs means three gradient ids — `merkhet-path-ramp-${kind}`. Duplicate ids would cross-wire the `url(#…)` strokes.
+- Layers are `-inset-6` so the float never exposes a bare strip at the clipped edge.
 
 ## Locale
 

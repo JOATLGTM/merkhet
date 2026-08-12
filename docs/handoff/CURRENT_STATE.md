@@ -60,6 +60,10 @@ Unchanged on purpose:
 - **`MK-` project number prefix** — reads fine for either name and is quoted out loud by staff (PRD §5.2); changing it would renumber live projects.
 - **`Merkat.dc.html`** in `PRD.md` §preamble and `DECISIONS.md` — the literal filename of the original external Datum mockup. Renaming a historical artifact's filename would make it un-findable.
 
+## Changed Aug 11, 2026
+
+**Bug fixed:** the login card and background flashed on Chrome at full-window width (fine at half width). The background-paths float loop animated `transform` on 32 SVG paths, which Blink cannot composite — every frame repainted the whole document layer. Float moved onto three composited wrapper divs; SVGs are now static. See "Full-page flash at wide viewports" in [DECISIONS.md](./DECISIONS.md).
+
 ## Changed Aug 10, 2026
 
 Grouped by why it mattered, not by file. Durable rules live in [DECISIONS.md](./DECISIONS.md); remaining gaps in [NEXT.md](./NEXT.md).
