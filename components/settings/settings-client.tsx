@@ -55,7 +55,7 @@ export function SettingsClient({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="border-b border-rule bg-surface px-5 py-3">
-        <h1 className="page-title">Settings</h1>
+        <h1 className="page-title">Staff</h1>
         <div className="mt-3 flex gap-4">
           <button
             type="button"

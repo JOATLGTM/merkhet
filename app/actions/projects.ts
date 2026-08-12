@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import {
   createProject,
   getContractViewUrl,
+  markProjectComplete,
   moveProject,
   toggleHold,
   updatePhaseAssignee,
@@ -19,6 +20,7 @@ function revalidateAll() {
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/customers");
+  revalidatePath("/completed");
 }
 
 export async function moveProjectAction(
@@ -47,6 +49,13 @@ export async function uploadContractAction(formData: FormData) {
 export async function getContractViewUrlAction(projectId: string) {
   await requireUser();
   return getContractViewUrl(projectId);
+}
+
+export async function markProjectCompleteAction(projectId: string) {
+  const user = await requireUser();
+  const project = await markProjectComplete(projectId, user.id);
+  revalidateAll();
+  return project;
 }
 
 export async function updateProjectFieldAction(

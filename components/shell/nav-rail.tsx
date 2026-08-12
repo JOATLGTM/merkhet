@@ -1,12 +1,13 @@
 "use client";
 
 import {
+  Archive,
   Briefcase,
   CalendarRange,
   Columns3,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
+  UserCog,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -29,7 +30,8 @@ const links = [
   { href: "/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/consultants", label: "Consultants", icon: Briefcase },
-  { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+  { href: "/completed", label: "Completed projects", icon: Archive },
+  { href: "/staff", label: "Staff", icon: UserCog, adminOnly: true },
 ];
 
 export function NavRail({ user }: NavRailProps) {

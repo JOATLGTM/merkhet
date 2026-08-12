@@ -31,7 +31,10 @@ Hold until requirements are clarified.
 **Slice 4 (Delegation) skipped (2026-08-12)** — not needed for current client direction.
 Leftover Slice 4 files removed.
 
-**Next:** Slice 7 — Consultants (independent). No new SQL if 1B already applied.
+**Slice 7 (Consultants) is complete (2026-08-12).** Directory + attach/create from project
+detail; no new SQL (1B schema).
+
+**Next:** Slice 8 — Permitting exit + archive (Mark Complete → Completed projects).
 
 ### Execution order
 
@@ -42,12 +45,10 @@ Leftover Slice 4 files removed.
 | 3     | 2 — Pending→Active gate + contract upload  | **Done**                      |
 | 4     | 3 — Intake form expansion                  | **Reverted — on hold**        |
 | 5     | 4 — Delegation                             | **Skipped**                   |
-| —     | 7 — Consultants                            | **Code ready — verify**       |
-| 5     | 4 — Delegation                             | After 1B                      |
+| —     | 7 — Consultants                            | **Done**                      |
+| 8     | 8 — Permitting exit + archive              | **Code ready — verify**       |
 | 6     | 5 — Approval gates + rework loops          | After 4                       |
 | 7     | 6 — Notifications                          | After 5                       |
-| —     | 7 — Consultants                            | Ready now, independent        |
-| 8     | 8 — Permitting exit + archive              | After 1B                      |
 | 9     | 9 — Staff view                             | Confirm need first            |
 | 10    | 10 — Calendar                              | Blocked: Austin               |
 

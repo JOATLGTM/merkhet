@@ -18,21 +18,21 @@ export async function setSubscribersAction(
   await requireAdmin();
   const rows = await setPhaseSubscribers(phase, userIds);
   revalidatePath("/");
-  revalidatePath("/settings");
+  revalidatePath("/staff");
   return rows;
 }
 
 export async function updateRoleAction(userId: string, role: UserRole) {
   await requireAdmin();
   const user = await updateUserRole(userId, role);
-  revalidatePath("/settings");
+  revalidatePath("/staff");
   return user;
 }
 
 export async function setActiveAction(userId: string, isActive: boolean) {
   await requireAdmin();
   const user = await setUserActive(userId, isActive);
-  revalidatePath("/settings");
+  revalidatePath("/staff");
   revalidatePath("/");
   return user;
 }
@@ -44,6 +44,6 @@ export async function inviteUserAction(input: {
 }) {
   await requireAdmin();
   const user = await inviteUser(input);
-  revalidatePath("/settings");
+  revalidatePath("/staff");
   return user;
 }

@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/consultants";
 import {
   getContractViewUrlAction,
+  markProjectCompleteAction,
   toggleHoldAction,
   updateAssigneeAction,
   updatePhaseDatesAction,
@@ -21,6 +22,14 @@ import {
 } from "@/app/actions/projects";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -121,6 +130,7 @@ export function ProjectDetailSheet({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachId, setAttachId] = useState("none");
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDiscipline, setNewDiscipline] = useState("");
   const [newCompany, setNewCompany] = useState("");
@@ -235,6 +245,15 @@ export function ProjectDetailSheet({
               <CirclePause className="h-3.5 w-3.5 text-ink-mid" />
               {project.on_hold ? "Resume" : "Put on hold"}
             </Button>
+            {column === "permitting" && (
+              <Button
+                type="button"
+                className="h-auto rounded-none bg-emerald-700 px-2.5 py-1.5 text-[13px] font-normal text-white hover:bg-emerald-800"
+                onClick={() => setCompleteOpen(true)}
+              >
+                Mark Complete
+              </Button>
+            )}
           </div>
 
           <PhaseRule
@@ -243,6 +262,51 @@ export function ProjectDetailSheet({
             className="mt-4"
           />
         </SheetHeader>
+
+        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
+          <DialogContent className="rounded-none sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Is this project finished?</DialogTitle>
+              <DialogDescription>
+                Marking complete archives {project.name} and removes it from
+                the board. You can still find it under Completed projects.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-none"
+                onClick={() => setCompleteOpen(false)}
+              >
+                No
+              </Button>
+              <Button
+                type="button"
+                className="rounded-none bg-emerald-700 text-white hover:bg-emerald-800"
+                onClick={() => {
+                  startTransition(async () => {
+                    try {
+                      await markProjectCompleteAction(project.id);
+                      setCompleteOpen(false);
+                      toast.success("Project marked complete");
+                      onClose();
+                      router.refresh();
+                    } catch (e) {
+                      toast.error(
+                        e instanceof Error
+                          ? e.message
+                          : "Could not mark complete.",
+                      );
+                    }
+                  });
+                }}
+              >
+                Yes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="px-6">
           {isPending && (

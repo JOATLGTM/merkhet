@@ -324,8 +324,30 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
   throwOn(error, "Failed to list projects");
   if (!projects?.length) return [];
 
-  const ids = projects.map((p) => p.id);
-  const customerIds = [...new Set(projects.map((p) => p.customer_id))];
+  return hydrateProjectList(supabase, projects);
+}
+
+export async function listCompletedProjects(): Promise<ProjectWithRelations[]> {
+  const supabase = await db();
+  const { data: projects, error } = await supabase
+    .from("projects")
+    .select("*")
+    .or("status.eq.completed,archived_at.not.is.null")
+    .order("archived_at", { ascending: false, nullsFirst: false });
+  throwOn(error, "Failed to list completed projects");
+  if (!projects?.length) return [];
+
+  return hydrateProjectList(supabase, projects);
+}
+
+async function hydrateProjectList(
+  supabase: Db,
+  projects: Record<string, unknown>[],
+): Promise<ProjectWithRelations[]> {
+  const ids = projects.map((p) => String(p.id));
+  const customerIds = [
+    ...new Set(projects.map((p) => String(p.customer_id))),
+  ];
 
   const [
     { data: customers, error: cErr },
@@ -575,6 +597,29 @@ export async function moveProject(
     p_actor_id: actorId,
   });
   throwOn(error, "Failed to move project");
+  return (await getProject(id))!;
+}
+
+/**
+ * Permitting → Complete (archived). Only valid from the Permitting column.
+ */
+export async function markProjectComplete(
+  id: string,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const current = await getProject(id);
+  if (!current) throw new Error("Project not found");
+  if (boardColumnOf(current) !== "permitting") {
+    throw new Error("Only projects in Permitting can be marked complete.");
+  }
+
+  const supabase = await db();
+  const { error } = await supabase.rpc("move_project", {
+    p_project_id: id,
+    p_to_column: "completed",
+    p_actor_id: actorId,
+  });
+  throwOn(error, "Failed to mark project complete");
   return (await getProject(id))!;
 }
 
