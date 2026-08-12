@@ -958,7 +958,7 @@ export async function inviteUser(input: {
     admin = createServiceClient();
   } catch {
     throw new Error(
-      "Inviting users requires SUPABASE_SERVICE_ROLE_KEY on the server.",
+      "Inviting users requires SUPABASE_SERVICE_MERKET_ROLE_KEY on the server.",
     );
   }
 

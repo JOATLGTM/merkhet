@@ -11,7 +11,7 @@ export function createServiceClient() {
   const key = env.supabaseServiceRoleKey;
   if (!key) {
     throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY (service_role JWT or sb_secret_…).",
+      "Missing SUPABASE_SERVICE_MERKET_ROLE_KEY (service_role JWT or sb_secret_…).",
     );
   }
   return createClient(env.supabaseUrl, key, {

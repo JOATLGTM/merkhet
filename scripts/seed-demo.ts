@@ -3,7 +3,7 @@
  *
  * Prerequisites:
  * 1. Both migrations applied (init + move_project)
- * 2. SUPABASE_SERVICE_ROLE_KEY set in `.env` / `.env.local`
+ * 2. SUPABASE_SERVICE_MERKET_ROLE_KEY set in `.env` / `.env.local`
  *
  *   npm run seed
  */
@@ -16,13 +16,17 @@ import { getDemoSeedData } from "../lib/db/demo-store";
 config({ path: ".env.local" });
 config({ path: ".env" });
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const url =
+  process.env.NEXT_PUBLIC_SUPABASE_MERKET_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey =
+  process.env.SUPABASE_SERVICE_MERKET_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
 const password = "password";
 
 if (!url || !serviceKey) {
   console.error(
-    "Need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env",
+    "Need NEXT_PUBLIC_SUPABASE_MERKET_URL and SUPABASE_SERVICE_MERKET_ROLE_KEY in .env",
   );
   process.exit(1);
 }
