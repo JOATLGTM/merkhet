@@ -10,6 +10,7 @@ import type {
   PhaseSubscriber,
   User,
   UserRole,
+  Consultant,
 } from "@/lib/types";
 import { DESIGN_PHASES, boardColumnOf, isDesignPhase } from "@/lib/types";
 
@@ -103,6 +104,20 @@ function mapActivity(row: Record<string, unknown>): ActivityLog {
     event_type: String(row.event_type),
     payload: (row.payload as Record<string, unknown>) ?? {},
     created_at: String(row.created_at),
+  };
+}
+
+function mapConsultant(row: Record<string, unknown>): Consultant {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    company: (row.company as string | null) ?? null,
+    discipline: (row.discipline as string | null) ?? null,
+    email: (row.email as string | null) ?? null,
+    phone: (row.phone as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
   };
 }
 
@@ -248,33 +263,55 @@ async function hydrateProject(
   supabase: Db,
   project: Project,
 ): Promise<ProjectWithRelations> {
-  const [{ data: customer, error: cErr }, { data: phases, error: pErr }, { data: activity, error: aErr }] =
-    await Promise.all([
-      supabase
-        .from("customers")
-        .select("*")
-        .eq("id", project.customer_id)
-        .single(),
-      supabase
-        .from("project_phases")
-        .select("*")
-        .eq("project_id", project.id)
-        .order("sort_order"),
-      supabase
-        .from("activity_log")
-        .select("*")
-        .eq("project_id", project.id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: customer, error: cErr },
+    { data: phases, error: pErr },
+    { data: activity, error: aErr },
+    { data: joins, error: jErr },
+  ] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("*")
+      .eq("id", project.customer_id)
+      .single(),
+    supabase
+      .from("project_phases")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("sort_order"),
+    supabase
+      .from("activity_log")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("project_consultants")
+      .select("consultant_id")
+      .eq("project_id", project.id),
+  ]);
   throwOn(cErr, "Missing customer");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
+  throwOn(jErr, "Failed to load project consultants");
+
+  const consultantIds = (joins ?? []).map((j) => String(j.consultant_id));
+  let consultants: Consultant[] = [];
+  if (consultantIds.length) {
+    const { data: consultantRows, error: consErr } = await supabase
+      .from("consultants")
+      .select("*")
+      .in("id", consultantIds)
+      .order("name");
+    throwOn(consErr, "Failed to load consultants");
+    consultants = (consultantRows ?? []).map((row) => mapConsultant(row));
+  }
 
   return {
     ...project,
     customer: mapCustomer(customer),
     phases: (phases ?? []).map((row) => mapPhase(row)),
     activity: (activity ?? []).map((row) => mapActivity(row)),
+    consultants,
   };
 }
 
@@ -294,6 +331,7 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
     { data: customers, error: cErr },
     { data: phases, error: pErr },
     { data: activity, error: aErr },
+    { data: joins, error: jErr },
   ] = await Promise.all([
     supabase.from("customers").select("*").in("id", customerIds),
     supabase
@@ -306,10 +344,30 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
       .select("*")
       .in("project_id", ids)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("project_consultants")
+      .select("project_id, consultant_id")
+      .in("project_id", ids),
   ]);
   throwOn(cErr, "Failed to load customers");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
+  throwOn(jErr, "Failed to load project consultants");
+
+  const consultantIds = [
+    ...new Set((joins ?? []).map((j) => String(j.consultant_id))),
+  ];
+  const consultantsById = new Map<string, Consultant>();
+  if (consultantIds.length) {
+    const { data: consultantRows, error: consErr } = await supabase
+      .from("consultants")
+      .select("*")
+      .in("id", consultantIds);
+    throwOn(consErr, "Failed to load consultants");
+    for (const row of consultantRows ?? []) {
+      consultantsById.set(String(row.id), mapConsultant(row));
+    }
+  }
 
   const customersById = new Map(
     (customers ?? []).map((c) => [c.id, mapCustomer(c)]),
@@ -326,6 +384,18 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
     list.push(mapActivity(row));
     activityByProject.set(row.project_id, list);
   }
+  const consultantsByProject = new Map<string, Consultant[]>();
+  for (const row of joins ?? []) {
+    const projectId = String(row.project_id);
+    const consultant = consultantsById.get(String(row.consultant_id));
+    if (!consultant) continue;
+    const list = consultantsByProject.get(projectId) ?? [];
+    list.push(consultant);
+    consultantsByProject.set(projectId, list);
+  }
+  for (const list of consultantsByProject.values()) {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   return projects.map((row) => {
     const project = mapProject(row);
@@ -336,6 +406,7 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
       customer,
       phases: phasesByProject.get(project.id) ?? [],
       activity: activityByProject.get(project.id) ?? [],
+      consultants: consultantsByProject.get(project.id) ?? [],
     };
   });
 }
@@ -654,6 +725,123 @@ export async function listPhaseSubscribers(): Promise<PhaseSubscriber[]> {
     user_id: String(row.user_id),
     created_at: String(row.created_at),
   }));
+}
+
+export async function listConsultants(): Promise<Consultant[]> {
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("consultants")
+    .select("*")
+    .order("name");
+  throwOn(error, "Failed to list consultants");
+  return (data ?? []).map((row) => mapConsultant(row));
+}
+
+export async function getConsultant(id: string): Promise<Consultant | null> {
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("consultants")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwOn(error, "Failed to load consultant");
+  return data ? mapConsultant(data) : null;
+}
+
+export async function createConsultant(
+  input: Pick<
+    Consultant,
+    "name" | "company" | "discipline" | "email" | "phone" | "notes"
+  >,
+): Promise<Consultant> {
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("consultants")
+    .insert({
+      name: input.name,
+      company: input.company,
+      discipline: input.discipline,
+      email: input.email,
+      phone: input.phone,
+      notes: input.notes,
+    })
+    .select("*")
+    .single();
+  throwOn(error, "Failed to create consultant");
+  return mapConsultant(data);
+}
+
+export async function updateConsultant(
+  id: string,
+  patch: Partial<
+    Pick<
+      Consultant,
+      "name" | "company" | "discipline" | "email" | "phone" | "notes"
+    >
+  >,
+): Promise<Consultant> {
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("consultants")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  throwOn(error, "Failed to update consultant");
+  return mapConsultant(data);
+}
+
+export async function deleteConsultant(id: string): Promise<void> {
+  const supabase = await db();
+  const { error } = await supabase.from("consultants").delete().eq("id", id);
+  throwOn(error, "Failed to delete consultant");
+}
+
+export async function attachConsultantToProject(
+  projectId: string,
+  consultantId: string,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const supabase = await db();
+  const { error } = await supabase.from("project_consultants").insert({
+    project_id: projectId,
+    consultant_id: consultantId,
+  });
+  throwOn(error, "Failed to attach consultant");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "project.consultant_attached",
+    payload: { consultant_id: consultantId },
+  });
+  throwOn(activityError, "Failed to log consultant attach");
+
+  return (await getProject(projectId))!;
+}
+
+export async function detachConsultantFromProject(
+  projectId: string,
+  consultantId: string,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const supabase = await db();
+  const { error } = await supabase
+    .from("project_consultants")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("consultant_id", consultantId);
+  throwOn(error, "Failed to remove consultant");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "project.consultant_detached",
+    payload: { consultant_id: consultantId },
+  });
+  throwOn(activityError, "Failed to log consultant detach");
+
+  return (await getProject(projectId))!;
 }
 
 export async function setPhaseSubscribers(

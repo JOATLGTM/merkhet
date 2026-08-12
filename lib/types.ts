@@ -145,6 +145,7 @@ export type ProjectWithRelations = Project & {
   customer: Customer;
   phases: ProjectPhase[];
   activity: ActivityLog[];
+  consultants: Consultant[];
 };
 
 export const DESIGN_PHASES: DesignPhase[] = [

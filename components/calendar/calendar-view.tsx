@@ -13,12 +13,18 @@ import { useRouter } from "next/navigation";
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
 import { Button } from "@/components/ui/button";
 import { COLUMN_LABELS, DESIGN_PHASES, boardColumnOf } from "@/lib/types";
-import type { DesignPhase, ProjectWithRelations, User } from "@/lib/types";
+import type {
+  Consultant,
+  DesignPhase,
+  ProjectWithRelations,
+  User,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type CalendarViewProps = {
   projects: ProjectWithRelations[];
   users: User[];
+  consultants: Consultant[];
 };
 
 const ZOOM_KEY = "merkhet.calendar.zoom";
@@ -70,7 +76,11 @@ type Row = {
   dates: string[];
 };
 
-export function CalendarView({ projects, users }: CalendarViewProps) {
+export function CalendarView({
+  projects,
+  users,
+  consultants,
+}: CalendarViewProps) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<"weeks" | "months">("weeks");
@@ -400,6 +410,7 @@ export function CalendarView({ projects, users }: CalendarViewProps) {
       <ProjectDetailSheet
         project={selected}
         users={users}
+        consultants={consultants}
         open={Boolean(selected)}
         onClose={() => {
           setProjectId(null);

@@ -4,6 +4,7 @@ import { BoardView } from "@/components/board/board-view";
 import { CommandPalette } from "@/components/command/command-palette";
 import { getSessionUser } from "@/lib/auth/session";
 import {
+  listConsultants,
   listCustomers,
   listPhaseSubscribers,
   listProjects,
@@ -15,12 +16,14 @@ export default async function BoardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [projects, users, customers, subscribers] = await Promise.all([
-    listProjects(),
-    listUsers(),
-    listCustomers(),
-    listPhaseSubscribers(),
-  ]);
+  const [projects, users, customers, subscribers, consultants] =
+    await Promise.all([
+      listProjects(),
+      listUsers(),
+      listCustomers(),
+      listPhaseSubscribers(),
+      listConsultants(),
+    ]);
 
   return (
     <>
@@ -30,6 +33,7 @@ export default async function BoardPage() {
           users={users}
           customers={customers}
           subscribers={subscribers}
+          consultants={consultants}
           currentUser={user}
         />
       </Suspense>

@@ -48,6 +48,7 @@ import {
   isDesignPhase,
   isOnBoard,
   type BoardColumn,
+  type Consultant,
   type Customer,
   type PhaseSubscriber,
   type ProjectWithRelations,
@@ -59,6 +60,7 @@ type BoardViewProps = {
   users: User[];
   customers: Customer[];
   subscribers: PhaseSubscriber[];
+  consultants: Consultant[];
   currentUser: User;
 };
 
@@ -226,6 +228,7 @@ export function BoardView({
   users,
   customers,
   subscribers,
+  consultants,
   currentUser,
 }: BoardViewProps) {
   const router = useRouter();
@@ -453,6 +456,7 @@ export function BoardView({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        consultants={consultants}
         open={Boolean(selected)}
         onClose={closeProject}
       />

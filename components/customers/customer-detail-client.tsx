@@ -19,6 +19,7 @@ import {
   COLUMN_LABELS,
   boardColumnOf,
   initials,
+  type Consultant,
   type Customer,
   type ProjectWithRelations,
   type User,
@@ -28,11 +29,13 @@ export function CustomerDetailClient({
   customer,
   projects,
   users,
+  consultants,
   initialProjectId,
 }: {
   customer: Customer;
   projects: ProjectWithRelations[];
   users: User[];
+  consultants: Consultant[];
   initialProjectId: string | null;
 }) {
   const router = useRouter();
@@ -185,6 +188,7 @@ export function CustomerDetailClient({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        consultants={consultants}
         open={Boolean(selected)}
         onClose={() => setProjectId(null)}
       />

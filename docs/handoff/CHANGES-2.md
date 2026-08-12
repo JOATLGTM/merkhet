@@ -28,7 +28,10 @@ upload → Active; View PDF via signed URL; drag/⌘K blocked without contract; 
 **Slice 3 intake expansion was reverted (2026-08-12)** — does not match client direction yet.
 Hold until requirements are clarified.
 
-**Next:** Confirm intake with client, or proceed to Slice 4 (Delegation) / Slice 7 (Consultants).
+**Slice 4 (Delegation) skipped (2026-08-12)** — not needed for current client direction.
+Leftover Slice 4 files removed.
+
+**Next:** Slice 7 — Consultants (independent). No new SQL if 1B already applied.
 
 ### Execution order
 
@@ -38,6 +41,8 @@ Hold until requirements are clarified.
 | 2     | 1B — Workflow schema migration             | **Done**                      |
 | 3     | 2 — Pending→Active gate + contract upload  | **Done**                      |
 | 4     | 3 — Intake form expansion                  | **Reverted — on hold**        |
+| 5     | 4 — Delegation                             | **Skipped**                   |
+| —     | 7 — Consultants                            | **Code ready — verify**       |
 | 5     | 4 — Delegation                             | After 1B                      |
 | 6     | 5 — Approval gates + rework loops          | After 4                       |
 | 7     | 6 — Notifications                          | After 5                       |

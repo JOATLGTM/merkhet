@@ -39,6 +39,10 @@ export function formatActivity(
       const fields = changed ? Object.keys(changed).join(", ") : "fields";
       return `${actor} updated ${fields} · ${when}`;
     }
+    case "project.consultant_attached":
+      return `${actor} attached a consultant · ${when}`;
+    case "project.consultant_detached":
+      return `${actor} removed a consultant · ${when}`;
     default:
       return `${actor} made a change · ${when}`;
   }

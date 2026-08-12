@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { CustomerDetailClient } from "@/components/customers/customer-detail-client";
-import { getCustomer, listProjects, listUsers } from "@/lib/db/repo";
+import {
+  getCustomer,
+  listConsultants,
+  listProjects,
+  listUsers,
+} from "@/lib/db/repo";
 
 export default async function CustomerDetailPage({
   params,
@@ -17,7 +22,11 @@ export default async function CustomerDetailPage({
   const customer = await getCustomer(id);
   if (!customer) notFound();
 
-  const [projects, users] = await Promise.all([listProjects(), listUsers()]);
+  const [projects, users, consultants] = await Promise.all([
+    listProjects(),
+    listUsers(),
+    listConsultants(),
+  ]);
   const related = projects.filter((p) => p.customer_id === id);
 
   return (
@@ -36,6 +45,7 @@ export default async function CustomerDetailPage({
           customer={customer}
           projects={related}
           users={users}
+          consultants={consultants}
           initialProjectId={sp.project ?? null}
         />
       </Suspense>

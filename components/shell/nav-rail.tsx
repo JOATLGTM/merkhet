@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Briefcase,
   CalendarRange,
   Columns3,
   PanelLeftClose,
@@ -27,6 +28,7 @@ const links = [
   { href: "/", label: "Board", icon: Columns3 },
   { href: "/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/customers", label: "Customers", icon: Users },
+  { href: "/consultants", label: "Consultants", icon: Briefcase },
   { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 

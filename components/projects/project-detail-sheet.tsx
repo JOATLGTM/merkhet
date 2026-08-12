@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CirclePause, ExternalLink, FileUp } from "lucide-react";
+import { ArrowUpRight, CirclePause, ExternalLink, FileUp, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import {
+  attachConsultantAction,
+  createAndAttachConsultantAction,
+  detachConsultantAction,
+} from "@/app/actions/consultants";
 import {
   getContractViewUrlAction,
   toggleHoldAction,
@@ -34,12 +39,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatActivity } from "@/lib/activity";
 import { formatFullDate } from "@/lib/dates";
 import { COLUMN_LABELS, boardColumnOf } from "@/lib/types";
-import type { DesignPhase, ProjectWithRelations, User } from "@/lib/types";
+import type {
+  Consultant,
+  DesignPhase,
+  ProjectWithRelations,
+  User,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type ProjectDetailSheetProps = {
   project: ProjectWithRelations | null;
   users: User[];
+  consultants: Consultant[];
   open: boolean;
   onClose: () => void;
 };
@@ -102,12 +113,19 @@ function InlineText({
 export function ProjectDetailSheet({
   project,
   users,
+  consultants,
   open,
   onClose,
 }: ProjectDetailSheetProps) {
   const [, startTransition] = useTransition();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachId, setAttachId] = useState("none");
+  const [newName, setNewName] = useState("");
+  const [newDiscipline, setNewDiscipline] = useState("");
+  const [newCompany, setNewCompany] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const usersById = new Map(users.map((u) => [u.id, u]));
   const assigneeItems = [
     { label: "Unassigned", value: "none" },
@@ -121,6 +139,27 @@ export function ProjectDetailSheet({
       </Sheet>
     );
   }
+
+  const NEW_CONSULTANT = "__new__";
+  const attachedIds = new Set(project.consultants.map((c) => c.id));
+  const availableConsultants = consultants.filter((c) => !attachedIds.has(c.id));
+  const creatingConsultant = attachId === NEW_CONSULTANT;
+  const attachItems = [
+    { label: "Select consultant…", value: "none" },
+    ...availableConsultants.map((c) => ({
+      label: c.discipline ? `${c.name} · ${c.discipline}` : c.name,
+      value: c.id,
+    })),
+    { label: "+ New consultant", value: NEW_CONSULTANT },
+  ];
+
+  const resetNewConsultant = () => {
+    setNewName("");
+    setNewDiscipline("");
+    setNewCompany("");
+    setNewEmail("");
+    setNewPhone("");
+  };
 
   const column = boardColumnOf(project);
   const statusLabel = column
@@ -412,6 +451,198 @@ export function ProjectDetailSheet({
               Full record
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
+          </section>
+
+          <section className="border-b border-rule py-5">
+            <FieldLabel>Consultants</FieldLabel>
+            <p className="mt-2 text-[12px] text-ink-soft">
+              External specialists on this project. Pick an existing one or add
+              a new contact here.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {project.consultants.length === 0 && (
+                <li className="text-[13px] text-ink-soft">None attached.</li>
+              )}
+              {project.consultants.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-start justify-between gap-2 border border-rule bg-paper px-3 py-2"
+                >
+                  <div>
+                    <Link
+                      href={`/consultants/${c.id}`}
+                      className="text-[13px] font-medium text-ink hover:underline"
+                    >
+                      {c.name}
+                    </Link>
+                    <p className="text-[12px] text-ink-mid">
+                      {[c.discipline, c.company].filter(Boolean).join(" · ") ||
+                        "—"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 p-1 text-ink-soft hover:text-ink"
+                    aria-label={`Remove ${c.name}`}
+                    onClick={() => {
+                      startTransition(async () => {
+                        try {
+                          await detachConsultantAction(project.id, c.id);
+                          toast.success("Consultant removed");
+                          router.refresh();
+                        } catch (e) {
+                          toast.error(
+                            e instanceof Error
+                              ? e.message
+                              : "Could not remove consultant.",
+                          );
+                        }
+                      });
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-3 space-y-3">
+              <Select
+                items={attachItems}
+                value={attachId}
+                onValueChange={(v) => {
+                  const next = v ?? "none";
+                  setAttachId(next);
+                  if (next !== NEW_CONSULTANT) resetNewConsultant();
+                }}
+              >
+                <SelectTrigger className="h-9 w-full rounded-none border-rule-strong text-[13px]">
+                  <SelectValue placeholder="Select consultant…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select consultant…</SelectItem>
+                  {availableConsultants.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.discipline ? `${c.name} · ${c.discipline}` : c.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={NEW_CONSULTANT}>
+                    + New consultant
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {creatingConsultant && (
+                <div className="space-y-3 border border-rule bg-paper p-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
+                    New consultant
+                  </p>
+                  <div className="space-y-2">
+                    <FieldLabel>Name</FieldLabel>
+                    <Input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="h-9 rounded-none border-rule-strong"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel>Discipline</FieldLabel>
+                    <Input
+                      value={newDiscipline}
+                      onChange={(e) => setNewDiscipline(e.target.value)}
+                      placeholder="e.g. Soil engineer"
+                      className="h-9 rounded-none border-rule-strong"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel>Company</FieldLabel>
+                    <Input
+                      value={newCompany}
+                      onChange={(e) => setNewCompany(e.target.value)}
+                      className="h-9 rounded-none border-rule-strong"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <FieldLabel>Email</FieldLabel>
+                      <Input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        className="h-9 rounded-none border-rule-strong"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <FieldLabel>Phone</FieldLabel>
+                      <Input
+                        value={newPhone}
+                        onChange={(e) => setNewPhone(e.target.value)}
+                        className="h-9 rounded-none border-rule-strong"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-auto rounded-none bg-ink px-3 py-2 text-[13px] text-surface"
+                    onClick={() => {
+                      if (!newName.trim()) {
+                        toast.error("Consultant name is required.");
+                        return;
+                      }
+                      startTransition(async () => {
+                        try {
+                          await createAndAttachConsultantAction(project.id, {
+                            name: newName.trim(),
+                            discipline: newDiscipline.trim() || null,
+                            company: newCompany.trim() || null,
+                            email: newEmail.trim() || null,
+                            phone: newPhone.trim() || null,
+                          });
+                          setAttachId("none");
+                          resetNewConsultant();
+                          toast.success("Consultant added to project");
+                          router.refresh();
+                        } catch (e) {
+                          toast.error(
+                            e instanceof Error
+                              ? e.message
+                              : "Could not add consultant.",
+                          );
+                        }
+                      });
+                    }}
+                  >
+                    Create & attach
+                  </Button>
+                </div>
+              )}
+
+              {!creatingConsultant && attachId !== "none" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-none border-rule-strong px-3 text-[13px] font-normal"
+                  onClick={() => {
+                    startTransition(async () => {
+                      try {
+                        await attachConsultantAction(project.id, attachId);
+                        setAttachId("none");
+                        toast.success("Consultant attached");
+                        router.refresh();
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error
+                            ? e.message
+                            : "Could not attach consultant.",
+                        );
+                      }
+                    });
+                  }}
+                >
+                  Attach
+                </Button>
+              )}
+            </div>
           </section>
 
           <section className="border-b border-rule py-5">
