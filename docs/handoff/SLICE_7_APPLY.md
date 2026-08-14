@@ -11,4 +11,4 @@ Schema already landed in Slice 1B (`consultants`, `project_consultants`). **No n
 
 ---
 
-**Status:** Code ready — verify in the app.
+**Status (2026-08-12):** Applied and verified — directory CRUD; attach / + New consultant on project detail.

@@ -11,4 +11,4 @@
 
 ---
 
-**Status:** Code ready — verify in the app.
+**Status (2026-08-12):** Applied and verified — Mark Complete from Permitting; Completed projects nav.

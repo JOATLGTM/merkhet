@@ -2,45 +2,49 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-## Likely next
+**Last updated: 2026-08-12**
 
-1. **Wire real Supabase** — swap `lib/db/repo.ts` from demo store to `lib/supabase/*`; apply migration; Auth instead of cookie demo. Still the blocker under everything else: nothing persists today.
-   - When the migration runs, confirm the `ph-…` id fix landed — the old seed put every phase row on one id, which the real PK would reject.
-2. **Polish pass vs Lovable** — pixel-diff board cards, settings Active column UX. *(detail sheet width and customer-detail padding done Aug 10.)*
-3. **PRD gaps still soft** — client-updates Phase 2 (`/client-updates`), email notifications on phase change, RLS verification against live DB.
-4. **Git** — work may still be largely uncommitted; check `git status` before assuming history.
+## Likely next (workflow slices)
 
-## Known gaps against PRD §12.6
+See [`CHANGES-2.md`](./CHANGES-2.md) status table. Open product slices:
 
-- **No `KeyboardSensor` on the board.** `board-view.tsx` registers `PointerSensor` only, so drag is mouse/touch-only — §12.6 requires the board to be usable end to end by keyboard, "including drag via dnd-kit's keyboard sensor". The collision strategy already has the non-pointer fallback in place, so adding the sensor should be self-contained.
-- Remaining §12.6 criteria (focus rings, Motion bundle under 20KB gzipped) have not been audited.
+1. **Slice 5 — Approval gates + rework loops** (Review / Final Review sign-offs; reject → prior phase). Highest risk; depended on 4, but 4 was skipped — confirm whether gates can ship without full delegation.
+2. **Slice 6 — Notifications** — replace stubs in `lib/notifications.ts`.
+3. **Slice 3 — Intake form expansion** — on hold until client clarifies fields/labels.
+4. **Slice 9 — Staff workload view** — confirm need; distinct from `/staff` (team + subscribers admin page).
+5. **Slice 10 — Calendar** — blocked on Austin (day resolution / staff grouping).
+
+**Skipped / not building now:** Slice 4 Delegation.
+
+## Polish / engineering
+
+- Pixel-diff vs Lovable where still soft; Staff page Active-column UX
+- Client-updates Phase 2 (`/client-updates`); client-facing email on phase entry (deferred in WORKFLOW)
+- RLS audit against live DB
+- **Git** — large uncommitted set; commit when asked
+- Board: add dnd-kit `KeyboardSensor` (PRD §12.6)
 
 ## Cache Components / instant navigation
 
-Validation (dev overlay only — routes still return 200) flags any segment reading `cookies()`/`headers()`/`params`/`searchParams` outside `<Suspense>`.
+Validation (dev overlay) flags `cookies()` / `connection()` / uncached fetches outside `<Suspense>`.
 
-Current state per segment:
-
-| Segment | State | Why |
-|---|---|---|
-| `(auth)/layout.tsx` | `instant = false` | cookie-authenticated |
-| `(app)/layout.tsx` | `instant = false` | `getSessionUser()` in the shell |
-| `(app)/settings/page.tsx` | `instant = false` | admin gate reads the session cookie; rarely navigated, blocking is fine |
-| `(app)/customers/page.tsx` | validates clean | `?new=1` moved to `useSearchParams()` in `CustomersClient`, behind `<Suspense>` |
-
-**Still open:** `(app)/page.tsx` (board) and `(app)/customers/[id]/page.tsx` both `await getSessionUser()` / `searchParams` in the page body. Per PRD §9.2 the real fix is `"use cache: private"` with `stale >= 5m` so the shell can carry session-dependent content — that belongs with the **real Supabase Auth wiring**, not the demo cookie. Do not blanket-apply `instant = false` to every page; that switches off the feature the PRD chose Next 16 for (§9).
+| Segment | State |
+|---|---|
+| `(auth)/layout.tsx`, `(app)/layout.tsx` | `instant = false` |
+| `(app)/staff/page.tsx` | `instant = false` (admin gate) |
+| Consultants / Completed | data fetch inside `<Suspense>` |
+| Board / customer detail | still denser; prefer Suspense over blanket `instant = false` |
 
 ## Known quirks
 
-- Demo store resets only when the Node process restarts (or `resetDemoStore()`). **Editing the seed is not enough — hot reload keeps the old data**, because the store lives on a process global (`__merkhetDemoV2`).
-- Seed dates are anchored to a **2026-08-10 "today"**. The amber (within 14 days) and redline (overdue) cases drift as the real date moves past them; re-anchor if those states stop appearing.
-- Hydration errors only come from a real browser — `curl` returns 200 on a page that is throwing them. Check `.next/dev/logs/next-development.log` or the dev overlay.
-- Cache Components insights behave the same way: the route still returns 200, the insight only shows in the overlay / dev-server log.
-- Calendar zoom key: `merkhet.calendar.zoom`; board collapsed columns: `merkhet-board-collapsed`.
-- Staff login is `dana@merkhet.studio` (showcase name); older docs mentioning `sana@` are stale.
-- `AGENTS.md` / Next agent rules: prefer reading `node_modules/next/dist/docs/` for this Next version.
+- After `.env` changes: **restart** `npm run dev`
+- Env prefers `*_MERKET_*` names; legacy `NEXT_PUBLIC_SUPABASE_URL` etc. still fall back
+- Seed dates anchored ~2026-08-10 — amber/redline urgency drifts
+- Hydration / Cache insights: check browser overlay, not `curl` alone
+- Calendar zoom: `merkhet.calendar.zoom`; board collapse: `merkhet-board-collapsed`
+- Theme preference: `localStorage` via `next-themes` (default **dark**)
 
 ## When changing UI
 
-- Prefer matching [Lovable showcase](https://pixel-perfect-showcase-001.lovable.app/) for visuals.
-- Prefer PRD if showcase behavior conflicts (e.g. column model, hold semantics, calendar degradation rules).
+- Prefer [Lovable showcase](https://pixel-perfect-showcase-001.lovable.app/) for visuals
+- Prefer PRD / WORKFLOW-2 when behavior conflicts

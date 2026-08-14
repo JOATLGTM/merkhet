@@ -34,7 +34,14 @@ Leftover Slice 4 files removed.
 **Slice 7 (Consultants) is complete (2026-08-12).** Directory + attach/create from project
 detail; no new SQL (1B schema).
 
-**Next:** Slice 8 — Permitting exit + archive (Mark Complete → Completed projects).
+**Slice 8 (Permitting exit + archive) is complete (2026-08-12).** Mark Complete on Permitting
+(confirm modal) → `status=completed` + `archived_at`; off board; `/completed` list. No new SQL.
+
+**Also (2026-08-12):** dark theme default + nav Light/Dark toggle; Settings nav renamed to
+**Staff** (`/staff`); env keys `*_MERKET_*`.
+
+**Next:** Slice 5 (approvals) if needed without full delegation, or Slice 6 notifications,
+or confirm Slice 3 / 9 / 10 with the client.
 
 ### Execution order
 
@@ -46,9 +53,9 @@ detail; no new SQL (1B schema).
 | 4     | 3 — Intake form expansion                  | **Reverted — on hold**        |
 | 5     | 4 — Delegation                             | **Skipped**                   |
 | —     | 7 — Consultants                            | **Done**                      |
-| 8     | 8 — Permitting exit + archive              | **Code ready — verify**       |
-| 6     | 5 — Approval gates + rework loops          | After 4                       |
-| 7     | 6 — Notifications                          | After 5                       |
+| 8     | 8 — Permitting exit + archive              | **Done**                      |
+| 6     | 5 — Approval gates + rework loops          | Open                          |
+| 7     | 6 — Notifications                          | Open                          |
 | 9     | 9 — Staff view                             | Confirm need first            |
 | 10    | 10 — Calendar                              | Blocked: Austin               |
 
@@ -352,10 +359,10 @@ Clean slate — nothing built, nothing to unbuild.
 
 # Slice 8 — Permitting exit and archive
 
-Manual "mark complete" on Permitting, restricted to Austin and Ryan. No approval gate.
-
-Complete archives the project: off the active board, still readable and searchable. Touches
-the board's column model.
+**Status: Done (2026-08-12).** Manual Mark Complete on Permitting (confirm modal) →
+`status=completed` + `archived_at`; off board; `/completed` list. No new SQL (uses existing
+`move_project`). Role restriction to Austin/Ryan not enforced in app yet (any signed-in user
+with write access can complete).
 
 ---
 
@@ -364,8 +371,10 @@ the board's column model.
 **Confirm need before building** (`WORKFLOW-2.md` §8). May be redundant with the
 staff-grouped calendar.
 
-If built: per-person view of assigned phases across all projects, derived from delegation. No
-new schema.
+**Not the same as nav “Staff”** (`/staff`) — that page is admin Team + Phase subscribers
+(former Settings). Slice 9 would be per-person workload of assigned phases across projects.
+
+If built: derived from delegation. No new schema.
 
 ---
 

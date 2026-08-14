@@ -8,7 +8,11 @@
 | Calendar | `app/(app)/calendar/page.tsx` → `components/calendar/calendar-view.tsx` |
 | Customers | `app/(app)/customers/page.tsx` → `components/customers/customers-client.tsx` |
 | Customer detail | `app/(app)/customers/[id]/page.tsx` → `components/customers/customer-detail-client.tsx` |
-| Settings | `app/(app)/settings/page.tsx` → `components/settings/settings-client.tsx` |
+| Consultants | `app/(app)/consultants/page.tsx` → `components/consultants/consultants-client.tsx` |
+| Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
+| Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
+| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` |
+| Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
 
@@ -18,24 +22,27 @@
 |---|---|
 | Types, columns, labels | `lib/types.ts` |
 | Phase presentation / token classes | `lib/phases.ts` |
-| Demo seed + phase move | `lib/db/demo-store.ts` |
-| Repository (all persistence today) | `lib/db/repo.ts` |
-| Server actions | `app/actions/{auth,projects,customers,settings}.ts` |
-| Session / demo password | `lib/auth/session.ts`, `lib/auth/constants.ts` |
+| Env (Merkhet-scoped Supabase keys) | `lib/env.ts` |
+| Repository (Supabase) | `lib/db/repo.ts` |
+| Demo seed source only | `lib/db/demo-store.ts` + `scripts/seed-demo.ts` |
+| Supabase clients | `lib/supabase/{client,server,admin}.ts` |
+| Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
+| Session | `lib/auth/session.ts` |
+| Notification stubs | `lib/notifications.ts` |
 | Dates / urgency | `lib/dates.ts` |
 | Activity copy | `lib/activity.ts` |
-| SQL schema | `supabase/migrations/20260807100000_init.sql` |
-| Seed SQL (reference) | `supabase/seed.sql` |
+| Migrations | `supabase/migrations/*.sql` |
 
 ## UI pieces
 
 | Concern | File |
 |---|---|
-| Tokens / utilities | `app/globals.css` |
+| Tokens / light+dark | `app/globals.css` (`.dark`) |
+| Theme provider / toggle | `components/providers/theme-provider.tsx`, `components/shell/theme-toggle.tsx` |
 | Project card | `components/projects/project-card.tsx` |
 | Detail sheet | `components/projects/project-detail-sheet.tsx` |
-| Phase rule (5-seg) | `components/projects/phase-rule.tsx` |
-| New project dialog (incl. inline customer create) | `components/projects/new-project-dialog.tsx` |
+| Phase rule (6-seg) | `components/projects/phase-rule.tsx` |
+| New project dialog | `components/projects/new-project-dialog.tsx` |
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
 | shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |
@@ -47,4 +54,4 @@
 
 - `next.config.ts` — Cache Components
 - `components.json` — shadcn + KokonutUI
-- `.env.example` — Supabase env placeholders
+- `.env.example` — `NEXT_PUBLIC_SUPABASE_MERKET_*`, `SUPABASE_SERVICE_MERKET_ROLE_KEY`

@@ -22,6 +22,8 @@
 
 - Hosted Supabase (Slice 1A). Reads/writes via `lib/db/repo.ts` + Supabase clients.
 - `lib/db/demo-store.ts` remains only as the seed source for `npm run seed`.
+- Env: `NEXT_PUBLIC_SUPABASE_MERKET_URL`, `NEXT_PUBLIC_SUPABASE_MERKET_ANON_KEY`,
+  `SUPABASE_SERVICE_MERKET_ROLE_KEY` (see `lib/env.ts`; legacy names still fall back).
 
 ## Stack (from PRD)
 
@@ -32,11 +34,14 @@
 - Tailwind v4, shadcn + KokonutUI registry
 - Motion (`LazyMotion`, `reducedMotion="user"`), dnd-kit, Lucide
 - Design: Archivo + JetBrains Mono; paper/ink; teal phase ramp `--phase-1`…`--phase-6`; redline `#C8382A`; sharp corners
+- **Theme:** `next-themes`; default **dark**; toggle in nav footer; `.dark` tokens in `globals.css`
 
 ## UI conventions (post-Lovable pass)
 
 - `.label-caps`, `.page-title` utilities in `app/globals.css`
 - Nav: 208px → 56px collapsed; teal “M”; active = white + 2px inset left `--phase-5`
+- Nav items: Board, Calendar, Customers, Consultants, Completed projects, Staff (admin)
+- **Staff (`/staff`) ≠ Slice 9** — `/staff` is admin Team + Phase subscribers; Slice 9 would be a per-person workload view (confirm need before building)
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
 - Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
