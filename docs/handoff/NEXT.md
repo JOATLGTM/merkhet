@@ -6,9 +6,9 @@ Not committed as a formal backlog — use as a resume checklist.
 
 ## Read this first if you are resuming
 
-Four slices were built on 2026-08-14 (11, 4, 10, 5) and **none of it is committed**. See
-"Uncommitted work" below for the file list. All three migrations from that day are **already
-applied to hosted Supabase and verified**; Slice 10 needed no SQL.
+Four slices were built on 2026-08-14 (11, 4, 10, 5) and all of it is **committed as
+`f8d0526`** (not pushed). All three migrations from that day are **applied to hosted Supabase
+and verified**; Slice 10 needed no SQL. See "What landed in f8d0526" below for the file list.
 
 Slice 5 also fixed a **pre-existing `move_project` bug** that had been shipping: an unordered
 phase loop could leave two rows `in_progress` at once and trip
@@ -22,8 +22,7 @@ runnable script. Nothing built that day is outstanding.
 
 ## Immediate
 
-1. **Commit.** Nothing from 2026-08-14 is committed. Suggested split: Slice 11 (planned
-   hours) · Slice 4 (delegation) · Slice 10 (calendar) · Slice 5 (approval gates) · docs.
+1. **Push `f8d0526`** if the remote should have it — it is committed locally only.
 2. **Backfill delegation on the 18 live projects** — open each, "Plan schedule". Coverage is
    22% of phase rows assigned / 29% dated until this is done, and the staff calendar reads
    `assignee_id`, so By-staff mode looks mostly empty until then. Measured table in
@@ -59,7 +58,7 @@ See [`CHANGES-2.md`](./CHANGES-2.md) status table.
    when the phase actually starts, rather than only at delegation when nobody knows yet.
    Depends on Slice 6.
 
-## Uncommitted work (2026-08-14)
+## What landed in f8d0526 (2026-08-14)
 
 **New files**
 

@@ -3,9 +3,9 @@
 **Last updated: 2026-08-14**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). Slices 11, 4, 10 and 5 were built on
-> 2026-08-14 and are **uncommitted**; all three migrations from that day are applied and
-> verified, and the calendar and approvals UI have both had a visual pass. The next action is
-> to commit.
+> 2026-08-14 and committed as **`f8d0526`** (local only, not pushed). All three migrations
+> from that day are applied and verified, and the calendar and approvals UI have both had a
+> visual pass. Nothing from that day is outstanding.
 
 ## Product
 
