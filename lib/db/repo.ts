@@ -8,11 +8,20 @@ import type {
   ProjectWithRelations,
   ActivityLog,
   PhaseSubscriber,
+  ProjectApproval,
   User,
   UserRole,
   Consultant,
 } from "@/lib/types";
-import { DESIGN_PHASES, boardColumnOf, isDesignPhase } from "@/lib/types";
+import {
+  DELEGATED_PHASES,
+  DESIGN_PHASES,
+  GATE_PARTIES,
+  boardColumnOf,
+  isDesignPhase,
+} from "@/lib/types";
+import type { ApprovalParty, GatePhase } from "@/lib/types";
+import { deriveSchedule } from "@/lib/dates";
 
 type Db = Awaited<ReturnType<typeof createServerSupabase>>;
 
@@ -90,9 +99,23 @@ function mapPhase(row: Record<string, unknown>): ProjectPhase {
     planned_start: (row.planned_start as string | null) ?? null,
     planned_end: (row.planned_end as string | null) ?? null,
     duration_days: asNumber(row.duration_days),
+    planned_hours: asNumber(row.planned_hours),
     entered_at: (row.entered_at as string | null) ?? null,
     completed_at: (row.completed_at as string | null) ?? null,
     sort_order: Number(row.sort_order),
+  };
+}
+
+function mapApproval(row: Record<string, unknown>): ProjectApproval {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    phase: row.phase as DesignPhase,
+    party: row.party as ProjectApproval["party"],
+    status: row.status as ProjectApproval["status"],
+    approved_at: (row.approved_at as string | null) ?? null,
+    recorded_by: (row.recorded_by as string | null) ?? null,
+    created_at: String(row.created_at),
   };
 }
 
@@ -268,6 +291,7 @@ async function hydrateProject(
     { data: phases, error: pErr },
     { data: activity, error: aErr },
     { data: joins, error: jErr },
+    { data: approvals, error: apErr },
   ] = await Promise.all([
     supabase
       .from("customers")
@@ -288,11 +312,16 @@ async function hydrateProject(
       .from("project_consultants")
       .select("consultant_id")
       .eq("project_id", project.id),
+    supabase
+      .from("project_approvals")
+      .select("*")
+      .eq("project_id", project.id),
   ]);
   throwOn(cErr, "Missing customer");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
   throwOn(jErr, "Failed to load project consultants");
+  throwOn(apErr, "Failed to load approvals");
 
   const consultantIds = (joins ?? []).map((j) => String(j.consultant_id));
   let consultants: Consultant[] = [];
@@ -312,6 +341,7 @@ async function hydrateProject(
     phases: (phases ?? []).map((row) => mapPhase(row)),
     activity: (activity ?? []).map((row) => mapActivity(row)),
     consultants,
+    approvals: (approvals ?? []).map((row) => mapApproval(row)),
   };
 }
 
@@ -354,6 +384,7 @@ async function hydrateProjectList(
     { data: phases, error: pErr },
     { data: activity, error: aErr },
     { data: joins, error: jErr },
+    { data: approvals, error: apErr },
   ] = await Promise.all([
     supabase.from("customers").select("*").in("id", customerIds),
     supabase
@@ -370,11 +401,13 @@ async function hydrateProjectList(
       .from("project_consultants")
       .select("project_id, consultant_id")
       .in("project_id", ids),
+    supabase.from("project_approvals").select("*").in("project_id", ids),
   ]);
   throwOn(cErr, "Failed to load customers");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
   throwOn(jErr, "Failed to load project consultants");
+  throwOn(apErr, "Failed to load approvals");
 
   const consultantIds = [
     ...new Set((joins ?? []).map((j) => String(j.consultant_id))),
@@ -406,6 +439,12 @@ async function hydrateProjectList(
     list.push(mapActivity(row));
     activityByProject.set(row.project_id, list);
   }
+  const approvalsByProject = new Map<string, ProjectApproval[]>();
+  for (const row of approvals ?? []) {
+    const list = approvalsByProject.get(String(row.project_id)) ?? [];
+    list.push(mapApproval(row));
+    approvalsByProject.set(String(row.project_id), list);
+  }
   const consultantsByProject = new Map<string, Consultant[]>();
   for (const row of joins ?? []) {
     const projectId = String(row.project_id);
@@ -429,6 +468,7 @@ async function hydrateProjectList(
       phases: phasesByProject.get(project.id) ?? [],
       activity: activityByProject.get(project.id) ?? [],
       consultants: consultantsByProject.get(project.id) ?? [],
+      approvals: approvalsByProject.get(project.id) ?? [],
     };
   });
 }
@@ -758,6 +798,301 @@ export async function updatePhaseDates(
     .eq("project_id", projectId)
     .eq("phase", phase);
   throwOn(error, "Failed to update phase dates");
+  return (await getProject(projectId))!;
+}
+
+/**
+ * Planned (budgeted) hours for a phase. Logged unlike `updatePhaseDates` —
+ * this is a budget commitment, and "who changed it from 40 to 80" is the
+ * question the activity feed has to answer.
+ */
+export async function updatePhaseHours(
+  projectId: string,
+  phase: DesignPhase,
+  plannedHours: number | null,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  if (plannedHours != null && (!Number.isFinite(plannedHours) || plannedHours < 0)) {
+    throw new Error("Planned hours must be zero or more.");
+  }
+
+  const supabase = await db();
+  const { data: before, error: beforeError } = await supabase
+    .from("project_phases")
+    .select("planned_hours")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .single();
+  throwOn(beforeError, "Phase not found");
+  if (!before) throw new Error("Phase not found");
+
+  const { error } = await supabase
+    .from("project_phases")
+    .update({ planned_hours: plannedHours })
+    .eq("project_id", projectId)
+    .eq("phase", phase);
+  throwOn(error, "Failed to update planned hours");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "phase.hours_changed",
+    payload: {
+      phase,
+      from_hours: asNumber(before.planned_hours),
+      to_hours: plannedHours,
+    },
+  });
+  throwOn(activityError, "Failed to log planned hours change");
+
+  return (await getProject(projectId))!;
+}
+
+export type DelegationEntry = {
+  phase: DesignPhase;
+  assignee_id: string;
+  duration_days: number;
+  /** Optional by design — see `SLICE_4_SCOPE.md` "Optionality". */
+  planned_hours: number | null;
+};
+
+/**
+ * Slice 4 — assigns person + duration to all five delegated phases at once and
+ * derives the schedule from the durations.
+ *
+ * Phases that have already been worked (anything not `not_started`) keep their
+ * dates; only the remainder is re-dated. That makes this safe to re-run as a
+ * re-plan, which is what Slice 5's rejection loops will need.
+ *
+ * Writes are sequential — supabase-js has no client-side transaction. A
+ * partial write leaves the project *incompletely* delegated, which the
+ * Active → SD gate reads as "not delegated" and blocks. It fails closed.
+ */
+export async function saveDelegation(
+  projectId: string,
+  entries: DelegationEntry[],
+  anchorDate: string,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const byPhase = new Map(entries.map((e) => [e.phase, e]));
+
+  for (const phase of DELEGATED_PHASES) {
+    const entry = byPhase.get(phase);
+    if (!entry) throw new Error(`Missing delegation for ${phase}`);
+    if (!entry.assignee_id) throw new Error(`Assign someone to ${phase}`);
+    if (!Number.isFinite(entry.duration_days) || entry.duration_days < 1) {
+      throw new Error(`Set a duration of at least one day for ${phase}`);
+    }
+    if (
+      entry.planned_hours != null &&
+      (!Number.isFinite(entry.planned_hours) || entry.planned_hours < 0)
+    ) {
+      throw new Error(`Planned hours must be zero or more for ${phase}`);
+    }
+  }
+  if (!anchorDate) throw new Error("Pick a start date for the schedule.");
+
+  const supabase = await db();
+  const { data: existing, error: existingError } = await supabase
+    .from("project_phases")
+    .select("phase, status, planned_end")
+    .eq("project_id", projectId);
+  throwOn(existingError, "Failed to read phases");
+
+  // Anything already worked is locked: keep its dates, resume the chain after.
+  const locked: Partial<Record<DesignPhase, string | null>> = {};
+  for (const row of existing ?? []) {
+    if (row.status !== "not_started") {
+      locked[row.phase as DesignPhase] =
+        (row.planned_end as string | null) ?? null;
+    }
+  }
+
+  const schedule = deriveSchedule({
+    anchor: anchorDate,
+    durations: Object.fromEntries(
+      entries.map((e) => [e.phase, e.duration_days]),
+    ),
+    locked,
+  });
+
+  for (const phase of DESIGN_PHASES) {
+    const entry = byPhase.get(phase);
+    const dates = schedule[phase];
+    if (!entry && !dates) continue;
+
+    // Delegation assigns every phase, including locked ones — it records who
+    // owns the work. Only the dates are withheld from locked phases.
+    const patch: Record<string, unknown> = {};
+    if (entry) {
+      patch.assignee_id = entry.assignee_id;
+      patch.duration_days = entry.duration_days;
+      patch.planned_hours = entry.planned_hours;
+    }
+    if (dates) {
+      patch.planned_start = dates.planned_start;
+      patch.planned_end = dates.planned_end;
+    }
+
+    const { error } = await supabase
+      .from("project_phases")
+      .update(patch)
+      .eq("project_id", projectId)
+      .eq("phase", phase);
+    throwOn(error, `Failed to save delegation for ${phase}`);
+  }
+
+  const { error: projectError } = await supabase
+    .from("projects")
+    .update({ start_date: anchorDate })
+    .eq("id", projectId);
+  throwOn(projectError, "Failed to set the schedule start date");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "project.delegated",
+    payload: {
+      anchor: anchorDate,
+      phases: entries.map((e) => ({
+        phase: e.phase,
+        assignee_id: e.assignee_id,
+        duration_days: e.duration_days,
+        planned_hours: e.planned_hours,
+      })),
+    },
+  });
+  throwOn(activityError, "Failed to log delegation");
+
+  return (await getProject(projectId))!;
+}
+
+/**
+ * Slice 5 — record one party's sign-off at a gate.
+ *
+ * Rows exist only when approved, so this is an upsert on
+ * `(project_id, phase, party)` and re-recording the same party is a no-op
+ * beyond refreshing who recorded it and when.
+ */
+export async function recordApproval(
+  projectId: string,
+  phase: GatePhase,
+  party: ApprovalParty,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  if (!GATE_PARTIES[phase]?.includes(party)) {
+    throw new Error(`${party} does not sign off at ${phase}`);
+  }
+
+  const supabase = await db();
+  const { error } = await supabase.from("project_approvals").upsert(
+    {
+      project_id: projectId,
+      phase,
+      party,
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      recorded_by: actorId,
+    },
+    { onConflict: "project_id,phase,party" },
+  );
+  throwOn(error, "Failed to record the approval");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "approval.recorded",
+    payload: { phase, party },
+  });
+  throwOn(activityError, "Failed to log the approval");
+
+  return (await getProject(projectId))!;
+}
+
+/** Undo a sign-off recorded in error. Deleting is what "pending" means here. */
+export async function clearApproval(
+  projectId: string,
+  phase: GatePhase,
+  party: ApprovalParty,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const supabase = await db();
+  const { error } = await supabase
+    .from("project_approvals")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .eq("party", party);
+  throwOn(error, "Failed to clear the approval");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "approval.cleared",
+    payload: { phase, party },
+  });
+  throwOn(activityError, "Failed to log the change");
+
+  return (await getProject(projectId))!;
+}
+
+/**
+ * Reject a gate: back to the prior phase, sign-offs cleared, dates reshuffled.
+ *
+ * The state transition is atomic in `reject_gate`. Date recalculation happens
+ * here afterwards because the derivation lives in TypeScript — if it fails the
+ * project is still correctly rejected, just with stale dates, which Re-plan
+ * schedule fixes.
+ *
+ * In-progress phases are deliberately NOT locked: the phase being returned to
+ * is in progress precisely because it is being reworked, so it has to be
+ * re-dated from today rather than keeping its original window. Completed and
+ * skipped phases are locked — a skipped phase will never be worked, so letting
+ * it re-date would hand it a fresh future window *and* push the rework out
+ * behind it.
+ */
+export async function rejectGate(
+  projectId: string,
+  phase: GatePhase,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const supabase = await db();
+  const { error } = await supabase.rpc("reject_gate", {
+    p_project_id: projectId,
+    p_phase: phase,
+    p_actor_id: actorId,
+  });
+  throwOn(error, "Failed to reject");
+
+  const project = (await getProject(projectId))!;
+
+  const locked: Partial<Record<DesignPhase, string | null>> = {};
+  const durations: Partial<Record<DesignPhase, number | null>> = {};
+  for (const row of project.phases) {
+    durations[row.phase] = row.duration_days;
+    if (row.status === "completed" || row.status === "skipped") {
+      locked[row.phase] = row.planned_end;
+    }
+  }
+
+  const schedule = deriveSchedule({
+    anchor: new Date().toISOString().slice(0, 10),
+    durations,
+    locked,
+  });
+
+  for (const [phaseKey, dates] of Object.entries(schedule)) {
+    const { error: dateError } = await supabase
+      .from("project_phases")
+      .update({
+        planned_start: dates.planned_start,
+        planned_end: dates.planned_end,
+      })
+      .eq("project_id", projectId)
+      .eq("phase", phaseKey);
+    throwOn(dateError, "Rejected, but the dates could not be shifted");
+  }
+
   return (await getProject(projectId))!;
 }
 

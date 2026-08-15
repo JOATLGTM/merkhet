@@ -28,6 +28,28 @@ export function formatActivity(
       const toName = toId ? (usersById.get(toId)?.name ?? "someone") : "no one";
       return `${actor} assigned ${label(event.payload.phase)} to ${toName} · ${when}`;
     }
+    case "approval.recorded": {
+      const party = String(event.payload.party ?? "").replaceAll("_", " ");
+      return `${actor} recorded the ${party} sign-off on ${label(event.payload.phase)} · ${when}`;
+    }
+    case "approval.cleared": {
+      const party = String(event.payload.party ?? "").replaceAll("_", " ");
+      return `${actor} cleared the ${party} sign-off on ${label(event.payload.phase)} · ${when}`;
+    }
+    case "gate.rejected":
+      return `${actor} rejected ${label(event.payload.gate)} — back to ${label(event.payload.to)} · ${when}`;
+    case "project.delegated": {
+      const phases = event.payload.phases as unknown[] | undefined;
+      const count = phases?.length ?? 0;
+      return `${actor} planned the schedule across ${count} phases · ${when}`;
+    }
+    case "phase.hours_changed": {
+      const to = event.payload.to_hours;
+      const phase = label(event.payload.phase);
+      return to == null
+        ? `${actor} cleared planned hours on ${phase} · ${when}`
+        : `${actor} planned ${to}h for ${phase} · ${when}`;
+    }
     case "project.hold_toggled":
       return event.payload.on_hold
         ? `${actor} put this on hold · ${when}`

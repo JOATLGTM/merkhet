@@ -215,6 +215,7 @@ async function main() {
           planned_start: phase.planned_start,
           planned_end: phase.planned_end,
           duration_days: phase.duration_days,
+          planned_hours: phase.planned_hours,
           entered_at: phase.entered_at,
           completed_at: phase.completed_at,
           sort_order: phase.sort_order,

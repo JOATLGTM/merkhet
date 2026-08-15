@@ -266,15 +266,21 @@ Do not build these. Do not infer them.
 table. Planned hours live on phase delegation durations; `projects.hours_per_week` can
 remain as display/legacy until Phase 2 timesheets. Unblocks Slice 1B.
 
-**Calendar detail.** Austin finds the current view too broad and wants daily granularity.
-Ryan wants the gantt groupable by staff member to see individual workload. Likely shape is
-a day-resolution gantt with a staff-grouped mode. Austin is still deciding. Build nothing
-until he does. Note that manual phase-date entry conflicts with §3 regardless.
+**Calendar detail.** **Resolved (2026-08-14):** the client confirmed the shape the earlier
+signal pointed at — a **day-resolution gantt with a staff-grouped mode**, both halves, not
+day zoom alone. Austin wanted the daily granularity; Ryan wanted grouping by staff member
+to see individual workload. Unblocks Slice 10. Note that manual phase-date entry still
+conflicts with §3, and Slice 4 (Delegation) is skipped, so the `assignee_id` the staff
+grouping reads from is hand-entered.
 
-**Hours tracking.** Phase 2, per both Austin and Ryan. This version captures _planned_
-hours via delegation durations and displays them in project detail. No time entry, no
-rates, no invoicing. Known gap: planned hours indicate schedule, not budget. Deferred,
-not solved.
+**Hours tracking.** **Partly resolved (2026-08-14):** the client asked for hours per project
+per status, and confirmed this means **planned/budgeted** hours, not logged time. Now a
+first-class field: `project_phases.planned_hours`, set per delegated phase (Review excluded
+— a gate consumes no hours). This closes the gap noted below: planned hours are a budget
+number in their own right, no longer inferred from schedule durations.
+
+_Still Phase 2:_ time entry, timesheets, rates, invoicing. Nothing logs hours *against* the
+plan; there is no actual-vs-planned variance. That remains deferred, not solved.
 
 **Phase skipping.** The PRD deliberately allows skipping (§4.3, "do not enforce linear
 progression"), and `applyPhaseMove` implements it. Gates now forbid it on gated

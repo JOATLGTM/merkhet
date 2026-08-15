@@ -3,17 +3,26 @@
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth/session";
+import { notifyGateRejected } from "@/lib/notifications";
 import {
+  clearApproval,
   createProject,
   getContractViewUrl,
   markProjectComplete,
   moveProject,
+  recordApproval,
+  rejectGate,
+  saveDelegation,
   toggleHold,
   updatePhaseAssignee,
   updatePhaseDates,
+  updatePhaseHours,
   updateProject,
   uploadContractAndActivate,
 } from "@/lib/db/repo";
+import type { DelegationEntry } from "@/lib/db/repo";
+import { GATE_REJECT_TARGET } from "@/lib/types";
+import type { ApprovalParty, GatePhase } from "@/lib/types";
 import type { BoardColumn, DesignPhase } from "@/lib/types";
 
 function revalidateAll() {
@@ -118,6 +127,76 @@ export async function updatePhaseDatesAction(
     planned_start,
     planned_end,
   );
+  revalidateAll();
+  return project;
+}
+
+export async function updatePhaseHoursAction(
+  projectId: string,
+  phase: DesignPhase,
+  plannedHours: number | null,
+) {
+  const user = await requireUser();
+  const project = await updatePhaseHours(
+    projectId,
+    phase,
+    plannedHours,
+    user.id,
+  );
+  revalidateAll();
+  return project;
+}
+
+export async function saveDelegationAction(
+  projectId: string,
+  entries: DelegationEntry[],
+  anchorDate: string,
+) {
+  const user = await requireUser();
+  const project = await saveDelegation(projectId, entries, anchorDate, user.id);
+  revalidateAll();
+  return project;
+}
+
+export async function recordApprovalAction(
+  projectId: string,
+  phase: GatePhase,
+  party: ApprovalParty,
+) {
+  const user = await requireUser();
+  const project = await recordApproval(projectId, phase, party, user.id);
+  revalidateAll();
+  return project;
+}
+
+export async function clearApprovalAction(
+  projectId: string,
+  phase: GatePhase,
+  party: ApprovalParty,
+) {
+  const user = await requireUser();
+  const project = await clearApproval(projectId, phase, party, user.id);
+  revalidateAll();
+  return project;
+}
+
+export async function rejectGateAction(projectId: string, phase: GatePhase) {
+  const user = await requireUser();
+  const project = await rejectGate(projectId, phase, user.id);
+
+  await notifyGateRejected({
+    projectId: project.id,
+    projectName: project.name,
+    projectNumber: project.project_number,
+    gate: phase,
+    returnedTo: GATE_REJECT_TARGET[phase],
+    // The delegate of the phase being returned to (WORKFLOW-2 §4).
+    delegateId:
+      project.phases.find((p) => p.phase === GATE_REJECT_TARGET[phase])
+        ?.assignee_id ?? null,
+    actorId: user.id,
+  });
+
   revalidateAll();
   return project;
 }

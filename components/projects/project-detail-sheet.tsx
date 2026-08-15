@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CirclePause, ExternalLink, FileUp, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarRange,
+  CirclePause,
+  ExternalLink,
+  FileUp,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -12,14 +19,18 @@ import {
   detachConsultantAction,
 } from "@/app/actions/consultants";
 import {
+  clearApprovalAction,
   getContractViewUrlAction,
   markProjectCompleteAction,
+  recordApprovalAction,
+  rejectGateAction,
   toggleHoldAction,
   updateAssigneeAction,
-  updatePhaseDatesAction,
+  updatePhaseHoursAction,
   updateProjectFieldAction,
   uploadContractAction,
 } from "@/app/actions/projects";
+import { DelegationDialog } from "@/components/projects/delegation-dialog";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,10 +58,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatActivity } from "@/lib/activity";
 import { formatFullDate } from "@/lib/dates";
-import { COLUMN_LABELS, boardColumnOf } from "@/lib/types";
+import {
+  COLUMN_LABELS,
+  DELEGATED_PHASES,
+  GATE_PARTIES,
+  GATE_REJECT_TARGET,
+  PARTY_LABELS,
+  boardColumnOf,
+  isDelegationComplete,
+  isGatePhase,
+} from "@/lib/types";
 import type {
+  ApprovalParty,
   Consultant,
   DesignPhase,
+  GatePhase,
   ProjectWithRelations,
   User,
 } from "@/lib/types";
@@ -66,6 +88,11 @@ type ProjectDetailSheetProps = {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <div className="label-caps text-ink-soft">{children}</div>;
+}
+
+/** Hours are stored to one decimal; whole numbers shouldn't render "40.0". */
+function formatHours(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function InlineText({
@@ -131,6 +158,8 @@ export function ProjectDetailSheet({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachId, setAttachId] = useState("none");
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [delegationOpen, setDelegationOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDiscipline, setNewDiscipline] = useState("");
   const [newCompany, setNewCompany] = useState("");
@@ -141,6 +170,27 @@ export function ProjectDetailSheet({
     { label: "Unassigned", value: "none" },
     ...users.map((u) => ({ label: u.name, value: u.id })),
   ];
+
+  // Delegation is raised on entry to Active (WORKFLOW-2 §3). The board routes
+  // there by opening this sheet, so raising it here covers every path in —
+  // drag, ⌘K, and contract upload. Once per project, so dismissing it sticks.
+  const raisedFor = useRef<string | null>(null);
+  const projectId = project?.id ?? null;
+  const needsDelegation = Boolean(
+    project &&
+      boardColumnOf(project) === "active" &&
+      !isDelegationComplete(project.phases),
+  );
+  useEffect(() => {
+    if (!open || !projectId) {
+      raisedFor.current = null;
+      return;
+    }
+    if (needsDelegation && raisedFor.current !== projectId) {
+      raisedFor.current = projectId;
+      setDelegationOpen(true);
+    }
+  }, [open, projectId, needsDelegation]);
 
   if (!project) {
     return (
@@ -171,6 +221,15 @@ export function ProjectDetailSheet({
     setNewPhone("");
   };
 
+  // Null (not 0) when nothing is budgeted anywhere — "no hours planned" and
+  // "0 hours planned" are different states and the header says which.
+  const plannedHoursTotal = project.phases.reduce<number | null>(
+    (sum, ph) => (ph.planned_hours == null ? sum : (sum ?? 0) + ph.planned_hours),
+    null,
+  );
+
+  const delegated = isDelegationComplete(project.phases);
+
   const column = boardColumnOf(project);
   const statusLabel = column
     ? COLUMN_LABELS[column]
@@ -179,6 +238,24 @@ export function ProjectDetailSheet({
       : "—";
   const isPending =
     project.status === "pending" || project.status === "backlog";
+
+  // Sign-offs are actionable only while the project is parked on the gate.
+  // `column` is null once archived, which is what keeps this off completed
+  // projects that happen to still carry `current_phase`.
+  const gate: GatePhase | null =
+    column != null && isGatePhase(project.current_phase)
+      ? project.current_phase
+      : null;
+  // Rows exist only when approved — a missing row *is* pending (SLICE_4_SCOPE).
+  const approvalByParty = new Map(
+    project.approvals
+      .filter((a) => a.phase === gate && a.status === "approved")
+      .map((a) => [a.party as ApprovalParty, a]),
+  );
+  const gateParties = gate ? GATE_PARTIES[gate] : [];
+  const recordedCount = gateParties.filter((p) =>
+    approvalByParty.has(p),
+  ).length;
 
   const phaseFill =
     project.status === "completed"
@@ -254,6 +331,24 @@ export function ProjectDetailSheet({
                 Mark Complete
               </Button>
             )}
+            {/* Available at any phase, not just Active — the projects that
+                most need planning are the ones already past it. */}
+            {!isPending && (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "h-auto rounded-none px-2.5 py-1.5 text-[13px] font-normal",
+                  delegated
+                    ? "border-rule-strong text-ink"
+                    : "border-redline text-redline",
+                )}
+                onClick={() => setDelegationOpen(true)}
+              >
+                <CalendarRange className="h-3.5 w-3.5" />
+                {delegated ? "Re-plan schedule" : "Plan schedule"}
+              </Button>
+            )}
           </div>
 
           <PhaseRule
@@ -262,6 +357,15 @@ export function ProjectDetailSheet({
             className="mt-4"
           />
         </SheetHeader>
+
+        <DelegationDialog
+          // Keyed so switching projects resets the form state inside.
+          key={`${project.id}-delegation`}
+          project={project}
+          users={users}
+          open={delegationOpen}
+          onOpenChange={setDelegationOpen}
+        />
 
         <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
           <DialogContent className="rounded-none sm:max-w-sm">
@@ -307,6 +411,56 @@ export function ProjectDetailSheet({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {gate && (
+          <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+            <DialogContent className="rounded-none sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>
+                  Send this back to {COLUMN_LABELS[GATE_REJECT_TARGET[gate]]}?
+                </DialogTitle>
+                <DialogDescription>
+                  {project.name} returns to{" "}
+                  {COLUMN_LABELS[GATE_REJECT_TARGET[gate]]} for rework. Any
+                  sign-offs already recorded at {COLUMN_LABELS[gate]} are
+                  cleared, and the remaining dates are re-planned from today.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-none"
+                  onClick={() => setRejectOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-none bg-redline text-white hover:opacity-90"
+                  onClick={() => {
+                    startTransition(async () => {
+                      try {
+                        await rejectGateAction(project.id, gate);
+                        setRejectOpen(false);
+                        toast.success(
+                          `Back to ${COLUMN_LABELS[GATE_REJECT_TARGET[gate]]}`,
+                        );
+                        router.refresh();
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error ? e.message : "Could not reject.",
+                        );
+                      }
+                    });
+                  }}
+                >
+                  Reject
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
 
         <div className="px-6">
           {isPending && (
@@ -391,6 +545,127 @@ export function ProjectDetailSheet({
             </section>
           )}
 
+          {gate && (
+            <section className="border-b border-rule py-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <FieldLabel>{COLUMN_LABELS[gate]} sign-offs</FieldLabel>
+                <span className="font-mono text-[11px] text-ink-soft tabular-nums">
+                  {recordedCount}/{gateParties.length} recorded
+                </span>
+              </div>
+              <p className="mt-2 text-[12px] text-ink-soft">
+                Every party below has to sign off before this project can leave{" "}
+                {COLUMN_LABELS[gate]}. The client does not use Merkhet — staff
+                record the client&rsquo;s approval on their behalf once it comes
+                in (WORKFLOW-2 §3).
+              </p>
+
+              <ul className="mt-3 space-y-2">
+                {gateParties.map((party) => {
+                  const approval = approvalByParty.get(party);
+                  const recorder = approval?.recorded_by
+                    ? (usersById.get(approval.recorded_by)?.name ?? "someone")
+                    : null;
+
+                  return (
+                    <li
+                      key={party}
+                      className="flex items-center justify-between gap-3 border border-rule bg-paper px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-ink">
+                          {PARTY_LABELS[party]}
+                        </p>
+                        <p className="text-[12px] text-ink-mid">
+                          {approval
+                            ? `Approved${recorder ? ` · recorded by ${recorder}` : ""}${
+                                approval.approved_at
+                                  ? ` · ${formatFullDate(approval.approved_at)}`
+                                  : ""
+                              }`
+                            : "Pending"}
+                        </p>
+                      </div>
+                      {approval ? (
+                        <button
+                          type="button"
+                          className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft hover:text-ink"
+                          onClick={() => {
+                            startTransition(async () => {
+                              try {
+                                await clearApprovalAction(
+                                  project.id,
+                                  gate,
+                                  party,
+                                );
+                                toast.success(
+                                  `${PARTY_LABELS[party]} sign-off cleared`,
+                                );
+                                router.refresh();
+                              } catch (e) {
+                                toast.error(
+                                  e instanceof Error
+                                    ? e.message
+                                    : "Could not clear the sign-off.",
+                                );
+                              }
+                            });
+                          }}
+                        >
+                          Clear
+                        </button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto shrink-0 rounded-none border-rule-strong px-2.5 py-1.5 text-[13px] font-normal text-ink"
+                          onClick={() => {
+                            startTransition(async () => {
+                              try {
+                                await recordApprovalAction(
+                                  project.id,
+                                  gate,
+                                  party,
+                                );
+                                toast.success(
+                                  `${PARTY_LABELS[party]} sign-off recorded`,
+                                );
+                                router.refresh();
+                              } catch (e) {
+                                toast.error(
+                                  e instanceof Error
+                                    ? e.message
+                                    : "Could not record the sign-off.",
+                                );
+                              }
+                            });
+                          }}
+                        >
+                          Record approval
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-[12px] text-ink-soft">
+                  Rejecting returns this to{" "}
+                  {COLUMN_LABELS[GATE_REJECT_TARGET[gate]]}.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto shrink-0 rounded-none border-redline px-2.5 py-1.5 text-[13px] font-normal text-redline"
+                  onClick={() => setRejectOpen(true)}
+                >
+                  Reject
+                </Button>
+              </div>
+            </section>
+          )}
+
           <section className="border-b border-rule py-5">
             <FieldLabel>Details</FieldLabel>
             <div className="mt-4">
@@ -452,33 +727,10 @@ export function ProjectDetailSheet({
                   }}
                 />
               </div>
-              <div className="col-span-2">
-                <FieldLabel>Hours / week</FieldLabel>
-                <Input
-                  type="number"
-                  defaultValue={
-                    project.hours_per_week != null
-                      ? String(project.hours_per_week)
-                      : ""
-                  }
-                  key={`${project.id}-hours`}
-                  placeholder="—"
-                  className="mt-1.5 h-9 w-28 rounded-none border-rule-strong bg-paper font-mono text-[12px]"
-                  onBlur={(e) => {
-                    const next =
-                      e.target.value === "" ? null : Number(e.target.value);
-                    if (next !== project.hours_per_week) {
-                      startTransition(async () => {
-                        await updateProjectFieldAction(
-                          project.id,
-                          "hours_per_week",
-                          next,
-                        );
-                      });
-                    }
-                  }}
-                />
-              </div>
+              {/* `hours_per_week` retired from the UI (2026-08-14). Hours are
+                  now budgeted per phase in the Phases section below; keeping
+                  both on screen read as two competing answers to the same
+                  question. The column stays for the legacy values. */}
             </div>
           </section>
 
@@ -710,9 +962,21 @@ export function ProjectDetailSheet({
           </section>
 
           <section className="border-b border-rule py-5">
-            <FieldLabel>Phases</FieldLabel>
+            <div className="flex items-baseline justify-between gap-3">
+              <FieldLabel>Phases</FieldLabel>
+              <span className="font-mono text-[11px] text-ink-soft tabular-nums">
+                {plannedHoursTotal == null
+                  ? "No hours planned"
+                  : `${formatHours(plannedHoursTotal)} h planned`}
+              </span>
+            </div>
             <div className="mt-4 space-y-4">
-              {project.phases.map((phase) => (
+              {project.phases.map((phase) => {
+                // Review is a gate, not work: no delegate, no duration, no
+                // hours. See WORKFLOW-2 §3.
+                const takesHours = DELEGATED_PHASES.includes(phase.phase);
+
+                return (
                 <div key={phase.id}>
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 shrink-0 bg-ink-soft" />
@@ -723,7 +987,7 @@ export function ProjectDetailSheet({
                       {phase.status.replaceAll("_", " ")}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-[1fr_1fr_1fr] gap-2 pl-3.5">
+                  <div className="mt-2 grid grid-cols-[1.3fr_1fr_1fr_0.6fr] gap-2 pl-3.5">
                     <Select
                       // Base UI renders the raw value in the trigger without
                       // an items map — this showed user ids, not names.
@@ -751,39 +1015,84 @@ export function ProjectDetailSheet({
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input
-                      type="date"
-                      defaultValue={phase.planned_start ?? ""}
-                      className="h-9 rounded-none border-rule-strong font-mono text-[11px]"
-                      onBlur={(e) => {
-                        startTransition(async () => {
-                          await updatePhaseDatesAction(
-                            project.id,
-                            phase.phase,
-                            e.target.value || null,
-                            phase.planned_end,
-                          );
-                        });
-                      }}
-                    />
-                    <Input
-                      type="date"
-                      defaultValue={phase.planned_end ?? ""}
-                      className="h-9 rounded-none border-rule-strong font-mono text-[11px]"
-                      onBlur={(e) => {
-                        startTransition(async () => {
-                          await updatePhaseDatesAction(
-                            project.id,
-                            phase.phase,
-                            phase.planned_start,
-                            e.target.value || null,
-                          );
-                        });
-                      }}
-                    />
+                    {/* Read-only: durations are the source of the schedule and
+                        dates are derived (WORKFLOW-2 §3). Editing happens in
+                        the Plan schedule dialog. */}
+                    <div
+                      className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
+                      title="Derived from durations — use Plan schedule to change"
+                    >
+                      {phase.planned_start ?? (
+                        <span className="text-ink-soft">—</span>
+                      )}
+                    </div>
+                    <div
+                      className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
+                      title="Derived from durations — use Plan schedule to change"
+                    >
+                      {phase.planned_end ?? (
+                        <span className="text-ink-soft">—</span>
+                      )}
+                    </div>
+                    {takesHours ? (
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        inputMode="decimal"
+                        aria-label={`Planned hours — ${COLUMN_LABELS[phase.phase]}`}
+                        placeholder="h"
+                        // Keyed on the value too: after a save the server row
+                        // changes, and an uncontrolled input whose
+                        // defaultValue moves under it warns and can desync.
+                        key={`${project.id}-${phase.phase}-hours-${phase.planned_hours ?? ""}`}
+                        defaultValue={
+                          phase.planned_hours != null
+                            ? String(phase.planned_hours)
+                            : ""
+                        }
+                        className="h-9 rounded-none border-rule-strong text-right font-mono text-[11px] tabular-nums"
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          const next = raw === "" ? null : Number(raw);
+                          if (next != null && (!Number.isFinite(next) || next < 0)) {
+                            e.target.value =
+                              phase.planned_hours != null
+                                ? String(phase.planned_hours)
+                                : "";
+                            toast.error("Planned hours must be zero or more.");
+                            return;
+                          }
+                          if (next === phase.planned_hours) return;
+                          startTransition(async () => {
+                            try {
+                              await updatePhaseHoursAction(
+                                project.id,
+                                phase.phase,
+                                next,
+                              );
+                            } catch (err) {
+                              toast.error(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Could not save planned hours.",
+                              );
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="flex h-9 items-center justify-end pr-2 font-mono text-[11px] text-ink-soft"
+                        title="Review is an approval gate — it takes no planned hours."
+                      >
+                        —
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 

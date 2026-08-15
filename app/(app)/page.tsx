@@ -12,7 +12,16 @@ import {
 } from "@/lib/db/repo";
 import { redirect } from "next/navigation";
 
-export default async function BoardPage() {
+/**
+ * Everything that reads cookies or the database sits inside the boundary —
+ * `getSessionUser()` included, since reading the session cookie is itself
+ * uncached. The previous shape awaited above the <Suspense>, which resolved
+ * before the boundary was reached and blocked the route from prerendering.
+ *
+ * The palette shares the board's data, so it renders here rather than being
+ * hoisted out and refetching.
+ */
+async function BoardLoaded() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
@@ -27,17 +36,34 @@ export default async function BoardPage() {
 
   return (
     <>
-      <Suspense fallback={<div className="p-6 text-ink-mid">Loading board…</div>}>
-        <BoardView
-          projects={projects}
-          users={users}
-          customers={customers}
-          subscribers={subscribers}
-          consultants={consultants}
-          currentUser={user}
-        />
-      </Suspense>
+      <BoardView
+        projects={projects}
+        users={users}
+        customers={customers}
+        subscribers={subscribers}
+        consultants={consultants}
+        currentUser={user}
+      />
       <CommandPalette projects={projects} customers={customers} />
     </>
+  );
+}
+
+export default function BoardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-0 flex-1 flex-col">
+          <header className="flex items-center gap-4 border-b border-rule bg-surface px-5 py-3">
+            <h1 className="page-title">Board</h1>
+          </header>
+          <div className="px-5 py-4 text-[13px] text-ink-soft">
+            Loading board…
+          </div>
+        </div>
+      }
+    >
+      <BoardLoaded />
+    </Suspense>
   );
 }

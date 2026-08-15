@@ -162,6 +162,49 @@ Rules this leaves behind:
 - Three SVGs means three gradient ids — `merkhet-path-ramp-${kind}`. Duplicate ids would cross-wire the `url(#…)` strokes.
 - Layers are `-inset-6` so the float never exposes a bare strip at the clipped edge.
 
+## Scheduling and hours (Slice 4 / Slice 11, Aug 14, 2026)
+
+Settled in `SLICE_4_SCOPE.md`. Reversing any of these is a product decision, not a
+refactor — check before changing.
+
+**Planned hours are optional. Assignee and duration are not.** Duration is structural: no
+duration, no derived dates, no calendar row. Hours are a budget annotation that degrades
+gracefully — absent, the calendar still draws and the total reads "No hours planned". Forcing
+a number nobody has produces a guess that reads as authoritative later. Null is more truthful.
+
+**Never default hours from `duration_days`.** A phase can span three weeks at four hours a
+week. Conflating effort with elapsed time re-creates the exact gap WORKFLOW-2 §8 flagged and
+the client asked to close.
+
+**"No hours planned" ≠ "0 h planned".** Both the detail sheet and the delegation dialog
+distinguish them. Do not collapse to `?? 0`.
+
+**Durations are working days**, uniform across phases, inclusive: a 1-day phase starts and
+ends the same day; 10 days from Monday ends the Friday of the following week. No phase starts
+or ends on a weekend. Permitting's "2–4 weeks" is entered as 10–20 working days rather than
+introducing a per-phase unit.
+
+**Review is a zero-duration milestone**, dated to the preceding phase's end. It consumes no
+schedule time, so CD picks up after DD, not after Review.
+
+**Delegation completeness is derived, never stored** — all five delegated phases have both an
+assignee and a duration. No `delegated_at` column. This is why a partial write fails closed:
+the gate reads the rows, so it cannot disagree with them.
+
+**Re-planning only re-dates `not_started` phases.** Worked phases keep their dates. Slice 5's
+rejection loops need the same rule.
+
+**Phase dates are read-only in the UI.** Durations are the source (WORKFLOW-2 §3).
+`updatePhaseDates` still exists in the repo and actions layer but is off the UI path.
+
+## Headless-checkable arithmetic (Aug 14, 2026)
+
+`lib/dates.ts` (`deriveSchedule`) and `lib/calendar.ts` (calendar geometry) are kept free of
+React so they can be checked without a browser: `npm run check`. The calendar view imports its
+geometry rather than computing inline, which is the reason that split exists — keep it.
+
+The checks cover arithmetic only. **Nothing in this repo verifies rendering.**
+
 ## Locale
 
 - US / America/Chicago (showcase UK-ish copy was filler; seed is Chicago-flavored)

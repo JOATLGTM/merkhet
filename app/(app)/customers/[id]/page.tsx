@@ -10,7 +10,12 @@ import {
   listUsers,
 } from "@/lib/db/repo";
 
-export default async function CustomerDetailPage({
+/**
+ * All data access sits inside the boundary. Awaiting in the default export —
+ * even with a <Suspense> further down the tree — resolves before the boundary
+ * is reached and blocks the route from prerendering.
+ */
+async function CustomerDetailLoaded({
   params,
   searchParams,
 }: {
@@ -30,7 +35,7 @@ export default async function CustomerDetailPage({
   const related = projects.filter((p) => p.customer_id === id);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <>
       <div className="border-b border-rule bg-surface px-6 py-5">
         <Link
           href="/customers"
@@ -40,14 +45,43 @@ export default async function CustomerDetailPage({
         </Link>
         <h1 className="mt-2 text-[20px] text-ink">{customer.name}</h1>
       </div>
-      <Suspense>
-        <CustomerDetailClient
-          customer={customer}
-          projects={related}
-          users={users}
-          consultants={consultants}
-          initialProjectId={sp.project ?? null}
-        />
+      <CustomerDetailClient
+        customer={customer}
+        projects={related}
+        users={users}
+        consultants={consultants}
+        initialProjectId={sp.project ?? null}
+      />
+    </>
+  );
+}
+
+export default function CustomerDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ project?: string }>;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Suspense
+        fallback={
+          <>
+            <div className="border-b border-rule bg-surface px-6 py-5">
+              <Link
+                href="/customers"
+                className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft hover:text-ink"
+              >
+                ← Customers
+              </Link>
+              <div className="mt-2 h-[26px]" />
+            </div>
+            <div className="px-6 py-5 text-[13px] text-ink-soft">Loading…</div>
+          </>
+        }
+      >
+        <CustomerDetailLoaded params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );

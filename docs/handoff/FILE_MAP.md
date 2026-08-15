@@ -29,8 +29,11 @@
 | Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
 | Session | `lib/auth/session.ts` |
 | Notification stubs | `lib/notifications.ts` |
-| Dates / urgency | `lib/dates.ts` |
+| Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
+| Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Activity copy | `lib/activity.ts` |
+| Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
+| Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
 | Migrations | `supabase/migrations/*.sql` |
 
 ## UI pieces
@@ -43,6 +46,7 @@
 | Detail sheet | `components/projects/project-detail-sheet.tsx` |
 | Phase rule (6-seg) | `components/projects/phase-rule.tsx` |
 | New project dialog | `components/projects/new-project-dialog.tsx` |
+| Delegation / Plan schedule dialog | `components/projects/delegation-dialog.tsx` |
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
 | shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |

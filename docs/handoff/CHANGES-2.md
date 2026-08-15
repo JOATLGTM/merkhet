@@ -29,7 +29,10 @@ upload → Active; View PDF via signed URL; drag/⌘K blocked without contract; 
 Hold until requirements are clarified.
 
 **Slice 4 (Delegation) skipped (2026-08-12)** — not needed for current client direction.
-Leftover Slice 4 files removed.
+Leftover Slice 4 files removed. **Un-skipped and re-scoped (2026-08-14)** — Slices 10 and 11
+both read per-phase delegation data and only 22% of it exists. See `SLICE_4_SCOPE.md`;
+that document supersedes the sketch below. Planned hours are on the form but **optional**;
+assignee and duration are required. **Built 2026-08-14** — see `SLICE_4_APPLY.md`.
 
 **Slice 7 (Consultants) is complete (2026-08-12).** Directory + attach/create from project
 detail; no new SQL (1B schema).
@@ -40,8 +43,39 @@ detail; no new SQL (1B schema).
 **Also (2026-08-12):** dark theme default + nav Light/Dark toggle; Settings nav renamed to
 **Staff** (`/staff`); env keys `*_MERKET_*`.
 
-**Next:** Slice 5 (approvals) if needed without full delegation, or Slice 6 notifications,
-or confirm Slice 3 / 9 / 10 with the client.
+**Slice 11 (Planned hours per phase) added 2026-08-14.** Client asked for hours per project
+per status; confirmed as *budgeted* hours, not logged time. Pulls the planned half of
+`WORKFLOW-2.md` §8 forward. `project_phases.planned_hours`; Review excluded (gate).
+`projects.hours_per_week` retired from the UI. See `SLICE_11_APPLY.md`.
+
+**Slice 10 (Calendar) unblocked 2026-08-14.** Client confirmed the scope: **day resolution
+plus staff-grouped rows** — both halves of `WORKFLOW-2.md` §8, not day zoom alone.
+
+**Slice 10 (Calendar) built and verified 2026-08-14.** Day/week/month zoom, by-project or
+by-staff rows, bounded window with paging. No SQL. Geometry is covered by
+`npm run check:calendar` (45 assertions); the visual pass in `SLICE_10_APPLY.md` was completed
+by the user.
+
+**Slice 5 (approval gates + rework loops) built and verified 2026-08-14.** Sign-offs at Review
+and Final review, gate-crossing enforcement in `move_project` (which also blocks *skipping* a
+gate), and a `reject_gate` rework path. `project_approvals` and `phase_transitions` are finally
+in use. Migration applied; 50 live assertions pass via `npm run check:gates`. See
+`SLICE_5_APPLY.md` — including a **pre-existing `move_project` bug** it uncovered, where an
+unordered phase loop could trip `one_active_phase_per_project` on longer-lived projects.
+
+**Next:** **Slice 6 (notifications)** — `notifyGateRejected` is a stub and rejection
+notifications depend on it. Blocked on DNS/CNAME for the sending domain; the recipient
+resolution, outbox and call sites can be built ahead of that.
+
+Blocked on the client, not on us: **Slice 3** (intake — note the columns already exist from
+1B and are unsurfaced) and **Slice 9** (staff view — likely redundant now that the calendar
+has a By-staff mode; confirm before building).
+
+Untracked and worth a decision: **RLS.** Every table is `authenticated_full_access`
+(`using (true) with check (true)`). Any signed-in user can read or write anything. That may
+be an acceptable trade for a single-tenant internal app, but it is not recorded as a
+decision anywhere, and Slice 5 sharpens it — approval sign-offs are precisely the rows where
+"who recorded this" carries weight.
 
 ### Execution order
 
@@ -51,13 +85,14 @@ or confirm Slice 3 / 9 / 10 with the client.
 | 2     | 1B — Workflow schema migration             | **Done**                      |
 | 3     | 2 — Pending→Active gate + contract upload  | **Done**                      |
 | 4     | 3 — Intake form expansion                  | **Reverted — on hold**        |
-| 5     | 4 — Delegation                             | **Skipped**                   |
+| 5     | 4 — Delegation                             | **Done**                      |
 | —     | 7 — Consultants                            | **Done**                      |
 | 8     | 8 — Permitting exit + archive              | **Done**                      |
-| 6     | 5 — Approval gates + rework loops          | Open                          |
+| 6     | 5 — Approval gates + rework loops          | **Done — applied + verified** |
 | 7     | 6 — Notifications                          | Open                          |
 | 9     | 9 — Staff view                             | Confirm need first            |
-| 10    | 10 — Calendar                              | Blocked: Austin               |
+| 10    | 10 — Calendar (daily + staff grouping)     | **Done**                      |
+| —     | 11 — Planned hours per phase               | **Done**                      |
 
 ---
 
@@ -293,6 +328,11 @@ Cheapest slice once 1B lands.
 
 # Slice 4 — Delegation
 
+> **Superseded by `SLICE_4_SCOPE.md` (2026-08-14).** That document settles the anchor date,
+> working-day arithmetic, Review's milestone, re-plan semantics, hours optionality, and the
+> backfill path for existing projects — none of which are resolved below. Build from it, not
+> from this sketch.
+
 Form raised on entry to Active. Assigns person + duration to all five delegated phases in one
 submission. Permitting duration has no default; require a value.
 
@@ -405,10 +445,11 @@ Left unspecified, these get invented.
   internal staff.
 - **Client-facing email.** Deferred to Phase 2 (`WORKFLOW-2.md` §4).
 - **General file/document management.** LOI and contract only.
-- **Time entry, timesheets, rates, invoicing.** Phase 2. Planned hours from delegation
-  durations only.
+- **Time entry, timesheets, rates, invoicing.** Phase 2. Planned hours only — budgeted per
+  phase (Slice 11), never logged against.
 - **A `tasks` table** until the granularity question is answered.
-- **A calendar implementation ahead of Slice 10.**
+- ~~**A calendar implementation ahead of Slice 10.**~~ Slice 10 is unblocked (2026-08-14):
+  day resolution + staff-grouped rows.
 - **RLS policy work.** Placeholder policies stay until their own slice.
 - **Multi-tenancy.** Single tenant.
 - **Removal of the on-hold flag.** Preserved unchanged.

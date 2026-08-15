@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed-demo.ts"
+    "seed": "tsx scripts/seed-demo.ts",
+    "check:schedule": "tsx scripts/check-schedule.ts",
+    "check:calendar": "tsx scripts/check-calendar.ts",
+    "check": "npm run check:schedule && npm run check:calendar",
+    "check:gates": "tsx scripts/check-gates.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

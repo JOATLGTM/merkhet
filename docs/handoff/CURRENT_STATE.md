@@ -1,6 +1,11 @@
 # Current state
 
-**Last updated: 2026-08-12**
+**Last updated: 2026-08-14**
+
+> **Resuming?** Start with [`NEXT.md`](./NEXT.md). Slices 11, 4, 10 and 5 were built on
+> 2026-08-14 and are **uncommitted**; all three migrations from that day are applied and
+> verified, and the calendar and approvals UI have both had a visual pass. The next action is
+> to commit.
 
 ## Product
 
@@ -54,10 +59,14 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Drag/⌘K; Pending exit blocked without contract PDF; View PDF via signed URL
 - **Mark Complete** (green) on Permitting only → confirm modal → archive
 - Detail sheet: hold, contract upload/view, consultants attach (+ new inline), phases, activity
+- **Planned hours per phase** in the detail sheet Phases grid (Review excluded — it's a gate); section header totals them. Legacy project-level `hours_per_week` retired from the UI
+- **Plan schedule** (delegation): assignee + duration for the 5 delegated phases in one form; dates derived from durations in working days; planned hours optional. Raised on entry to Active, and available at any phase for backfill. Active → SD is gated on it in `move_project`
+- **Approval gates**: sign-offs recorded in the detail sheet at Review (client contact, Austin, client) and Final review (client contact, Austin). The client's sign-off is recorded by staff on their behalf. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
+- Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
 - New project: inline **+ New customer**
 
 ### Other surfaces
-- Calendar (week grid, phase bars, zoom)
+- Calendar: days/weeks/months zoom · by-project or by-staff rows · bounded window with paging (`SLICE_10_APPLY.md`, visually verified)
 - Customers list + detail
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
@@ -68,10 +77,29 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260812120000_move_project.sql`
 - `20260812130000_workflow_1b_enum.sql` + `20260812130100_workflow_1b.sql`
 - `20260812140000_contracts_storage.sql` + `20260812140100_pending_contract_gate.sql`
+- `20260814100000_phase_planned_hours.sql`
+- `20260814120000_delegation_gate.sql`
+- `20260814160000_approval_gates.sql` — also fixes a pre-existing `move_project` bug, see `SLICE_5_APPLY.md` §3a
 
-See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`, `SLICE_8_APPLY.md`.
+See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
+`SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,
+`SLICE_11_APPLY.md`.
+Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 
-## Slice status (2026-08-12)
+## Checks
+
+```bash
+npm run check         # check:schedule (28 assertions) + check:calendar (45)
+npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
+```
+
+No test runner. `npm run check` covers the two pieces of real arithmetic — `deriveSchedule`
+(`lib/dates.ts`) and calendar geometry (`lib/calendar.ts`) — and touches no database.
+`check:gates` exercises the workflow gates and the rework loop against the **live** database
+on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
+Neither covers rendering.
+
+## Slice status (2026-08-14)
 
 | Slice | State |
 |---|---|
@@ -80,13 +108,14 @@ See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`, `
 | 1B Workflow schema | Done |
 | 2 Pending→Active + contract | Done |
 | 3 Intake expansion | **Reverted — on hold** |
-| 4 Delegation | **Skipped** |
-| 5 Approval gates | Open |
+| 4 Delegation | Done — applied + verified |
+| 5 Approval gates | Done — applied + verified |
 | 6 Notifications | Open (stubs only) |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | Confirm need (nav Staff ≠ this) |
-| 10 Calendar redesign | Blocked: Austin |
+| 10 Calendar redesign | Done — visual check passed |
+| 11 Planned hours per phase | Done — applied + verified |
 
 ## Seed sample
 

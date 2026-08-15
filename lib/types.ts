@@ -88,6 +88,8 @@ export type ProjectPhase = {
   planned_start: string | null;
   planned_end: string | null;
   duration_days: number | null;
+  /** Budgeted hours for this phase. Null on Review — a gate, not work. */
+  planned_hours: number | null;
   entered_at: string | null;
   completed_at: string | null;
   sort_order: number;
@@ -146,6 +148,8 @@ export type ProjectWithRelations = Project & {
   phases: ProjectPhase[];
   activity: ActivityLog[];
   consultants: Consultant[];
+  /** Only ever holds *approved* rows — absence of a row means pending. */
+  approvals: ProjectApproval[];
 };
 
 export const DESIGN_PHASES: DesignPhase[] = [
@@ -168,6 +172,60 @@ export const DELEGATED_PHASES: DesignPhase[] = [
 
 export const GATE_PHASES: DesignPhase[] = ["review", "final_review"];
 
+export type GatePhase = "review" | "final_review";
+
+/**
+ * Who must sign off at each gate (WORKFLOW-2 §3). The client is an approver at
+ * Review only — at Final Review they are deliberately not.
+ */
+export const GATE_PARTIES: Record<GatePhase, ApprovalParty[]> = {
+  review: ["client_contact", "austin", "client"],
+  final_review: ["client_contact", "austin"],
+};
+
+/** Where a rejected gate sends the project back to. */
+export const GATE_REJECT_TARGET: Record<GatePhase, DesignPhase> = {
+  review: "design_development",
+  final_review: "construction_documents",
+};
+
+export const PARTY_LABELS: Record<ApprovalParty, string> = {
+  client_contact: "Client contact",
+  austin: "Austin",
+  client: "Client",
+};
+
+export function isGatePhase(phase: DesignPhase | null): phase is GatePhase {
+  return phase === "review" || phase === "final_review";
+}
+
+export function approvedParties(
+  phase: GatePhase,
+  approvals: ProjectApproval[],
+): Set<ApprovalParty> {
+  return new Set(
+    approvals
+      .filter((a) => a.phase === phase && a.status === "approved")
+      .map((a) => a.party),
+  );
+}
+
+export function pendingParties(
+  phase: GatePhase,
+  approvals: ProjectApproval[],
+): ApprovalParty[] {
+  const done = approvedParties(phase, approvals);
+  return GATE_PARTIES[phase].filter((party) => !done.has(party));
+}
+
+/** Every required party has signed off. Mirrors the check in `move_project`. */
+export function gateSatisfied(
+  phase: GatePhase,
+  approvals: ProjectApproval[],
+): boolean {
+  return pendingParties(phase, approvals).length === 0;
+}
+
 export const BOARD_COLUMNS: BoardColumn[] = [
   "pending",
   "active",
@@ -189,6 +247,20 @@ export const COLUMN_LABELS: Record<BoardColumn, string> = {
   final_review: "Final review",
   permitting: "Permitting",
 };
+
+/**
+ * Delegation is complete when every delegated phase has both a person and a
+ * duration. Derived rather than stored (`SLICE_4_SCOPE.md` decision 4) so it
+ * cannot drift from the rows it describes.
+ *
+ * Planned hours are deliberately excluded — they are optional.
+ */
+export function isDelegationComplete(phases: ProjectPhase[]): boolean {
+  return DELEGATED_PHASES.every((phase) => {
+    const row = phases.find((p) => p.phase === phase);
+    return Boolean(row?.assignee_id) && row?.duration_days != null;
+  });
+}
 
 export function boardColumnOf(project: Project): BoardColumn | null {
   if (project.archived_at || project.status === "completed") {

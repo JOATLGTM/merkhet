@@ -337,6 +337,9 @@ export function BoardView({
       setOptimistic({ id, column: toColumn });
       try {
         await moveProjectAction(id, toColumn);
+        // Entering Active raises delegation (WORKFLOW-2 §3). Opening the sheet
+        // is enough — it raises the dialog itself when planning is missing.
+        if (toColumn === "active") openProject(id);
       } catch (e) {
         toast.error(
           e instanceof Error
