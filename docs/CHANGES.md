@@ -1,5 +1,10 @@
 # CHANGES.md
 
+> **SUPERSEDED — historical reference only.**
+> The current slice plan and status table is [`handoff/CHANGES-2.md`](./handoff/CHANGES-2.md).
+> This is the v1 delta against the v1 `WORKFLOW.md`, itself superseded. Its slice numbering is
+> **not** the numbering used in CHANGES-2.md — do not cross-reference them.
+
 Delta between the existing MVP and the workflow defined in `WORKFLOW.md`.
 
 Read `WORKFLOW.md` first. It is the source of truth for behavior; this document is the

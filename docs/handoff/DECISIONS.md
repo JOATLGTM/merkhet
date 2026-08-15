@@ -191,11 +191,46 @@ schedule time, so CD picks up after DD, not after Review.
 assignee and a duration. No `delegated_at` column. This is why a partial write fails closed:
 the gate reads the rows, so it cannot disagree with them.
 
-**Re-planning only re-dates `not_started` phases.** Worked phases keep their dates. Slice 5's
-rejection loops need the same rule.
+**Re-planning only re-dates unworked phases.** Worked phases keep their dates. "Plan schedule"
+locks anything not `not_started`; rejection locks `completed` and `skipped` but deliberately
+*not* the phase being returned to — see the Slice 5 section below.
 
 **Phase dates are read-only in the UI.** Durations are the source (WORKFLOW-2 §3).
 `updatePhaseDates` still exists in the repo and actions layer but is off the UI path.
+
+## Approval gates and rework (Slice 5, Aug 14, 2026)
+
+Full write-up in [`SLICE_5_APPLY.md`](./SLICE_5_APPLY.md). The non-negotiables:
+
+**Approval rows exist only when approved.** Absence *is* pending; clearing a sign-off is a
+`DELETE`. Nothing seeds pending rows, and `ProjectWithRelations.approvals` only ever holds
+approved ones. The `status` column survives from 1B but is always `'approved'` in practice.
+
+**The client signs off but never logs in.** Staff record the client's approval on their behalf
+(WORKFLOW-2 §3), and the UI says so. `recorded_by` is therefore the staff member, not the
+approver — do not read it as "who approved".
+
+**Gate crossing is `from <= gate < to`.** That deliberately blocks *skipping* a gate
+(DD → CD, CD → Permitting, Active → CD) as well as leaving one. Enforced in `move_project`, so
+board drag and ⌘K inherit it. Backward moves are never gated.
+
+**Rejection is its own SQL function, not `move_project`.** `move_project` marks the phase being
+left as `completed`, which is exactly wrong for a rejection — a rejected gate returns to
+`not_started` because it will be entered again.
+
+**`reject_gate` is atomic in SQL; dates are recomputed in TypeScript afterwards**, because
+`deriveSchedule` lives there. A failure in the date step leaves the project correctly rejected
+with stale dates, which "Re-plan schedule" fixes. Do not move the date math into SQL to close
+that window — duplicating the derivation is the worse trade.
+
+**On rejection, only `completed` and `skipped` phases are locked.** The phase being returned to
+is `in_progress` precisely because it is being reworked, so it must re-date from today. A
+skipped phase is locked because it will never be worked; re-dating it would hand it a fresh
+future window *and* push the rework out behind it.
+
+**`anchor` in `deriveSchedule` is a floor, not a fallback.** A computed start earlier than the
+anchor is pulled forward to it, so rework is never scheduled into the past. This applies to the
+zero-width Review milestone too.
 
 ## Headless-checkable arithmetic (Aug 14, 2026)
 
@@ -203,7 +238,13 @@ rejection loops need the same rule.
 React so they can be checked without a browser: `npm run check`. The calendar view imports its
 geometry rather than computing inline, which is the reason that split exists — keep it.
 
-The checks cover arithmetic only. **Nothing in this repo verifies rendering.**
+`npm run check:gates` is the counterpart for the workflow rules that live in SQL, where there
+is nothing pure to extract: it drives one throwaway project through every gate and the rework
+loop against **hosted Supabase**, then deletes it. Kept out of `npm run check` because it
+writes to production.
+
+The checks cover arithmetic and database behaviour. **Nothing in this repo verifies
+rendering.**
 
 ## Locale
 

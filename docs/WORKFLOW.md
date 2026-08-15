@@ -1,5 +1,11 @@
 # WORKFLOW.md
 
+> **SUPERSEDED — historical reference only.**
+> The authoritative workflow is [`handoff/WORKFLOW-2.md`](./handoff/WORKFLOW-2.md). This is the
+> v1 document, written before the Aug 2026 client sessions and before the Merkat → Merkhet
+> rename; where the two disagree, WORKFLOW-2 wins. Kept for the rationale behind decisions that
+> carried forward.
+
 Canonical description of the Merkat project workflow. This document is the source of
 truth for phase order, transition rules, approvals, and notifications.
 
