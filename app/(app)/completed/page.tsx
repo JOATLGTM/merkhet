@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import Loader from "@/components/kokonutui/loader";
 import { CompletedProjectsClient } from "@/components/projects/completed-projects-client";
 import {
   listCompletedProjects,
@@ -30,7 +31,9 @@ export default function CompletedProjectsPage() {
           <header className="border-b border-rule bg-surface px-5 py-3">
             <h1 className="page-title">Completed projects</h1>
           </header>
-          <div className="px-5 py-4 text-[13px] text-ink-soft">Loading…</div>
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            <Loader title="Loading completed projects…" />
+          </div>
         </div>
       }
     >

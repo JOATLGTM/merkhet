@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { CustomersClient } from "@/components/customers/customers-client";
+import Loader from "@/components/kokonutui/loader";
 import { listCustomers } from "@/lib/db/repo";
 
 function NewCustomerLink() {
@@ -50,7 +51,9 @@ export default function CustomersPage() {
               <h1 className="page-title">Customers</h1>
               <NewCustomerLink />
             </header>
-            <div className="px-5 py-4 text-[13px] text-ink-soft">Loading…</div>
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Loader title="Loading customers…" />
+            </div>
           </>
         }
       >

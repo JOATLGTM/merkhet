@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { CustomerDetailClient } from "@/components/customers/customer-detail-client";
+import Loader from "@/components/kokonutui/loader";
 import {
   getCustomer,
   listConsultants,
@@ -77,7 +78,9 @@ export default function CustomerDetailPage({
               </Link>
               <div className="mt-2 h-[26px]" />
             </div>
-            <div className="px-6 py-5 text-[13px] text-ink-soft">Loading…</div>
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Loader title="Loading customer…" />
+            </div>
           </>
         }
       >

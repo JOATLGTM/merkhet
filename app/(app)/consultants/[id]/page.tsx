@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ConsultantDetailClient } from "@/components/consultants/consultant-detail-client";
+import Loader from "@/components/kokonutui/loader";
 import { getConsultant } from "@/lib/db/repo";
 
 async function ConsultantDetail({
@@ -33,7 +34,9 @@ export default function ConsultantDetailPage({
       </div>
       <Suspense
         fallback={
-          <div className="px-5 py-5 text-[13px] text-ink-soft">Loading…</div>
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            <Loader title="Loading consultant…" />
+          </div>
         }
       >
         <ConsultantDetail params={params} />

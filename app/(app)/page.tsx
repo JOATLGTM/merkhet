@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { BoardView } from "@/components/board/board-view";
+import Loader from "@/components/kokonutui/loader";
 import { CommandPalette } from "@/components/command/command-palette";
 import { getSessionUser } from "@/lib/auth/session";
 import {
@@ -57,8 +58,8 @@ export default function BoardPage() {
           <header className="flex items-center gap-4 border-b border-rule bg-surface px-5 py-3">
             <h1 className="page-title">Board</h1>
           </header>
-          <div className="px-5 py-4 text-[13px] text-ink-soft">
-            Loading board…
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            <Loader title="Loading board…" />
           </div>
         </div>
       }
