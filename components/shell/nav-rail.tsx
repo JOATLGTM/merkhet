@@ -22,8 +22,6 @@ import { initials, type User } from "@/lib/types";
 
 type NavRailProps = {
   user: User;
-  projectCount: number;
-  customerCount: number;
 };
 
 const links = [

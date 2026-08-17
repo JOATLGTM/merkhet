@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { pushBoardProject } from "@/lib/board-url";
 import { columnTopBorder } from "@/lib/phases";
 import { cn } from "@/lib/utils";
 import {
@@ -300,18 +301,10 @@ export function BoardView({
     ]),
   ) as Record<BoardColumn, ProjectWithRelations[]>;
 
-  const openProject = (id: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("project", id);
-    router.push(`/?${params.toString()}`, { scroll: false });
-  };
+  const openProject = (id: string) =>
+    pushBoardProject(searchParams.toString(), id);
 
-  const closeProject = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("project");
-    const qs = params.toString();
-    router.push(qs ? `/?${qs}` : "/", { scroll: false });
-  };
+  const closeProject = () => pushBoardProject(searchParams.toString(), null);
 
   const onDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { moveProjectAction, toggleHoldAction } from "@/app/actions/projects";
+import { pushBoardProject } from "@/lib/board-url";
 import {
   Command,
   CommandDialog,
@@ -55,7 +56,7 @@ export function CommandPalette({ projects, customers }: CommandPaletteProps) {
                     value={`${p.project_number} ${p.name} ${p.customer.name}`}
                     onSelect={() => {
                       setOpen(false);
-                      router.push(`/?project=${p.id}`);
+                      pushBoardProject(window.location.search, p.id);
                     }}
                   >
                     <span className="font-mono text-[11px] text-ink-soft">
@@ -130,7 +131,9 @@ export function CommandPalette({ projects, customers }: CommandPaletteProps) {
                         await moveProjectAction(moveFor, column);
                         setOpen(false);
                         setMoveFor(null);
-                        router.push(`/?project=${moveFor}`);
+                        // The action's revalidatePath("/") already streams the
+                        // moved board back, so this only has to open the sheet.
+                        pushBoardProject(window.location.search, moveFor);
                       } catch (e) {
                         toast.error(
                           e instanceof Error

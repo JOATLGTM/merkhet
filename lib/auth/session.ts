@@ -1,8 +1,16 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import { getUserById } from "@/lib/db/repo";
 import type { User } from "@/lib/types";
 
-export async function getSessionUser(): Promise<User | null> {
+/**
+ * `cache()` is request-scoped memoization, not a data cache — it dedupes the
+ * calls a single render makes. The app layout and every page below it both
+ * need the session, and each call is two network hops (auth.getUser, then the
+ * users row). Without this the shell pays for all of them twice.
+ */
+export const getSessionUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -12,7 +20,7 @@ export async function getSessionUser(): Promise<User | null> {
   const profile = await getUserById(authUser.id);
   if (!profile || !profile.is_active) return null;
   return profile;
-}
+});
 
 export async function requireUser(): Promise<User> {
   const user = await getSessionUser();

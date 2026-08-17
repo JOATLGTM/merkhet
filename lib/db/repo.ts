@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import type {
   BoardColumn,
@@ -151,16 +153,16 @@ function throwOn(
   if (error) throw new Error(error.message || fallback);
 }
 
-export async function listUsers(activeOnly = true): Promise<User[]> {
+export const listUsers = cache(async (activeOnly = true): Promise<User[]> => {
   const supabase = await db();
   let query = supabase.from("users").select("*").order("name");
   if (activeOnly) query = query.eq("is_active", true);
   const { data, error } = await query;
   throwOn(error, "Failed to list users");
   return (data ?? []).map((row) => mapUser(row));
-}
+});
 
-export async function getUserById(id: string): Promise<User | null> {
+export const getUserById = cache(async (id: string): Promise<User | null> => {
   const supabase = await db();
   const { data, error } = await supabase
     .from("users")
@@ -169,51 +171,57 @@ export async function getUserById(id: string): Promise<User | null> {
     .maybeSingle();
   throwOn(error, "Failed to load user");
   return data ? mapUser(data) : null;
-}
+});
 
-export async function getUserByEmail(email: string): Promise<User | null> {
-  const supabase = await db();
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .ilike("email", email)
-    .maybeSingle();
-  throwOn(error, "Failed to load user");
-  return data ? mapUser(data) : null;
-}
+export const getUserByEmail = cache(
+  async (email: string): Promise<User | null> => {
+    const supabase = await db();
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .ilike("email", email)
+      .maybeSingle();
+    throwOn(error, "Failed to load user");
+    return data ? mapUser(data) : null;
+  },
+);
 
-export async function listCustomers(): Promise<
-  (Customer & { total_projects: number; active_projects: number })[]
-> {
-  const supabase = await db();
-  const [{ data: customers, error: cErr }, { data: projects, error: pErr }] =
-    await Promise.all([
-      supabase.from("customers").select("*").order("name"),
-      supabase.from("projects").select("customer_id, status"),
-    ]);
-  throwOn(cErr, "Failed to list customers");
-  throwOn(pErr, "Failed to list projects");
+export const listCustomers = cache(
+  async (): Promise<
+    (Customer & { total_projects: number; active_projects: number })[]
+  > => {
+    const supabase = await db();
+    const [{ data: customers, error: cErr }, { data: projects, error: pErr }] =
+      await Promise.all([
+        supabase.from("customers").select("*").order("name"),
+        supabase.from("projects").select("customer_id, status"),
+      ]);
+    throwOn(cErr, "Failed to list customers");
+    throwOn(pErr, "Failed to list projects");
 
-  return (customers ?? []).map((row) => {
-    const related = (projects ?? []).filter((p) => p.customer_id === row.id);
-    return {
-      ...mapCustomer(row),
-      total_projects: related.length,
-      active_projects: related.filter((p) => p.status === "active").length,
-    };
-  });
-}
+    return (customers ?? []).map((row) => {
+      const related = (projects ?? []).filter((p) => p.customer_id === row.id);
+      return {
+        ...mapCustomer(row),
+        total_projects: related.length,
+        active_projects: related.filter((p) => p.status === "active").length,
+      };
+    });
+  },
+);
 
-export async function getCustomer(id: string): Promise<Customer | null> {
-  const supabase = await db();
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  throwOn(error, "Failed to load customer");
-  return data ? mapCustomer(data) : null;
-}
+export const getCustomer = cache(
+  async (id: string): Promise<Customer | null> => {
+    const supabase = await db();
+    const { data, error } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    throwOn(error, "Failed to load customer");
+    return data ? mapCustomer(data) : null;
+  },
+);
 
 export async function createCustomer(
   input: Pick<
@@ -312,10 +320,7 @@ async function hydrateProject(
       .from("project_consultants")
       .select("consultant_id")
       .eq("project_id", project.id),
-    supabase
-      .from("project_approvals")
-      .select("*")
-      .eq("project_id", project.id),
+    supabase.from("project_approvals").select("*").eq("project_id", project.id),
   ]);
   throwOn(cErr, "Missing customer");
   throwOn(pErr, "Failed to load phases");
@@ -345,7 +350,7 @@ async function hydrateProject(
   };
 }
 
-export async function listProjects(): Promise<ProjectWithRelations[]> {
+export const listProjects = cache(async (): Promise<ProjectWithRelations[]> => {
   const supabase = await db();
   const { data: projects, error } = await supabase
     .from("projects")
@@ -355,29 +360,29 @@ export async function listProjects(): Promise<ProjectWithRelations[]> {
   if (!projects?.length) return [];
 
   return hydrateProjectList(supabase, projects);
-}
+});
 
-export async function listCompletedProjects(): Promise<ProjectWithRelations[]> {
-  const supabase = await db();
-  const { data: projects, error } = await supabase
-    .from("projects")
-    .select("*")
-    .or("status.eq.completed,archived_at.not.is.null")
-    .order("archived_at", { ascending: false, nullsFirst: false });
-  throwOn(error, "Failed to list completed projects");
-  if (!projects?.length) return [];
+export const listCompletedProjects = cache(
+  async (): Promise<ProjectWithRelations[]> => {
+    const supabase = await db();
+    const { data: projects, error } = await supabase
+      .from("projects")
+      .select("*")
+      .or("status.eq.completed,archived_at.not.is.null")
+      .order("archived_at", { ascending: false, nullsFirst: false });
+    throwOn(error, "Failed to list completed projects");
+    if (!projects?.length) return [];
 
-  return hydrateProjectList(supabase, projects);
-}
+    return hydrateProjectList(supabase, projects);
+  },
+);
 
 async function hydrateProjectList(
   supabase: Db,
   projects: Record<string, unknown>[],
 ): Promise<ProjectWithRelations[]> {
   const ids = projects.map((p) => String(p.id));
-  const customerIds = [
-    ...new Set(projects.map((p) => String(p.customer_id))),
-  ];
+  const customerIds = [...new Set(projects.map((p) => String(p.customer_id)))];
 
   const [
     { data: customers, error: cErr },
@@ -473,6 +478,13 @@ async function hydrateProjectList(
   });
 }
 
+/**
+ * Deliberately NOT wrapped in `cache()`, unlike the other readers here.
+ * Every mutation below re-reads through `getProject` to return the updated
+ * row (and several read a `before` snapshot first). Request-scoped memoization
+ * would hand those callers the pre-mutation value, so each write would return
+ * stale data to the client.
+ */
 export async function getProject(
   id: string,
 ): Promise<ProjectWithRelations | null> {
@@ -571,12 +583,14 @@ export async function updateProject(
   throwOn(error, "Failed to update project");
 
   if (Object.keys(changed).length) {
-    const { error: activityError } = await supabase.from("activity_log").insert({
-      project_id: id,
-      actor_id: actorId,
-      event_type: "project.updated",
-      payload: { changed },
-    });
+    const { error: activityError } = await supabase
+      .from("activity_log")
+      .insert({
+        project_id: id,
+        actor_id: actorId,
+        event_type: "project.updated",
+        payload: { changed },
+      });
     throwOn(activityError, "Failed to log project update");
   }
 
@@ -812,7 +826,10 @@ export async function updatePhaseHours(
   plannedHours: number | null,
   actorId: string,
 ): Promise<ProjectWithRelations> {
-  if (plannedHours != null && (!Number.isFinite(plannedHours) || plannedHours < 0)) {
+  if (
+    plannedHours != null &&
+    (!Number.isFinite(plannedHours) || plannedHours < 0)
+  ) {
     throw new Error("Planned hours must be zero or more.");
   }
 
@@ -1096,18 +1113,22 @@ export async function rejectGate(
   return (await getProject(projectId))!;
 }
 
-export async function listPhaseSubscribers(): Promise<PhaseSubscriber[]> {
-  const supabase = await db();
-  const { data, error } = await supabase.from("phase_subscribers").select("*");
-  throwOn(error, "Failed to list subscribers");
-  return (data ?? []).map((row) => ({
-    phase: row.phase as DesignPhase,
-    user_id: String(row.user_id),
-    created_at: String(row.created_at),
-  }));
-}
+export const listPhaseSubscribers = cache(
+  async (): Promise<PhaseSubscriber[]> => {
+    const supabase = await db();
+    const { data, error } = await supabase
+      .from("phase_subscribers")
+      .select("*");
+    throwOn(error, "Failed to list subscribers");
+    return (data ?? []).map((row) => ({
+      phase: row.phase as DesignPhase,
+      user_id: String(row.user_id),
+      created_at: String(row.created_at),
+    }));
+  },
+);
 
-export async function listConsultants(): Promise<Consultant[]> {
+export const listConsultants = cache(async (): Promise<Consultant[]> => {
   const supabase = await db();
   const { data, error } = await supabase
     .from("consultants")
@@ -1115,18 +1136,20 @@ export async function listConsultants(): Promise<Consultant[]> {
     .order("name");
   throwOn(error, "Failed to list consultants");
   return (data ?? []).map((row) => mapConsultant(row));
-}
+});
 
-export async function getConsultant(id: string): Promise<Consultant | null> {
-  const supabase = await db();
-  const { data, error } = await supabase
-    .from("consultants")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  throwOn(error, "Failed to load consultant");
-  return data ? mapConsultant(data) : null;
-}
+export const getConsultant = cache(
+  async (id: string): Promise<Consultant | null> => {
+    const supabase = await db();
+    const { data, error } = await supabase
+      .from("consultants")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    throwOn(error, "Failed to load consultant");
+    return data ? mapConsultant(data) : null;
+  },
+);
 
 export async function createConsultant(
   input: Pick<
@@ -1236,9 +1259,9 @@ export async function setPhaseSubscribers(
   throwOn(delError, "Failed to clear subscribers");
 
   if (userIds.length) {
-    const { error } = await supabase.from("phase_subscribers").insert(
-      userIds.map((user_id) => ({ phase, user_id })),
-    );
+    const { error } = await supabase
+      .from("phase_subscribers")
+      .insert(userIds.map((user_id) => ({ phase, user_id })));
     throwOn(error, "Failed to set subscribers");
   }
 
@@ -1297,13 +1320,14 @@ export async function inviteUser(input: {
     );
   }
 
-  const { data: created, error: authError } =
-    await admin.auth.admin.createUser({
+  const { data: created, error: authError } = await admin.auth.admin.createUser(
+    {
       email: input.email,
       email_confirm: true,
       password: crypto.randomUUID().slice(0, 12) + "Aa1!",
       user_metadata: { name: input.name, role: input.role },
-    });
+    },
+  );
   if (authError) throw new Error(authError.message);
   if (!created.user) throw new Error("Failed to create auth user");
 
