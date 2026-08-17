@@ -678,6 +678,42 @@ export async function markProjectComplete(
 }
 
 /**
+ * Hard delete — there is no undo, and no soft-delete column to fall back on.
+ * Every child row (`project_phases`, `activity_log`, `project_approvals`,
+ * `phase_transitions`, `project_consultants`) is `on delete cascade`, so the
+ * single row delete takes the whole tree.
+ *
+ * Storage is not covered by the cascade, so the contract PDF is removed first.
+ * A failure there is logged rather than thrown: an orphaned object in a
+ * private bucket is a smaller problem than a project that cannot be deleted.
+ */
+export async function deleteProject(id: string): Promise<void> {
+  const supabase = await db();
+  const { data: row, error: readError } = await supabase
+    .from("projects")
+    .select("id, contract_path")
+    .eq("id", id)
+    .maybeSingle();
+  throwOn(readError, "Failed to load project");
+  if (!row) throw new Error("Project not found");
+
+  const contractPath = (row.contract_path as string | null) ?? null;
+  if (contractPath) {
+    const { error: storageError } = await supabase.storage
+      .from("contracts")
+      .remove([contractPath]);
+    if (storageError) {
+      console.error(
+        `Deleted project ${id} but could not remove ${contractPath}: ${storageError.message}`,
+      );
+    }
+  }
+
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  throwOn(error, "Failed to delete project");
+}
+
+/**
  * Stores the LOI/contract and advances Pending → Active.
  * This is the only supported path out of Pending.
  */

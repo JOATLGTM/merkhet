@@ -7,6 +7,7 @@ import {
   CirclePause,
   ExternalLink,
   FileUp,
+  Trash2,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ import {
 } from "@/app/actions/consultants";
 import {
   clearApprovalAction,
+  deleteProjectAction,
   getContractViewUrlAction,
   markProjectCompleteAction,
   recordApprovalAction,
@@ -158,6 +160,8 @@ export function ProjectDetailSheet({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachId, setAttachId] = useState("none");
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [delegationOpen, setDelegationOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -195,7 +199,7 @@ export function ProjectDetailSheet({
   if (!project) {
     return (
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent className="w-full data-[side=right]:sm:max-w-xl" />
+        <SheetContent className="w-full data-[side=right]:sm:max-w-2xl" />
       </Sheet>
     );
   }
@@ -271,8 +275,8 @@ export function ProjectDetailSheet({
       {/* The variant prefix has to match sheet.tsx's own
           `data-[side=right]:sm:max-w-sm`, or tailwind-merge keeps both classes
           and the more specific base rule wins — which is how this panel was
-          rendering at --container-sm (384px) despite asking for 520px. */}
-      <SheetContent className="w-full gap-0 overflow-y-auto border-l border-rule bg-surface p-0 data-[side=right]:sm:max-w-xl">
+          rendering at --container-sm (384px) despite asking for wider. */}
+      <SheetContent className="w-full gap-0 overflow-y-auto border-l border-rule bg-surface p-0 data-[side=right]:sm:max-w-2xl">
         <SheetHeader className="space-y-0 border-b border-rule px-6 py-5 text-left">
           <SheetTitle className="sr-only">{project.name}</SheetTitle>
           <Input
@@ -407,6 +411,77 @@ export function ProjectDetailSheet({
                 }}
               >
                 Yes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={deleteOpen}
+          onOpenChange={(v) => {
+            setDeleteOpen(v);
+            if (!v) setDeleteConfirm("");
+          }}
+        >
+          <DialogContent className="rounded-none sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete {project.project_number}?</DialogTitle>
+              <DialogDescription>
+                This permanently removes {project.name} — its phases, schedule,
+                sign-offs, activity history and uploaded contract. It cannot be
+                undone. To keep the record, mark the project complete instead.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="delete-confirm"
+                className="label-caps block text-ink-soft"
+              >
+                Type {project.project_number} to confirm
+              </label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                autoComplete="off"
+                spellCheck={false}
+                className="rounded-none font-mono"
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+              />
+            </div>
+            <DialogFooter className="gap-2 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-none"
+                onClick={() => setDeleteOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                // Case-insensitive: the number is displayed uppercase and
+                // retyping it is a speed bump, not a spelling test.
+                disabled={
+                  deleteConfirm.trim().toUpperCase() !==
+                  project.project_number.toUpperCase()
+                }
+                className="rounded-none bg-redline text-white hover:opacity-90"
+                onClick={() => {
+                  startTransition(async () => {
+                    const result = await deleteProjectAction(project.id);
+                    if (!result.ok) {
+                      toast.error(result.error);
+                      return;
+                    }
+                    setDeleteOpen(false);
+                    setDeleteConfirm("");
+                    toast.success(`${project.project_number} deleted`);
+                    onClose();
+                    router.refresh();
+                  });
+                }}
+              >
+                Delete
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -966,11 +1041,27 @@ export function ProjectDetailSheet({
               <FieldLabel>Phases</FieldLabel>
               <span className="font-mono text-[11px] text-ink-soft tabular-nums">
                 {plannedHoursTotal == null
-                  ? "No hours planned"
-                  : `${formatHours(plannedHoursTotal)} h planned`}
+                  ? "No hours budgeted"
+                  : `${formatHours(plannedHoursTotal)} h budgeted total`}
               </span>
             </div>
-            <div className="mt-4 space-y-4">
+            <p className="mt-2 max-w-[52ch] text-[12px] leading-relaxed text-ink-soft">
+              Start and end dates are derived from the durations set in Plan
+              schedule. Planned hours is the hour budget for the phase — the
+              whole phase, not per week.
+            </p>
+            {/* The hours box read as an unlabelled fourth date field, so the
+                grid now carries headers. Keep these columns in step with the
+                row grid below. */}
+            <div className="mt-4 grid grid-cols-[1.3fr_1fr_1fr_0.85fr] gap-2 pl-3.5">
+              <span className="label-caps text-ink-soft">Delegate</span>
+              <span className="label-caps text-ink-soft">Starts</span>
+              <span className="label-caps text-ink-soft">Ends</span>
+              <span className="label-caps text-right text-ink-soft">
+                Planned hrs
+              </span>
+            </div>
+            <div className="mt-2 space-y-4">
               {project.phases.map((phase) => {
                 // Review is a gate, not work: no delegate, no duration, no
                 // hours. See WORKFLOW-2 §3.
@@ -987,7 +1078,7 @@ export function ProjectDetailSheet({
                       {phase.status.replaceAll("_", " ")}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-[1.3fr_1fr_1fr_0.6fr] gap-2 pl-3.5">
+                  <div className="mt-2 grid grid-cols-[1.3fr_1fr_1fr_0.85fr] gap-2 pl-3.5">
                     <Select
                       // Base UI renders the raw value in the trigger without
                       // an items map — this showed user ids, not names.
@@ -1035,55 +1126,65 @@ export function ProjectDetailSheet({
                       )}
                     </div>
                     {takesHours ? (
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.5"
-                        inputMode="decimal"
-                        aria-label={`Planned hours — ${COLUMN_LABELS[phase.phase]}`}
-                        placeholder="h"
-                        // Keyed on the value too: after a save the server row
-                        // changes, and an uncontrolled input whose
-                        // defaultValue moves under it warns and can desync.
-                        key={`${project.id}-${phase.phase}-hours-${phase.planned_hours ?? ""}`}
-                        defaultValue={
-                          phase.planned_hours != null
-                            ? String(phase.planned_hours)
-                            : ""
-                        }
-                        className="h-9 rounded-none border-rule-strong text-right font-mono text-[11px] tabular-nums"
-                        onBlur={(e) => {
-                          const raw = e.target.value.trim();
-                          const next = raw === "" ? null : Number(raw);
-                          if (next != null && (!Number.isFinite(next) || next < 0)) {
-                            e.target.value =
-                              phase.planned_hours != null
-                                ? String(phase.planned_hours)
-                                : "";
-                            toast.error("Planned hours must be zero or more.");
-                            return;
+                      // Suffixed rather than bare: a right-aligned number with
+                      // no unit next to two dates reads as a third date.
+                      <div
+                        className="relative"
+                        title={`Hours budgeted for ${COLUMN_LABELS[phase.phase]}`}
+                      >
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.5"
+                          inputMode="decimal"
+                          aria-label={`Planned hours — ${COLUMN_LABELS[phase.phase]}`}
+                          placeholder="0"
+                          // Keyed on the value too: after a save the server row
+                          // changes, and an uncontrolled input whose
+                          // defaultValue moves under it warns and can desync.
+                          key={`${project.id}-${phase.phase}-hours-${phase.planned_hours ?? ""}`}
+                          defaultValue={
+                            phase.planned_hours != null
+                              ? String(phase.planned_hours)
+                              : ""
                           }
-                          if (next === phase.planned_hours) return;
-                          startTransition(async () => {
-                            try {
-                              await updatePhaseHoursAction(
-                                project.id,
-                                phase.phase,
-                                next,
-                              );
-                            } catch (err) {
-                              toast.error(
-                                err instanceof Error
-                                  ? err.message
-                                  : "Could not save planned hours.",
-                              );
+                          className="h-9 w-full rounded-none border-rule-strong pr-5 text-right font-mono text-[11px] tabular-nums"
+                          onBlur={(e) => {
+                            const raw = e.target.value.trim();
+                            const next = raw === "" ? null : Number(raw);
+                            if (next != null && (!Number.isFinite(next) || next < 0)) {
+                              e.target.value =
+                                phase.planned_hours != null
+                                  ? String(phase.planned_hours)
+                                  : "";
+                              toast.error("Planned hours must be zero or more.");
+                              return;
                             }
-                          });
-                        }}
-                      />
+                            if (next === phase.planned_hours) return;
+                            startTransition(async () => {
+                              try {
+                                await updatePhaseHoursAction(
+                                  project.id,
+                                  phase.phase,
+                                  next,
+                                );
+                              } catch (err) {
+                                toast.error(
+                                  err instanceof Error
+                                    ? err.message
+                                    : "Could not save planned hours.",
+                                );
+                              }
+                            });
+                          }}
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center font-mono text-[11px] text-ink-soft">
+                          h
+                        </span>
+                      </div>
                     ) : (
                       <div
-                        className="flex h-9 items-center justify-end pr-2 font-mono text-[11px] text-ink-soft"
+                        className="flex h-9 items-center justify-end pr-1.5 font-mono text-[11px] text-ink-soft"
                         title="Review is an approval gate — it takes no planned hours."
                       >
                         —
@@ -1112,6 +1213,25 @@ export function ProjectDetailSheet({
                   </p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="border-t border-rule py-5">
+            <FieldLabel>Danger zone</FieldLabel>
+            <div className="mt-3 flex items-start justify-between gap-4">
+              <p className="max-w-[38ch] text-[13px] leading-relaxed text-ink-mid">
+                Deleting is permanent and takes the phases, schedule, sign-offs,
+                activity history and contract with it.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto shrink-0 rounded-none border-redline px-2.5 py-1.5 text-[13px] font-normal text-redline"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete project
+              </Button>
             </div>
           </section>
         </div>

@@ -7,6 +7,7 @@ import { notifyGateRejected } from "@/lib/notifications";
 import {
   clearApproval,
   createProject,
+  deleteProject,
   getContractViewUrl,
   markProjectComplete,
   moveProject,
@@ -65,6 +66,28 @@ export async function markProjectCompleteAction(projectId: string) {
   const project = await markProjectComplete(projectId, user.id);
   revalidateAll();
   return project;
+}
+
+/**
+ * Permanent, and the only destructive action on the board — hence the
+ * `{ ok }` result rather than a throw, so the sheet can surface the reason
+ * inline instead of tripping the error boundary and closing itself.
+ */
+export async function deleteProjectAction(projectId: string) {
+  await requireUser();
+  try {
+    await deleteProject(projectId);
+    revalidateAll();
+    // The board and Completed list are covered above; a customer's own page
+    // renders its project list from a dynamic segment, so it needs naming.
+    revalidatePath("/customers/[id]", "page");
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Delete failed",
+    };
+  }
 }
 
 export async function updateProjectFieldAction(
