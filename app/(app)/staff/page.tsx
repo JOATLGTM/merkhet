@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 
 import { SettingsClient } from "@/components/settings/settings-client";
 import { getSessionUser } from "@/lib/auth/session";
-import { listPhaseSubscribers, listUsers } from "@/lib/db/repo";
+import {
+  listInProgressAssignments,
+  listPhaseSubscribers,
+  listUsers,
+} from "@/lib/db/repo";
+import { buildWorkload, weekOf } from "@/lib/workload";
 
 /**
  * Reads the session cookie to gate on `role === 'admin'`, so the segment
@@ -30,10 +35,31 @@ export default async function StaffPage() {
     );
   }
 
-  const [users, subscribers] = await Promise.all([
+  const [users, subscribers, assignments] = await Promise.all([
     listUsers(false),
     listPhaseSubscribers(),
+    listInProgressAssignments(),
   ]);
 
-  return <SettingsClient users={users} subscribers={subscribers} />;
+  // Resolved here rather than in the panel: "the week containing today" is the
+  // one non-deterministic input in the section, and computing it on the client
+  // would make it a hydration mismatch waiting for a midnight render.
+  const week = weekOf(new Date());
+  // Active staff always get a row; a deactivated one only if they are still
+  // holding in-progress work, which is a thing worth seeing rather than hiding.
+  const assigned = new Set(assignments.map((a) => a.assigneeId));
+  const workload = buildWorkload({
+    assignments,
+    users: users.filter((u) => u.is_active || assigned.has(u.id)),
+    week,
+  });
+
+  return (
+    <SettingsClient
+      users={users}
+      subscribers={subscribers}
+      workload={workload}
+      week={week}
+    />
+  );
 }

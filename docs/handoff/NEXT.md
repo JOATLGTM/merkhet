@@ -2,7 +2,31 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-18**
+**Last updated: 2026-08-21**
+
+## What happened on 2026-08-21
+
+**Slice 9 — the per-staff workload view — was built.** A third tab on `/staff`, between Team
+and Phase subscribers, inheriting the page's admin gate. No new route, no nav change, no
+migration, no schema: it is derived entirely from delegation.
+
+Per person it lists every `project_phases` row where they are the assignee and the status is
+`in_progress`, and totals a weekly load for the week containing today:
+`planned_hours / (duration_days / 5)`, summed across the in-progress phases whose planned
+range overlaps that week.
+
+**This answers the open question this file had been carrying** — what the planned-hours number
+is *for*. The answer is **capacity planning**. Recorded in
+[`DECISIONS.md`](./DECISIONS.md); the question is gone from the section below.
+
+The view reads sparse, and that is the data, not the view: delegation is backfilled on about
+22% of phase rows and 29% are dated (`SLICE_11_APPLY.md`), and planned hours are optional by
+design. A phase can be assigned, in progress and still yield no hours figure — it renders
+"Not planned", never `0h`, and every such gap is counted next to the total it is missing
+from. **Backfill (item 2 under Immediate) is what makes this section useful.**
+
+Arithmetic lives in `lib/workload.ts`, React-free, covered by `npm run check:workload`
+(65 assertions, now part of `npm run check`).
 
 ## What happened on 2026-08-18
 
@@ -43,19 +67,19 @@ runnable script. Nothing built that day is outstanding.
    `assignee_id`, so By-staff mode looks mostly empty until then. Measured table in
    `SLICE_11_APPLY.md`.
 
-## Open question for the client (blocks a design decision)
+## Answered 2026-08-21 — what the planned-hours number is for
 
-**What is the planned-hours number *for*?**
+**Capacity planning.** Hours ÷ duration = weekly load per person. Settled, built as Slice 9,
+and recorded in [`DECISIONS.md`](./DECISIONS.md). Not an open question any more.
 
-- *Fee validation* — a rough guess up front is fine; nothing more to build.
-- *Retrospective benchmarking* — needs logged hours, which is Phase 2 and not built.
-- *Capacity planning* — then hours ÷ duration = weekly load per person, which is what turns
-  the calendar's staff rows from *who is assigned* into *who is overloaded*. That points at a
-  density/heatmap treatment on staff rows rather than plain bars.
+Two follow-ons it unblocks rather than closes, neither of them started:
 
-The calendar was built without waiting on this, at the user's direction. Nothing in it
-forecloses the capacity answer — planned hours already surface as per-person group totals and
-in bar tooltips — but the load treatment is a follow-on if that is the answer.
+- **The calendar's staff rows.** Now that the number has a meaning, By-staff mode could carry
+  a density/heatmap treatment — *who is overloaded*, not just *who is assigned* — instead of
+  plain bars. Nothing in the calendar forecloses it; the geometry is already in
+  `lib/calendar.ts` and per-person totals already surface in the group headers.
+- **Hours at phase entry** (below). Capacity planning is only as good as the hours behind it,
+  and hours are optional and usually blank at delegation because nobody knows them yet.
 
 ## Likely next (workflow slices)
 
@@ -76,8 +100,9 @@ See [`CHANGES-2.md`](./CHANGES-2.md) status table.
      tested before this exists — the Gmail harness proves the pipe and the rendering, nothing
      more.
 2. **Slice 3 — Intake form expansion** — on hold until the client clarifies fields/labels.
-3. **Slice 9 — Staff workload view** — **probably redundant now.** The calendar's By-staff
-   mode is the staff-grouped view Ryan asked for. Confirm before building anything.
+3. ~~**Slice 9 — Staff workload view**~~ — **built 2026-08-21.** It is not redundant with the
+   calendar's By-staff mode after all: the calendar answers *when*, the workload tab answers
+   *how much, right now*. See the top of this file.
 4. **Hours at phase entry** — follow-on from Slice 4. Prompt the delegate for planned hours
    when the phase actually starts, rather than only at delegation when nobody knows yet.
    Depends on Slice 6.
@@ -103,17 +128,18 @@ See [`CHANGES-2.md`](./CHANGES-2.md) status table.
 ## Checks
 
 ```bash
-npm run check            # both of the below — pure arithmetic, no database
+npm run check            # all three of the below — pure arithmetic, no database
 npm run check:schedule   # deriveSchedule — 28 assertions
 npm run check:calendar   # calendar geometry — 45 assertions
+npm run check:workload   # week bounds + weekly rate + grouping — 65 assertions
 
 npm run check:gates      # workflow gates + rework loop — 50 assertions, HITS THE LIVE DB
 ```
 
 No test runner in the repo; these are plain scripts that exit non-zero on failure. `check`
-covers the two pieces of real arithmetic (duration → dates, and calendar geometry). **It does
-not cover rendering** — nothing here checks how anything looks. Run it after touching
-`lib/dates.ts` or `lib/calendar.ts`.
+covers the three pieces of real arithmetic (duration → dates, calendar geometry, and weekly
+load). **It does not cover rendering** — nothing here checks how anything looks. Run it after
+touching `lib/dates.ts`, `lib/calendar.ts` or `lib/workload.ts`.
 
 `check:gates` is separate on purpose: it signs in as `chris@merkhet.studio` and **writes to
 hosted Supabase**, creating one throwaway project and deleting it in a `finally`. It touches no

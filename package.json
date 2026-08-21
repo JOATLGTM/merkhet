@@ -10,7 +10,8 @@
     "seed": "tsx scripts/seed-demo.ts",
     "check:schedule": "tsx scripts/check-schedule.ts",
     "check:calendar": "tsx scripts/check-calendar.ts",
-    "check": "npm run check:schedule && npm run check:calendar",
+    "check:workload": "tsx scripts/check-workload.ts",
+    "check": "npm run check:schedule && npm run check:calendar && npm run check:workload",
     "check:gates": "tsx scripts/check-gates.ts",
     "email:preview": "tsx scripts/preview-emails.ts",
     "email:send": "tsx scripts/send-test-email.ts"

@@ -1,11 +1,12 @@
 # Current state
 
-**Last updated: 2026-08-18**
+**Last updated: 2026-08-21**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). The 2026-08-14 slices (11, 4, 10, 5) are
 > committed as **`f8d0526`** with all migrations applied and verified. On **2026-08-18** the
 > template half of Slice 6 was built — see [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md).
-> No SQL, nothing wired into the app; sending is still blocked on DNS.
+> No SQL, nothing wired into the app; sending is still blocked on DNS. On **2026-08-21**
+> Slice 9 (per-staff workload) landed on `/staff` — derived from delegation, no migration.
 
 ## Product
 
@@ -81,7 +82,22 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Customers list + detail
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
-- Staff (`/staff`, admin): Team + Phase subscribers
+- Staff (`/staff`, admin): Team · **Workload** · Phase subscribers
+
+### Workload (2026-08-21, Slice 9)
+- Third tab on `/staff`, between Team and Phase subscribers, inheriting the page's admin gate.
+  No new route, no nav change
+- Per person: every `project_phases` row assigned to them with `status = 'in_progress'`, and a
+  weekly total for the week containing today (Monday–Sunday, matching the calendar) —
+  `planned_hours / (duration_days / 5)`, summed over the in-progress phases whose planned range
+  overlaps that week. Each row shows project number, phase, its own rate and its date range
+- **Derived from delegation** — no migration, no schema change
+- **Sparse by nature.** Delegation is backfilled on ~22% of phase rows, 29% dated
+  (`SLICE_11_APPLY.md`); planned hours are optional and null on Review. An assigned,
+  in-progress phase with no budget reads **"Not planned", never `0h`**, and the count of
+  phases missing hours or dates sits next to every total it is missing from
+- Settles what planned hours are *for*: **capacity planning** (`DECISIONS.md`)
+- Arithmetic in `lib/workload.ts`, React-free — `npm run check:workload`
 
 ### Backend / migrations applied (hosted)
 - `20260807100000_init.sql`
@@ -100,20 +116,21 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 ## Checks
 
 ```bash
-npm run check         # check:schedule (28 assertions) + check:calendar (45)
+npm run check         # check:schedule (28) + check:calendar (45) + check:workload (65)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
 npm run email:send    # list cases; --case <n> sends via Gmail SMTP (see .env.example)
 ```
 
-No test runner. `npm run check` covers the two pieces of real arithmetic — `deriveSchedule`
-(`lib/dates.ts`) and calendar geometry (`lib/calendar.ts`) — and touches no database.
+No test runner. `npm run check` covers the three pieces of real arithmetic — `deriveSchedule`
+(`lib/dates.ts`), calendar geometry (`lib/calendar.ts`) and weekly load (`lib/workload.ts`) —
+and touches no database.
 `check:gates` exercises the workflow gates and the rework loop against the **live** database
 on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
 Neither covers rendering.
 
-## Slice status (2026-08-18)
+## Slice status (2026-08-21)
 
 | Slice | State |
 |---|---|
@@ -127,7 +144,7 @@ Neither covers rendering.
 | 6 Notifications | **Templates done** (2026-08-18) — provider/outbox/call sites open, blocked on DNS |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
-| 9 Staff workload view | Confirm need (nav Staff ≠ this) |
+| 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Workload tab) |
 | 10 Calendar redesign | Done — visual check passed |
 | 11 Planned hours per phase | Done — applied + verified |
 

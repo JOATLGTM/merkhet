@@ -11,7 +11,7 @@
 | Consultants | `app/(app)/consultants/page.tsx` → `components/consultants/consultants-client.tsx` |
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
-| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` |
+| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team · Workload · Phase subscribers) |
 | Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
@@ -35,9 +35,11 @@
 | Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
 | Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
+| Per-staff weekly load (pure) | `lib/workload.ts` (checks: `npm run check:workload`) |
 | Activity copy | `lib/activity.ts` |
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
+| Workload arithmetic check | `scripts/check-workload.ts` |
 | Migrations | `supabase/migrations/*.sql` |
 
 ## UI pieces
@@ -51,6 +53,7 @@
 | Phase rule (6-seg) | `components/projects/phase-rule.tsx` |
 | New project dialog | `components/projects/new-project-dialog.tsx` |
 | Delegation / Plan schedule dialog | `components/projects/delegation-dialog.tsx` |
+| Workload tab (Slice 9) | `components/settings/workload-panel.tsx` |
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
 | shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |

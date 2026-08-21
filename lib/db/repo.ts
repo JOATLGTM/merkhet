@@ -24,6 +24,7 @@ import {
 } from "@/lib/types";
 import type { ApprovalParty, GatePhase } from "@/lib/types";
 import { deriveSchedule } from "@/lib/dates";
+import type { WorkloadAssignment } from "@/lib/workload";
 
 type Db = Awaited<ReturnType<typeof createServerSupabase>>;
 
@@ -1148,6 +1149,63 @@ export async function rejectGate(
 
   return (await getProject(projectId))!;
 }
+
+/**
+ * In-progress, assigned phases across every live project — the input to the
+ * Staff page's Workload section (Slice 9).
+ *
+ * Deliberately narrow rather than `listProjects()`: the view needs six columns
+ * off `project_phases` and a project number, not activity, approvals and
+ * consultants for twenty projects. Derived entirely from delegation, so there
+ * is no schema behind it.
+ */
+export const listInProgressAssignments = cache(
+  async (): Promise<WorkloadAssignment[]> => {
+    const supabase = await db();
+    const { data: phases, error } = await supabase
+      .from("project_phases")
+      .select(
+        "project_id, phase, assignee_id, planned_start, planned_end, duration_days, planned_hours",
+      )
+      .eq("status", "in_progress")
+      .not("assignee_id", "is", null);
+    throwOn(error, "Failed to load in-progress phases");
+    if (!phases?.length) return [];
+
+    const ids = [...new Set(phases.map((row) => String(row.project_id)))];
+    const { data: projects, error: projectError } = await supabase
+      .from("projects")
+      .select("id, project_number, name, status, on_hold, archived_at")
+      .in("id", ids);
+    throwOn(projectError, "Failed to load projects for workload");
+
+    const byId = new Map(
+      (projects ?? []).map((row) => [String(row.id), row] as const),
+    );
+
+    return phases.flatMap((row) => {
+      const project = byId.get(String(row.project_id));
+      // Archived work is not current work, whatever the phase row still says.
+      if (!project || project.archived_at || project.status === "completed") {
+        return [];
+      }
+      return [
+        {
+          projectId: String(row.project_id),
+          projectNumber: String(project.project_number),
+          projectName: String(project.name),
+          onHold: Boolean(project.on_hold),
+          phase: row.phase as DesignPhase,
+          assigneeId: String(row.assignee_id),
+          plannedStart: (row.planned_start as string | null) ?? null,
+          plannedEnd: (row.planned_end as string | null) ?? null,
+          plannedHours: asNumber(row.planned_hours),
+          durationDays: asNumber(row.duration_days),
+        },
+      ];
+    });
+  },
+);
 
 export const listPhaseSubscribers = cache(
   async (): Promise<PhaseSubscriber[]> => {

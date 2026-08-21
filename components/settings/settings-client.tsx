@@ -28,7 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { WorkloadPanel } from "@/components/settings/workload-panel";
 import { cn } from "@/lib/utils";
+import type { Week, WorkloadPerson } from "@/lib/workload";
 import {
   DESIGN_PHASES,
   COLUMN_LABELS,
@@ -42,13 +44,17 @@ import {
 export function SettingsClient({
   users,
   subscribers,
+  workload,
+  week,
 }: {
   users: User[];
   subscribers: PhaseSubscriber[];
+  workload: WorkloadPerson[];
+  week: Week;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [tab, setTab] = useState<"team" | "subscribers">("team");
+  const [tab, setTab] = useState<"team" | "workload" | "subscribers">("team");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -68,6 +74,18 @@ export function SettingsClient({
             )}
           >
             Team
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("workload")}
+            className={cn(
+              "pb-2 text-[13px]",
+              tab === "workload"
+                ? "border-b-2 border-phase-5 font-medium text-ink"
+                : "text-ink-mid hover:text-ink",
+            )}
+          >
+            Workload
           </button>
           <button
             type="button"
@@ -190,6 +208,8 @@ export function SettingsClient({
               </Button>
             </div>
           </>
+        ) : tab === "workload" ? (
+          <WorkloadPanel people={workload} week={week} />
         ) : (
           <div className="space-y-4">
             {DESIGN_PHASES.map((phase) => {

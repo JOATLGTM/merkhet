@@ -16,6 +16,24 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
+## State as of 2026-08-21
+
+**Slice 9 — the per-staff workload view — was built.** A third tab on `/staff`, between Team
+and Phase subscribers, inheriting the page's admin gate. Per person: their `in_progress`
+phases, plus a weekly total for the week containing today
+(`planned_hours / (duration_days / 5)`, summed over the phases overlapping that week).
+**Derived from delegation — no migration, no schema change.**
+
+It also settles what the planned-hours number is *for*: **capacity planning**. That had been
+`NEXT.md`'s standing open question; the reasoning is in [DECISIONS.md](./DECISIONS.md).
+
+The section reads sparse because the data is — delegation is backfilled on ~22% of phase rows
+— and it says so rather than papering over it. An assigned, in-progress phase with no budget
+reads **"Not planned", never `0h`**.
+
+Arithmetic in `lib/workload.ts`, React-free, covered by `npm run check:workload` (65
+assertions, now inside `npm run check`).
+
 ## State as of 2026-08-18
 
 The **template half of Slice 6** was built on 2026-08-18: `lib/email/`, four templates,
@@ -60,7 +78,9 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
 - Phase dates are **derived from durations**, never hand-entered (WORKFLOW-2 §3) — the
   inputs are read-only on purpose; edit via Plan schedule
 - Planned hours are **optional** by design; assignee and duration are not
-  (`SLICE_4_SCOPE.md`). Do not make hours required, and do not default them from duration
+  (`SLICE_4_SCOPE.md`). Do not make hours required, and do not default them from duration.
+  Capacity planning being the answer to "what are they for" is an argument for filling the
+  number in, not for fabricating it — **"not planned" is never `0h`**, in any view
 - Approval rows exist **only when approved** — absence is pending, clearing is a `DELETE`.
   Never seed pending rows
 - Rejection is `reject_gate`, **not** `move_project` — the latter marks the phase being left
@@ -73,4 +93,4 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
 - `npm run email:send` talks to **real Gmail**. Every recipient is overridden with
   `GMAIL_TEST_TO`, because two fixture addresses are on a live domain
 
-Last updated: 2026-08-18
+Last updated: 2026-08-21

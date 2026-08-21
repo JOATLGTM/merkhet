@@ -41,7 +41,7 @@
 - `.label-caps`, `.page-title` utilities in `app/globals.css`
 - Nav: 208px → 56px collapsed; teal “M”; active = white + 2px inset left `--phase-5`
 - Nav items: Board, Calendar, Customers, Consultants, Completed projects, Staff (admin)
-- **Staff (`/staff`) ≠ Slice 9** — `/staff` is admin Team + Phase subscribers; Slice 9 would be a per-person workload view (confirm need before building)
+- **Staff (`/staff`)** carries three tabs: Team, Workload, Phase subscribers. Workload is Slice 9 (built 2026-08-21) — a section on this page rather than a route of its own, so it inherits the admin gate for free
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
 - Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
@@ -234,8 +234,9 @@ zero-width Review milestone too.
 
 ## Headless-checkable arithmetic (Aug 14, 2026)
 
-`lib/dates.ts` (`deriveSchedule`) and `lib/calendar.ts` (calendar geometry) are kept free of
-React so they can be checked without a browser: `npm run check`. The calendar view imports its
+`lib/dates.ts` (`deriveSchedule`), `lib/calendar.ts` (calendar geometry) and `lib/workload.ts`
+(week bounds + weekly load) are kept free of React so they can be checked without a browser:
+`npm run check`. The calendar view imports its
 geometry rather than computing inline, which is the reason that split exists — keep it.
 
 `npm run check:gates` is the counterpart for the workflow rules that live in SQL, where there
@@ -276,6 +277,61 @@ notes are unreachable from a template on purpose. Do not widen it to "make it ea
 
 **Copy lives in `lib/email/copy.ts`, all of it.** Templates hold no sentences. That is what
 lets the client copy conversation happen without a code change.
+
+## What planned hours are for (Slice 9, Aug 21, 2026)
+
+**Answered: capacity planning.** `NEXT.md` carried this as an open question for months, with
+three candidate answers — fee validation, retrospective benchmarking, capacity planning. It is
+the third. Hours ÷ duration = the weekly load a phase puts on the person holding it.
+
+The two rejected readings still matter, because they bound what the number is *not*:
+
+- **Not fee validation.** A rough guess up front would have been enough for that, and would
+  not have justified per-phase granularity.
+- **Not retrospective benchmarking.** That needs *logged* hours against the planned ones, and
+  logged time is Phase 2 and explicitly not built (`CHANGES-2.md`, "Do not build"). Planned
+  hours are never compared to actuals because there are no actuals.
+
+**The unit is hours per week per person.** `planned_hours / (duration_days / 5)` — five
+working days to the week, because durations are working days (`SLICE_4_SCOPE.md` decision 2).
+Both halves of that division come from delegation, which is why Slice 9 needed no migration
+and no schema change.
+
+**The week is Monday–Sunday**, matching the calendar's window origin (`lib/calendar.ts` pins
+`weekStartsOn: 1`), so "this week" means the same span in both views.
+
+### Honesty rules the workload view enforces
+
+The view exists to be *trusted*, and its inputs are thin — delegation is backfilled on ~22% of
+phase rows and 29% are dated (`SLICE_11_APPLY.md`), and hours are optional by design. So:
+
+- **A missing budget is never `0h`.** It reads "Not planned". This is the same rule the detail
+  sheet and the delegation dialog already follow — do not collapse it to `?? 0` here either.
+- **A person with no derivable hours has `null`, not `0`.** Their header reads "No hours
+  planned". Three unplanned phases must not render as an idle person.
+- **Every gap is counted next to the total it is missing from** — per person and for the
+  section. A total that cannot be complete has to say so, or it gets read as capacity.
+- **"Not this week" is not a gap.** A dated phase that falls outside the week is knowledge,
+  not absence, and is excluded from the total without being counted against it. Only missing
+  hours and missing dates are gaps.
+- **Undated work still shows its rate** where one is derivable, but never counts — without
+  dates there is no way to know the week it lands in.
+
+**Still do not make `planned_hours` required, and still do not default it from
+`duration_days`.** Capacity planning being the answer is an argument for *filling the number
+in*, not for fabricating it. See "Scheduling and hours" above — the reasoning is unchanged.
+
+**In-progress only.** The view lists `project_phases` rows with `status = 'in_progress'`, not
+everything assigned. "What is this person working on" is a present-tense question; the
+calendar is where the future lives. On-hold projects stay in the list and in the total, marked
+"Paused" — the work is still assigned to them, and hiding it would understate the commitment.
+
+**Archived work is not current work**, whatever a stale phase row says. `listInProgressAssignments`
+drops completed and archived projects.
+
+**`lib/workload.ts` is React-free** for the same reason `lib/dates.ts` and `lib/calendar.ts`
+are — see "Headless-checkable arithmetic". The week bounds, the rate and the grouping are all
+covered by `npm run check:workload`.
 
 ## Locale
 

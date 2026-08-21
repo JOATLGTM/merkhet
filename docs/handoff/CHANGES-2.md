@@ -68,8 +68,13 @@ notifications depend on it. Blocked on DNS/CNAME for the sending domain; the rec
 resolution, outbox and call sites can be built ahead of that.
 
 Blocked on the client, not on us: **Slice 3** (intake — note the columns already exist from
-1B and are unsurfaced) and **Slice 9** (staff view — likely redundant now that the calendar
-has a By-staff mode; confirm before building).
+1B and are unsurfaced). ~~Slice 9~~ is no longer among them — see below.
+
+**Slice 9 (staff workload view) built and verified 2026-08-21.** Confirmed rather than
+dismissed as redundant: the calendar's By-staff mode answers *when*, the workload tab answers
+*how much, right now*. A third tab on `/staff`, derived from delegation — no migration, no
+schema change. It also settles what planned hours are *for* (capacity planning), which
+`NEXT.md` had carried as an open question; see `DECISIONS.md`.
 
 Untracked and worth a decision: **RLS.** Every table is `authenticated_full_access`
 (`using (true) with check (true)`). Any signed-in user can read or write anything. That may
@@ -90,7 +95,7 @@ decision anywhere, and Slice 5 sharpens it — approval sign-offs are precisely 
 | 8     | 8 — Permitting exit + archive              | **Done**                      |
 | 6     | 5 — Approval gates + rework loops          | **Done — applied + verified** |
 | 7     | 6 — Notifications                          | **Templates done** — send open |
-| 9     | 9 — Staff view                             | Confirm need first            |
+| 9     | 9 — Staff workload view                    | **Done — 2026-08-21**         |
 | 10    | 10 — Calendar (daily + staff grouping)     | **Done**                      |
 | —     | 11 — Planned hours per phase               | **Done**                      |
 
@@ -414,15 +419,36 @@ with write access can complete).
 
 ---
 
-# Slice 9 — Staff view
+# Slice 9 — Staff workload view
 
-**Confirm need before building** (`WORKFLOW-2.md` §8). May be redundant with the
-staff-grouped calendar.
+**Built and verified 2026-08-21.** The need was confirmed rather than assumed away: the
+calendar's By-staff mode answers *when* work sits, which is not the same question as *how much
+is on this person right now*. Both survive.
 
-**Not the same as nav “Staff”** (`/staff`) — that page is admin Team + Phase subscribers
-(former Settings). Slice 9 would be per-person workload of assigned phases across projects.
+**A section, not a route.** A third tab on `/staff` — Team · **Workload** · Phase subscribers
+— which is what makes it inherit the page's admin gate with no new gating code, no new route
+and no nav change.
 
-If built: derived from delegation. No new schema.
+Per person: every `project_phases` row where they are the assignee and the status is
+`in_progress`, plus a weekly total for the week containing today —
+`planned_hours / (duration_days / 5)`, summed across the in-progress phases whose planned
+range overlaps that week. Each row carries its project number, its phase, its own rate and its
+date range.
+
+**Derived from delegation. No migration, no schema change** — `assignee_id`, `duration_days`,
+`planned_hours` and the planned dates all already exist.
+
+**It reads sparse, and that is the data.** Delegation is backfilled on ~22% of phase rows and
+29% are dated (`SLICE_11_APPLY.md`), and planned hours are optional by design and always null
+on Review. A phase can be assigned, in progress and still yield no hours figure; it renders
+"Not planned", never `0h`, and every gap is counted beside the total it is missing from. The
+honesty rules are recorded in `DECISIONS.md` — do not soften them into a fuller-looking number.
+
+This slice also **answers the open question `NEXT.md` had been carrying**: planned hours are
+for **capacity planning**. `DECISIONS.md` has the reasoning and the two rejected readings.
+
+Week maths and the rate derivation live in `lib/workload.ts`, React-free, covered by
+`npm run check:workload` (65 assertions, folded into `npm run check`).
 
 ---
 
