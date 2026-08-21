@@ -34,10 +34,9 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000). Restart the dev server after any `.env`
 change — it is not hot-reloaded.
 
-| Email | Password | Role |
-|---|---|---|
-| `chris@merkhet.studio` | `password` | Admin |
-| `dana@merkhet.studio` | `password` | Staff |
+There are no demo logins — the database holds real data and accounts are invite-only. Sign in
+with an existing admin account; see [Inviting people](#inviting-people) to add others. To
+start over from demo data instead, `npm run seed`.
 
 ⌘K opens the command palette.
 

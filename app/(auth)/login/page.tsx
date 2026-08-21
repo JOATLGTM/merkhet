@@ -51,9 +51,7 @@ export default function LoginPage() {
         </div>
         <h1 className="text-[20px] text-ink">Sign in</h1>
         <p className="mt-2 text-[13px] text-ink-mid">
-          Internal project record. Demo:{" "}
-          <span className="font-mono text-ink">chris@merkhet.studio</span> /{" "}
-          <span className="font-mono text-ink">password</span>
+          Internal project record. Accounts are created by invite only.
         </p>
 
         <Suspense fallback={null}>
@@ -75,7 +73,6 @@ export default function LoginPage() {
               autoComplete="email"
               required
               className="rounded-[2px] border-rule"
-              defaultValue="chris@merkhet.studio"
             />
           </div>
           <div className="space-y-2">
@@ -92,7 +89,6 @@ export default function LoginPage() {
               autoComplete="current-password"
               required
               className="rounded-[2px] border-rule"
-              defaultValue="password"
             />
           </div>
           {state?.error && (
