@@ -52,8 +52,10 @@ the invite metadata into `public.users`, so the row exists before they ever sign
 **Auth → URL Configuration** is the only required step:
 
 - **Site URL** — same origin as `NEXT_PUBLIC_SITE_URL`.
-- **Redirect URLs** — add `<NEXT_PUBLIC_SITE_URL>/accept-invite`. Supabase refuses to
-  redirect anywhere unlisted, so the invite call fails without it.
+- **Redirect URLs** — add `<NEXT_PUBLIC_SITE_URL>/accept-invite` and
+  `<NEXT_PUBLIC_SITE_URL>/reset-password`. An unlisted target does not raise an error;
+  Supabase quietly falls back to Site URL, so the symptom is a link that lands on the wrong
+  page rather than anything that looks like a failure.
 
 **Auth → SMTP Settings** is required before inviting anyone who is not you. Supabase's
 built-in sender refuses addresses outside the project's team and is capped at ~2 messages
@@ -83,6 +85,23 @@ set-password screen.
 
 Invites expire (24h by default). A used or stale link shows an explanation and asks the
 recipient to request a new one; re-invite from `/staff`.
+
+### Forgotten passwords
+
+`/forgot-password` (linked from the sign-in form) emails a recovery link that lands on
+`/reset-password`, which shares its screen with `/accept-invite` — both consume a one-time
+link and set a password on the resulting session.
+
+The request is sent with a plain `@supabase/supabase-js` client rather than the SSR one.
+`createServerClient` pins `flowType: "pkce"`, which stores a code verifier in the requesting
+browser's cookies and produces a link only that browser can complete — asking for a reset on
+a laptop and opening the mail on a phone would fail. The default implicit flow puts the
+tokens in the link itself.
+
+The form always reports success, whether or not the address has an account; saying otherwise
+would make it a way to test which addresses are registered. Rate-limit errors (429) are
+surfaced, since those are actionable. Like invites, delivery needs custom SMTP for anyone
+outside the Supabase project's team.
 
 ## Migrations
 

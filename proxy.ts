@@ -41,15 +41,18 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
   /**
-   * Invite links arrive with no session yet — that is the whole point of them.
+   * Emailed links arrive with no session yet — that is the whole point of them.
    * Bouncing them to /login would also strip any URL fragment before the
-   * client could read it, so these two have to be reachable signed out.
+   * client could read it, so these have to be reachable signed out.
+   * /forgot-password is here for the obvious reason: you cannot sign in.
    */
-  const isInviteRoute =
+  const isPublicAuthRoute =
     pathname.startsWith("/auth/confirm") ||
-    pathname.startsWith("/accept-invite");
+    pathname.startsWith("/accept-invite") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/forgot-password");
 
-  if (!user && !isAuthRoute && !isInviteRoute) {
+  if (!user && !isAuthRoute && !isPublicAuthRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);
