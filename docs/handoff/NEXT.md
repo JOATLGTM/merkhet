@@ -6,7 +6,28 @@ Not committed as a formal backlog — use as a resume checklist.
 
 ## What happened on 2026-08-21
 
-**Slice 9 — the per-staff workload view — was built.** A **This week** column on the Team
+### ⚠️ Unapplied migration
+
+`supabase/migrations/20260821100000_project_address_contact.sql` is **written and not run** —
+the only outstanding SQL in the tree. Until it is applied, saving a project address or contact
+fails; reads degrade quietly to "same as customer".
+[`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md) has the SQL and a verify list.
+
+### Project address and contact
+
+A project's address, contact, email and phone now live on `projects`, and **null on a field
+means "same as the customer"**, resolved per field — no `uses_customer_contact` flag, because
+the fallback is genuinely per field and a stored flag could disagree with the columns. The
+create dialog opens with the box ticked and echoes the customer's real values; the detail
+sheet's **Details → Address & contact** shows the resolved set, marks what came from the
+customer, and asks before discarding an override. `customers.address` was a WORKFLOW-2 §3
+field that had never been added.
+
+Covered by `npm run check:contact` (23 assertions, inside `npm run check`).
+
+### Slice 9 — per-staff workload
+
+A **This week** column on the Team
 table on `/staff`, inheriting the page's admin gate; clicking a person expands their projects
 under their row. No new tab, no new route, no nav change, no migration, no schema: it is
 derived entirely from delegation.
@@ -62,8 +83,10 @@ runnable script. Nothing built that day is outstanding.
 
 ## Immediate
 
-1. **Push `f8d0526`** if the remote should have it — it is committed locally only.
-2. **Backfill delegation on the 18 live projects** — open each, "Plan schedule". Coverage is
+1. **Apply `20260821100000_project_address_contact.sql`** — see above. Nothing else in the
+   tree is waiting on SQL.
+2. **Push** the local commits if the remote should have them — everything is local only.
+3. **Backfill delegation on the 18 live projects** — open each, "Plan schedule". Coverage is
    22% of phase rows assigned / 29% dated until this is done, and the staff calendar reads
    `assignee_id`, so By-staff mode looks mostly empty until then. Measured table in
    `SLICE_11_APPLY.md`.
@@ -101,6 +124,8 @@ See [`CHANGES-2.md`](./CHANGES-2.md) status table.
      tested before this exists — the Gmail harness proves the pipe and the rendering, nothing
      more.
 2. **Slice 3 — Intake form expansion** — on hold until the client clarifies fields/labels.
+   Note that **project address and the customer address now exist** (2026-08-21) — two of the
+   fields Slice 3 will surface are already in the schema and on screen.
 3. ~~**Slice 9 — Staff workload view**~~ — **built 2026-08-21.** It is not redundant with the
    calendar's By-staff mode after all: the calendar answers *when*, the workload tab answers
    *how much, right now*. See the top of this file.
@@ -133,14 +158,16 @@ npm run check            # all three of the below — pure arithmetic, no databa
 npm run check:schedule   # deriveSchedule — 28 assertions
 npm run check:calendar   # calendar geometry — 45 assertions
 npm run check:workload   # week bounds + weekly rate + grouping — 65 assertions
+npm run check:contact    # project vs customer address/contact — 23 assertions
 
 npm run check:gates      # workflow gates + rework loop — 50 assertions, HITS THE LIVE DB
 ```
 
 No test runner in the repo; these are plain scripts that exit non-zero on failure. `check`
-covers the three pieces of real arithmetic (duration → dates, calendar geometry, and weekly
-load). **It does not cover rendering** — nothing here checks how anything looks. Run it after
-touching `lib/dates.ts`, `lib/calendar.ts` or `lib/workload.ts`.
+covers the four pure modules (duration → dates, calendar geometry, weekly load, and the
+project/customer contact fallback). **It does not cover rendering** — nothing here checks how
+anything looks. Run it after touching `lib/dates.ts`, `lib/calendar.ts`, `lib/workload.ts` or
+`lib/contact.ts`.
 
 `check:gates` is separate on purpose: it signs in as `chris@merkhet.studio` and **writes to
 hosted Supabase**, creating one throwaway project and deleting it in a `finally`. It touches no

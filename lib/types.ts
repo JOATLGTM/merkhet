@@ -43,6 +43,8 @@ export type User = {
 export type Customer = {
   id: string;
   name: string;
+  /** The customer's own address (WORKFLOW-2 §3 client fields). */
+  address: string | null;
   /** External client contact — not the internal client contact on the project. */
   contact_name: string | null;
   contact_email: string | null;
@@ -69,7 +71,16 @@ export type Project = {
   client_desired_completion: string | null;
   project_budget: number | null;
   design_budget: number | null;
+  /** Internal staff member who owns the relationship — *not* a phone number. */
   client_contact_id: string | null;
+  /**
+   * Project-level address and contact. **Null means "same as the customer"**,
+   * resolved per field — see `lib/contact.ts`.
+   */
+  project_address: string | null;
+  project_contact_name: string | null;
+  project_contact_email: string | null;
+  project_contact_phone: string | null;
   hours_per_week: number | null;
   archived_at: string | null;
   contract_path: string | null;

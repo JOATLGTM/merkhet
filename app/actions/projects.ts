@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth/session";
+import { clearOverridesPatch } from "@/lib/contact";
 import { notifyGateRejected } from "@/lib/notifications";
 import {
   clearApproval,
@@ -97,7 +98,11 @@ export async function updateProjectFieldAction(
     | "description"
     | "start_date"
     | "target_completion"
-    | "hours_per_week",
+    | "hours_per_week"
+    | "project_address"
+    | "project_contact_name"
+    | "project_contact_email"
+    | "project_contact_phone",
   value: string | number | null,
 ) {
   const user = await requireUser();
@@ -106,6 +111,23 @@ export async function updateProjectFieldAction(
       ? { hours_per_week: value === null || value === "" ? null : Number(value) }
       : { [field]: value === "" ? null : value };
   const project = await updateProject(projectId, patch, user.id);
+  revalidateAll();
+  return project;
+}
+
+/**
+ * Puts a project back on the customer's address and contact in one write.
+ *
+ * Four fields, one round trip and one activity entry — clearing them one at a
+ * time would log four separate edits for a single decision.
+ */
+export async function clearProjectContactAction(projectId: string) {
+  const user = await requireUser();
+  const project = await updateProject(
+    projectId,
+    clearOverridesPatch(),
+    user.id,
+  );
   revalidateAll();
   return project;
 }
@@ -233,6 +255,11 @@ export async function createProjectAction(input: {
   start_date?: string | null;
   target_completion?: string | null;
   hours_per_week?: number | null;
+  /** Null on any of these inherits the customer's — see `lib/contact.ts`. */
+  project_address?: string | null;
+  project_contact_name?: string | null;
+  project_contact_email?: string | null;
+  project_contact_phone?: string | null;
 }) {
   const user = await requireUser();
   const project = await createProject({ ...input, actor_id: user.id });

@@ -12,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,6 +34,23 @@ type NewProjectDialogProps = {
 /** Sentinel option that swaps the picker for the inline create form. */
 const NEW_CUSTOMER = "__new__";
 
+/** What ticking the box actually means, spelled out with the real values. */
+function summariseCustomer(
+	creating: boolean,
+	newAddress: string,
+	newContactName: string,
+	selected: Customer | null,
+): string {
+	const address = creating ? newAddress.trim() : (selected?.address ?? "");
+	const contact = creating
+		? newContactName.trim()
+		: (selected?.contact_name ?? "");
+	const parts = [address, contact].filter(Boolean);
+	return parts.length
+		? `Using ${parts.join(" · ")}`
+		: "The customer has no address or contact on file yet.";
+}
+
 const labelClass = "font-mono text-[10px] uppercase tracking-[0.16em]";
 
 export function NewProjectDialog({
@@ -51,11 +69,25 @@ export function NewProjectDialog({
 
 	// Inline customer fields, only used when customerId === NEW_CUSTOMER
 	const [newName, setNewName] = useState("");
+	const [newAddress, setNewAddress] = useState("");
 	const [newContactName, setNewContactName] = useState("");
 	const [newContactEmail, setNewContactEmail] = useState("");
 	const [newContactPhone, setNewContactPhone] = useState("");
 
+	/**
+	 * Most projects sit at the customer's own address and ring their phone, so
+	 * that is the default and the override is opt-in. Unticking reveals four
+	 * fields; anything left blank still falls back per field, which is why
+	 * nothing here is stored as a flag (`lib/contact.ts`).
+	 */
+	const [sameAsCustomer, setSameAsCustomer] = useState(true);
+	const [siteAddress, setSiteAddress] = useState("");
+	const [siteContactName, setSiteContactName] = useState("");
+	const [siteContactEmail, setSiteContactEmail] = useState("");
+	const [siteContactPhone, setSiteContactPhone] = useState("");
+
 	const creatingCustomer = customerId === NEW_CUSTOMER;
+	const selectedCustomer = customers.find((c) => c.id === customerId) ?? null;
 
 	/**
 	 * Base UI's <Select.Value> renders the raw selected value unless the Root
@@ -72,10 +104,22 @@ export function NewProjectDialog({
 
 	const resetCustomerFields = () => {
 		setNewName("");
+		setNewAddress("");
 		setNewContactName("");
 		setNewContactEmail("");
 		setNewContactPhone("");
 	};
+
+	const resetSiteFields = () => {
+		setSameAsCustomer(true);
+		setSiteAddress("");
+		setSiteContactName("");
+		setSiteContactEmail("");
+		setSiteContactPhone("");
+	};
+
+	/** Blank stays null — null is what makes a field inherit. */
+	const orNull = (value: string) => value.trim() || null;
 
 	const submit = () => {
 		if (!name.trim()) {
@@ -95,6 +139,11 @@ export function NewProjectDialog({
 			setError("Enter a valid contact email.");
 			return;
 		}
+		const siteEmail = siteContactEmail.trim();
+		if (!sameAsCustomer && siteEmail && !siteEmail.includes("@")) {
+			setError("Enter a valid project contact email.");
+			return;
+		}
 
 		startTransition(async () => {
 			try {
@@ -105,6 +154,7 @@ export function NewProjectDialog({
 					? (
 							await createCustomerAction({
 								name: newName.trim(),
+								address: newAddress.trim() || null,
 								contact_name: newContactName.trim() || null,
 								contact_email: email || null,
 								contact_phone: newContactPhone.trim() || null,
@@ -117,6 +167,19 @@ export function NewProjectDialog({
 					customer_id: targetCustomerId,
 					description: description.trim() || null,
 					status: "pending",
+					// "Same as customer" is the absence of these, not a flag.
+					project_address: sameAsCustomer
+						? null
+						: orNull(siteAddress),
+					project_contact_name: sameAsCustomer
+						? null
+						: orNull(siteContactName),
+					project_contact_email: sameAsCustomer
+						? null
+						: orNull(siteContactEmail),
+					project_contact_phone: sameAsCustomer
+						? null
+						: orNull(siteContactPhone),
 				});
 
 				onOpenChange(false);
@@ -124,6 +187,7 @@ export function NewProjectDialog({
 				setDescription("");
 				setError(null);
 				resetCustomerFields();
+				resetSiteFields();
 				setCustomerId(targetCustomerId);
 				router.push(`/?project=${project.id}`);
 				router.refresh();
@@ -197,6 +261,21 @@ export function NewProjectDialog({
 							<div className="space-y-2">
 								<Label
 									className={labelClass}
+									htmlFor="np-customer-address"
+								>
+									Address
+								</Label>
+								<Input
+									id="np-customer-address"
+									value={newAddress}
+									onChange={(e) =>
+										setNewAddress(e.target.value)
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label
+									className={labelClass}
 									htmlFor="np-contact-name"
 								>
 									Contact name
@@ -242,6 +321,100 @@ export function NewProjectDialog({
 							</div>
 						</div>
 					)}
+
+					<div className="space-y-3 border border-rule bg-paper p-3">
+						<label className="flex items-start gap-2.5">
+							<Checkbox
+								className="mt-0.5"
+								checked={sameAsCustomer}
+								onCheckedChange={(checked) =>
+									setSameAsCustomer(Boolean(checked))
+								}
+							/>
+							<span>
+								<span className="block text-[13px] text-ink">
+									Project address and contact are the same as
+									the customer
+								</span>
+								<span className="mt-0.5 block text-[12px] text-ink-soft">
+									{sameAsCustomer
+										? summariseCustomer(
+												creatingCustomer,
+												newAddress,
+												newContactName,
+												selectedCustomer,
+											)
+										: "Fill in only what differs — anything left blank still uses the customer's."}
+								</span>
+							</span>
+						</label>
+
+						{!sameAsCustomer && (
+							<div className="space-y-3 border-t border-rule pt-3">
+								<div className="space-y-2">
+									<Label
+										className={labelClass}
+										htmlFor="np-site-address"
+									>
+										Project address
+									</Label>
+									<Input
+										id="np-site-address"
+										value={siteAddress}
+										onChange={(e) =>
+											setSiteAddress(e.target.value)
+										}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label
+										className={labelClass}
+										htmlFor="np-site-contact"
+									>
+										Project contact
+									</Label>
+									<Input
+										id="np-site-contact"
+										value={siteContactName}
+										onChange={(e) =>
+											setSiteContactName(e.target.value)
+										}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label
+										className={labelClass}
+										htmlFor="np-site-email"
+									>
+										Project email
+									</Label>
+									<Input
+										id="np-site-email"
+										type="email"
+										value={siteContactEmail}
+										onChange={(e) =>
+											setSiteContactEmail(e.target.value)
+										}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label
+										className={labelClass}
+										htmlFor="np-site-phone"
+									>
+										Project phone
+									</Label>
+									<Input
+										id="np-site-phone"
+										value={siteContactPhone}
+										onChange={(e) =>
+											setSiteContactPhone(e.target.value)
+										}
+									/>
+								</div>
+							</div>
+						)}
+					</div>
 
 					<div className="space-y-2">
 						<Label className={labelClass}>Description</Label>

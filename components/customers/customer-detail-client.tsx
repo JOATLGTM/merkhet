@@ -47,6 +47,7 @@ export function CustomerDetailClient({
   const saveField = (
     field:
       | "name"
+      | "address"
       | "contact_name"
       | "contact_email"
       | "contact_phone"
@@ -71,6 +72,7 @@ export function CustomerDetailClient({
         {(
           [
             ["name", "Name", customer.name],
+            ["address", "Address", customer.address ?? ""],
             ["contact_name", "Client name", customer.contact_name ?? ""],
             ["contact_email", "Client email", customer.contact_email ?? ""],
             ["contact_phone", "Client phone", customer.contact_phone ?? ""],

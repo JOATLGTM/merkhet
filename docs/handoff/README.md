@@ -12,11 +12,21 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [DECISIONS.md](./DECISIONS.md) | Authority order, design refs, non-negotiables |
 | [FILE_MAP.md](./FILE_MAP.md) | Where code lives |
 | [SLICE_4_SCOPE.md](./SLICE_4_SCOPE.md) | Delegation spec — six settled decisions, build from this |
+| [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md) | Project vs customer address/contact — **has an unapplied migration** |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
 ## State as of 2026-08-21
+
+**Project address and contact** was added the same day. A project's address, contact, email
+and phone now live on `projects`, and **null on a field means "same as the customer"** —
+resolved per field, with no `uses_customer_contact` flag. `WORKFLOW-2.md` §3 had listed both
+the client address and the project address since the start; neither column existed.
+
+⚠️ **`20260821100000_project_address_contact.sql` is written but NOT APPLIED.** Reads degrade
+quietly (every project reads as "same as customer"), but every save of one of these fields
+fails until it is run. [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md)
 
 **Slice 9 — the per-staff workload view — was built.** A **This week** column on the Team
 table on `/staff`, inheriting the page's admin gate; clicking a person expands their projects
@@ -78,6 +88,10 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
   `<Suspense>` further down does nothing. This bit four routes on Aug 14; see NEXT.md
 - Phase dates are **derived from durations**, never hand-entered (WORKFLOW-2 §3) — the
   inputs are read-only on purpose; edit via Plan schedule
+- **Null means "same as the customer"** on the four `project_*` contact columns — there is
+  deliberately no `uses_customer_contact` boolean, and the fallback is per field
+  (`PROJECT_CONTACT_APPLY.md`). `projects.client_contact_id` is a different thing entirely:
+  the *internal* staff member, not someone to phone
 - Planned hours are **optional** by design; assignee and duration are not
   (`SLICE_4_SCOPE.md`). Do not make hours required, and do not default them from duration.
   Capacity planning being the answer to "what are they for" is an argument for filling the

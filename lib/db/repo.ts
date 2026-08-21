@@ -53,6 +53,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
   return {
     id: String(row.id),
     name: String(row.name),
+    address: (row.address as string | null) ?? null,
     contact_name: (row.contact_name as string | null) ?? null,
     contact_email: (row.contact_email as string | null) ?? null,
     contact_phone: (row.contact_phone as string | null) ?? null,
@@ -82,6 +83,10 @@ function mapProject(row: Record<string, unknown>): Project {
     project_budget: asNumber(row.project_budget),
     design_budget: asNumber(row.design_budget),
     client_contact_id: (row.client_contact_id as string | null) ?? null,
+    project_address: (row.project_address as string | null) ?? null,
+    project_contact_name: (row.project_contact_name as string | null) ?? null,
+    project_contact_email: (row.project_contact_email as string | null) ?? null,
+    project_contact_phone: (row.project_contact_phone as string | null) ?? null,
     hours_per_week: asNumber(row.hours_per_week),
     archived_at: (row.archived_at as string | null) ?? null,
     contract_path: (row.contract_path as string | null) ?? null,
@@ -228,6 +233,7 @@ export async function createCustomer(
   input: Pick<
     Customer,
     | "name"
+    | "address"
     | "contact_name"
     | "contact_email"
     | "contact_phone"
@@ -240,6 +246,7 @@ export async function createCustomer(
     .from("customers")
     .insert({
       name: input.name,
+      address: input.address ?? null,
       contact_name: input.contact_name,
       contact_email: input.contact_email,
       contact_phone: input.contact_phone,
@@ -258,6 +265,7 @@ export async function updateCustomer(
     Pick<
       Customer,
       | "name"
+      | "address"
       | "contact_name"
       | "contact_email"
       | "contact_phone"
@@ -509,6 +517,11 @@ export async function createProject(input: {
   start_date?: string | null;
   target_completion?: string | null;
   hours_per_week?: number | null;
+  /** Null on any of these inherits the customer's — see `lib/contact.ts`. */
+  project_address?: string | null;
+  project_contact_name?: string | null;
+  project_contact_email?: string | null;
+  project_contact_phone?: string | null;
   actor_id: string;
 }): Promise<ProjectWithRelations> {
   const supabase = await db();
@@ -527,6 +540,10 @@ export async function createProject(input: {
       start_date: input.start_date ?? null,
       target_completion: input.target_completion ?? null,
       hours_per_week: input.hours_per_week ?? null,
+      project_address: input.project_address ?? null,
+      project_contact_name: input.project_contact_name ?? null,
+      project_contact_email: input.project_contact_email ?? null,
+      project_contact_phone: input.project_contact_phone ?? null,
     })
     .select("*")
     .single();
@@ -566,6 +583,10 @@ export async function updateProject(
       | "target_completion"
       | "hours_per_week"
       | "customer_id"
+      | "project_address"
+      | "project_contact_name"
+      | "project_contact_email"
+      | "project_contact_phone"
     >
   >,
   actorId: string,

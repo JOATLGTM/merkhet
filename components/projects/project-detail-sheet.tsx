@@ -78,6 +78,7 @@ import type {
   ProjectWithRelations,
   User,
 } from "@/lib/types";
+import { ProjectContactFields } from "@/components/projects/project-contact-fields";
 import { cn } from "@/lib/utils";
 
 type ProjectDetailSheetProps = {
@@ -807,6 +808,11 @@ export function ProjectDetailSheet({
                   both on screen read as two competing answers to the same
                   question. The column stays for the legacy values. */}
             </div>
+
+            <div className="mt-5 border-t border-rule pt-4">
+              <FieldLabel>Address &amp; contact</FieldLabel>
+              <ProjectContactFields project={project} />
+            </div>
           </section>
 
           <section className="border-b border-rule py-5">
@@ -815,6 +821,10 @@ export function ProjectDetailSheet({
               <div className="grid grid-cols-[88px_1fr] gap-3">
                 <dt className="text-ink-soft">Name</dt>
                 <dd className="text-ink">{project.customer.name}</dd>
+              </div>
+              <div className="grid grid-cols-[88px_1fr] gap-3">
+                <dt className="text-ink-soft">Address</dt>
+                <dd className="text-ink">{project.customer.address ?? "—"}</dd>
               </div>
               <div className="grid grid-cols-[88px_1fr] gap-3">
                 <dt className="text-ink-soft">Contact</dt>

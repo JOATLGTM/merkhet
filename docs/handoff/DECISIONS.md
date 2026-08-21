@@ -234,9 +234,9 @@ zero-width Review milestone too.
 
 ## Headless-checkable arithmetic (Aug 14, 2026)
 
-`lib/dates.ts` (`deriveSchedule`), `lib/calendar.ts` (calendar geometry) and `lib/workload.ts`
-(week bounds + weekly load) are kept free of React so they can be checked without a browser:
-`npm run check`. The calendar view imports its
+`lib/dates.ts` (`deriveSchedule`), `lib/calendar.ts` (calendar geometry), `lib/workload.ts`
+(week bounds + weekly load) and `lib/contact.ts` (the project/customer contact fallback) are
+kept free of React so they can be checked without a browser: `npm run check`. The calendar view imports its
 geometry rather than computing inline, which is the reason that split exists — keep it.
 
 `npm run check:gates` is the counterpart for the workflow rules that live in SQL, where there
@@ -348,6 +348,36 @@ drops completed and archived projects.
 **`lib/workload.ts` is React-free** for the same reason `lib/dates.ts` and `lib/calendar.ts`
 are — see "Headless-checkable arithmetic". The week bounds, the rate and the grouping are all
 covered by `npm run check:workload`.
+
+## Project address and contact (Aug 21, 2026)
+
+Full write-up in [`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md). The
+non-negotiables:
+
+**Null means "same as the customer", per field.** The four `projects.project_*` columns each
+fall back to the matching `customers` column on their own. There is no
+`uses_customer_contact` boolean and adding one would be a regression: a stored flag can
+disagree with the rows it describes, and it would have to be all-or-nothing when the real
+world is not — a project routinely has its own address and site manager while the email still
+goes to the customer. Derived, the same call `SLICE_4_SCOPE.md` decision 4 makes for
+delegation completeness.
+
+**Clearing all four *is* the "same as customer" write.** One state, one representation. That
+is why re-ticking the box is a delete, and why it asks first.
+
+**A blank string is an empty form field, not an override.** `lib/contact.ts` trims and treats
+empty as absent, so tabbing through the form does not pin a project to nothing.
+
+**`projects.client_contact_id` is not this.** It is the *internal* staff member who owns the
+relationship (WORKFLOW-2 §3) and is still unsurfaced. "Client contact" is a colleague;
+"project contact" is someone to phone about a building. Do not merge them, and do not reuse
+one label for both.
+
+**`customers.address` was missing, not new.** WORKFLOW-2 §3 has listed it among the client
+fields since the start. Same for the project address among the project fields.
+
+**This is not Slice 3.** Intake expansion stays on hold pending the client's field list. Two
+of its eventual fields now exist, which is a head start, not the slice.
 
 ## Locale
 

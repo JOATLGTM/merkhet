@@ -64,7 +64,14 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - **Plan schedule** (delegation): assignee + duration for the 5 delegated phases in one form; dates derived from durations in working days; planned hours optional. Raised on entry to Active, and available at any phase for backfill. Active → SD is gated on it in `move_project`
 - **Approval gates**: sign-offs recorded in the detail sheet at Review (client contact, Austin, client) and Final review (client contact, Austin). The client's sign-off is recorded by staff on their behalf. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
 - Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
-- New project: inline **+ New customer**
+- New project: inline **+ New customer** (now with an Address field)
+- **Project address & contact** (2026-08-21): a project's address, contact, email and phone
+  live on `projects`, and **null on a field means "same as the customer"**, resolved per
+  field. The create dialog opens with "same as the customer" ticked and echoes what that
+  means; the detail sheet's **Details → Address & contact** shows the resolved values, marks
+  which came from the customer, and asks before discarding overrides. Migration
+  `20260821100000_project_address_contact.sql` — **written, not yet applied**. See
+  [`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md)
 
 ### Email templates (2026-08-18, not wired)
 - `lib/email/` — four templates covering 11 events / 16 messages, each returning
@@ -108,6 +115,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260814100000_phase_planned_hours.sql`
 - `20260814120000_delegation_gate.sql`
 - `20260814160000_approval_gates.sql` — also fixes a pre-existing `move_project` bug, see `SLICE_5_APPLY.md` §3a
+- `20260821100000_project_address_contact.sql` — **WRITTEN, NOT APPLIED** (`PROJECT_CONTACT_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
 `SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,
@@ -117,16 +125,17 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 ## Checks
 
 ```bash
-npm run check         # check:schedule (28) + check:calendar (45) + check:workload (65)
+npm run check         # check:schedule (28) + check:calendar (45)
+                      #  + check:workload (65) + check:contact (23)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
 npm run email:send    # list cases; --case <n> sends via Gmail SMTP (see .env.example)
 ```
 
-No test runner. `npm run check` covers the three pieces of real arithmetic — `deriveSchedule`
-(`lib/dates.ts`), calendar geometry (`lib/calendar.ts`) and weekly load (`lib/workload.ts`) —
-and touches no database.
+No test runner. `npm run check` covers the four pure modules — `deriveSchedule`
+(`lib/dates.ts`), calendar geometry (`lib/calendar.ts`), weekly load (`lib/workload.ts`) and
+the project/customer contact fallback (`lib/contact.ts`) — and touches no database.
 `check:gates` exercises the workflow gates and the rework loop against the **live** database
 on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
 Neither covers rendering.

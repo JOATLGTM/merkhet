@@ -26,7 +26,11 @@ Verified: 20 projects × 6 phases, 5 pending, 0 backlog, `final_review` present.
 upload → Active; View PDF via signed URL; drag/⌘K blocked without contract; Active notify stub.
 
 **Slice 3 intake expansion was reverted (2026-08-12)** — does not match client direction yet.
-Hold until requirements are clarified.
+Hold until requirements are clarified. **Partly unblocked from the side (2026-08-21):** the
+user asked directly for a project address and contact that can differ from the customer's, so
+`customers.address` and four `projects.project_contact_*`/`project_address` columns now exist
+and are surfaced. That is two of §3's intake fields, not the slice — the rest still waits on
+the client's field list. See `PROJECT_CONTACT_APPLY.md`.
 
 **Slice 4 (Delegation) skipped (2026-08-12)** — not needed for current client direction.
 Leftover Slice 4 files removed. **Un-skipped and re-scoped (2026-08-14)** — Slices 10 and 11

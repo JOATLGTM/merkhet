@@ -11,7 +11,8 @@
     "check:schedule": "tsx scripts/check-schedule.ts",
     "check:calendar": "tsx scripts/check-calendar.ts",
     "check:workload": "tsx scripts/check-workload.ts",
-    "check": "npm run check:schedule && npm run check:calendar && npm run check:workload",
+    "check:contact": "tsx scripts/check-contact.ts",
+    "check": "npm run check:schedule && npm run check:calendar && npm run check:workload && npm run check:contact",
     "check:gates": "tsx scripts/check-gates.ts",
     "email:preview": "tsx scripts/preview-emails.ts",
     "email:send": "tsx scripts/send-test-email.ts"

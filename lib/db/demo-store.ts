@@ -118,6 +118,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 1),
     name: "Halcyon Development",
+    address: "840 N Wells St, Suite 300, Chicago, IL 60610",
     contact_name: "Jane Mercer",
     contact_email: "jane@halcyondev.com",
     contact_phone: "(312) 555-0144",
@@ -129,6 +130,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 2),
     name: "Northbank Coffee",
+    address: "2214 W Belmont Ave, Chicago, IL 60618",
     contact_name: "Elias Vandt",
     contact_email: "elias@northbank.coffee",
     contact_phone: "(773) 555-0190",
@@ -140,6 +142,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 3),
     name: "Waverly School District",
+    address: "1100 Waverly Rd, Evanston, IL 60201",
     contact_name: "Dr. Anita Cole",
     contact_email: "acole@waverlysd.org",
     contact_phone: "(847) 555-0112",
@@ -151,6 +154,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 4),
     name: "Ortega Residence",
+    address: "3417 S Hoyne Ave, Chicago, IL 60608",
     contact_name: "Luis Ortega",
     contact_email: "luis.ortega@example.com",
     contact_phone: "(773) 555-0166",
@@ -162,6 +166,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 5),
     name: "Cardinal & Vine",
+    address: "55 E Grand Ave, Chicago, IL 60611",
     contact_name: "Rosa Delgado",
     contact_email: "rosa@cardinalvine.com",
     contact_phone: "(312) 555-0177",
@@ -173,6 +178,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 6),
     name: "Bellweather Housing Trust",
+    address: "1729 W Division St, Chicago, IL 60622",
     contact_name: "Théo Marchand",
     contact_email: "tmarchand@bellweathertrust.org",
     contact_phone: "(773) 555-0121",
@@ -184,6 +190,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 7),
     name: "Pilsen Arts Collective",
+    address: "1806 S Racine Ave, Chicago, IL 60608",
     contact_name: "Nadia Okonkwo",
     contact_email: "nadia@pilsenarts.org",
     contact_phone: "(312) 555-0198",
@@ -195,6 +202,7 @@ const customers: Customer[] = [
   {
     id: id("cust", 8),
     name: "Sable & Roe Dental",
+    address: "620 Green Bay Rd, Wilmette, IL 60091",
     contact_name: "Dr. Priya Venkataraman",
     contact_email: "office@sableroe.com",
     contact_phone: "(847) 555-0155",
@@ -232,6 +240,10 @@ function makeProject(
     | "contract_path"
     | "contract_filename"
     | "contract_uploaded_at"
+    | "project_address"
+    | "project_contact_name"
+    | "project_contact_email"
+    | "project_contact_phone"
   > &
     Partial<
       Pick<
@@ -244,6 +256,10 @@ function makeProject(
         | "contract_path"
         | "contract_filename"
         | "contract_uploaded_at"
+        | "project_address"
+        | "project_contact_name"
+        | "project_contact_email"
+        | "project_contact_phone"
       >
     >,
 ): Project {
@@ -261,6 +277,11 @@ function makeProject(
     contract_path: null,
     contract_filename: null,
     contract_uploaded_at: null,
+    // Null on all four = "same as the customer" (`lib/contact.ts`).
+    project_address: null,
+    project_contact_name: null,
+    project_contact_email: null,
+    project_contact_phone: null,
     ...partial,
   };
 }
@@ -270,6 +291,8 @@ const projects: Project[] = [
     customer_id: ortega.id,
     name: "Ortega — garage studio",
     description: "Detached 380 sf studio above a new two-car garage.",
+    // Same customer, different site — the case the override exists for.
+    project_address: "3419 S Hoyne Ave (rear), Chicago, IL 60608",
     status: "pending",
     current_phase: null,
     on_hold: false,
@@ -408,6 +431,12 @@ const projects: Project[] = [
     customer_id: cardinal.id,
     name: "Cardinal & Vine — West Loop taproom",
     description: "Won; kickoff pending lease execution.",
+    // A restaurant group with three sites: the address and the person on site
+    // both differ from the group's head office. Partial override on purpose —
+    // email still falls back to the customer.
+    project_address: "913 W Randolph St, Chicago, IL 60607",
+    project_contact_name: "Marco Ruiz (site manager)",
+    project_contact_phone: "(312) 555-0182",
     status: "pending",
     current_phase: null,
     on_hold: false,

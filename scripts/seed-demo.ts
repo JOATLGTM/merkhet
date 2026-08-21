@@ -155,6 +155,7 @@ async function main() {
     const { error } = await admin.from("customers").insert({
       id,
       name: c.name,
+      address: c.address,
       contact_name: c.contact_name,
       contact_email: c.contact_email,
       contact_phone: c.contact_phone,
@@ -193,6 +194,10 @@ async function main() {
         ? userMap.get(project.client_contact_id) ?? null
         : null,
       hours_per_week: project.hours_per_week,
+      project_address: project.project_address,
+      project_contact_name: project.project_contact_name,
+      project_contact_email: project.project_contact_email,
+      project_contact_phone: project.project_contact_phone,
       archived_at: project.archived_at,
       contract_path: project.contract_path,
       contract_filename: project.contract_filename,

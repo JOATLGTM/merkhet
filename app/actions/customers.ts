@@ -11,6 +11,7 @@ import {
 
 export async function createCustomerAction(input: {
   name: string;
+  address?: string | null;
   contact_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
@@ -20,6 +21,7 @@ export async function createCustomerAction(input: {
   await requireUser();
   const customer = await createCustomer({
     name: input.name,
+    address: input.address ?? null,
     contact_name: input.contact_name ?? null,
     contact_email: input.contact_email ?? null,
     contact_phone: input.contact_phone ?? null,
@@ -37,6 +39,7 @@ export async function updateCustomerAction(
   id: string,
   patch: {
     name?: string;
+    address?: string | null;
     contact_name?: string | null;
     contact_email?: string | null;
     contact_phone?: string | null;
