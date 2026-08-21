@@ -4,9 +4,20 @@ Transactional email for phase changes. Rendering lives here; `send.ts` is the
 only module that talks to a provider, and `lib/notifications.ts` is the call
 site layer that ties the two together.
 
-**Internal mail sends. Customer mail does not** — it is planned and written to
-the outbox, then held, unless `EMAIL_CUSTOMER_ENABLED=true`. Phase changes
-reach real clients, so that switch is deliberate rather than default.
+**Internal mail sends. Customer mail does not** — it is planned, rendered and
+written to `email_outbox` with status `held`, then not delivered, unless
+`EMAIL_CUSTOMER_ENABLED=true`. Phase changes reach real clients, so that switch
+is deliberate rather than default. Read the held rows to see exactly what would
+go out before flipping it.
+
+Outbox statuses:
+
+| Status | Meaning |
+|---|---|
+| `pending` | Queued, provider not reached yet (usually a missing `RESEND_API_KEY`) |
+| `sent` | Accepted by the provider; `provider_id` holds its id |
+| `failed` | Provider rejected it; `error` says why. `npm run email:retry` re-attempts |
+| `held` | Deliberately withheld — customer mail with the switch off. Never swept by retry |
 
 ```
 npm run email:preview                      # render every template to out/emails/

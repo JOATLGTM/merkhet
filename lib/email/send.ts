@@ -32,7 +32,10 @@ export type SendOutcome = {
   queued: number;
   sent: number;
   failed: number;
+  /** Recorded with status `held` rather than delivered. */
   suppressed: number;
+  /** Dropped entirely — nobody to send to. */
+  unaddressed: number;
 };
 
 type OutboxRow = {
@@ -93,21 +96,35 @@ export async function enqueueAndSend(
     sent: 0,
     failed: 0,
     suppressed: 0,
+    unaddressed: 0,
   };
   if (!jobs.length) return outcome;
 
-  const sendable = jobs.filter((job) => {
-    const allowed = job.audience === "internal" || customerSendEnabled();
-    if (!allowed) outcome.suppressed += 1;
-    return allowed && job.to.length > 0;
-  });
-  if (!sendable.length) return outcome;
+  /**
+   * Everything addressable is recorded, including what we decline to deliver.
+   * A withheld message you cannot read is indistinguishable from one that was
+   * never planned — and reviewing them before turning customer mail on is the
+   * whole reason the switch exists.
+   */
+  const deliverable = customerSendEnabled();
+  const planned = jobs
+    .filter((job) => {
+      if (job.to.length > 0) return true;
+      outcome.unaddressed += 1;
+      return false;
+    })
+    .map((job) => {
+      const held = job.audience === "customer" && !deliverable;
+      if (held) outcome.suppressed += 1;
+      return { job, held };
+    });
+  if (!planned.length) return outcome;
 
   const supabase = await createServerSupabase();
   const { data: rows, error } = await supabase
     .from("email_outbox")
     .insert(
-      sendable.map((job) => ({
+      planned.map(({ job, held }) => ({
         project_id: projectId,
         template: job.template,
         audience: job.audience,
@@ -115,9 +132,10 @@ export async function enqueueAndSend(
         subject: job.email.subject,
         html: job.email.html,
         text_body: job.email.text,
+        status: held ? "held" : "pending",
       })),
     )
-    .select("id,to_addresses,subject,html,text_body");
+    .select("id,to_addresses,subject,html,text_body,status");
 
   if (error || !rows) {
     console.error(`[email] could not write outbox: ${error?.message}`);
@@ -132,7 +150,9 @@ export async function enqueueAndSend(
     return outcome;
   }
 
-  for (const row of rows as OutboxRow[]) {
+  for (const row of rows as Array<OutboxRow & { status: string }>) {
+    if (row.status === "held") continue;
+
     const result = await deliver(row, apiKey);
     const failed = Boolean(result.error);
     if (failed) {
@@ -169,6 +189,7 @@ export async function retryFailed(limit = 25): Promise<SendOutcome> {
     sent: 0,
     failed: 0,
     suppressed: 0,
+    unaddressed: 0,
   };
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
