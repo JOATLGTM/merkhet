@@ -1,9 +1,12 @@
 # Email templates
 
-Transactional email for phase changes. **Rendering only** — nothing in this
-directory opens a connection, and there is no provider, outbox or queue yet.
-Slice 6 (`docs/handoff/CHANGES-2.md`) adds those behind `lib/notifications.ts`,
-which is still the stub it always was.
+Transactional email for phase changes. Rendering lives here; `send.ts` is the
+only module that talks to a provider, and `lib/notifications.ts` is the call
+site layer that ties the two together.
+
+**Internal mail sends. Customer mail does not** — it is planned and written to
+the outbox, then held, unless `EMAIL_CUSTOMER_ENABLED=true`. Phase changes
+reach real clients, so that switch is deliberate rather than default.
 
 ```
 npm run email:preview                      # render every template to out/emails/
@@ -123,20 +126,44 @@ renders. It cannot answer the deliverability question, and it never will. That
 answer needs the firm's domain with SPF, DKIM and DMARC published — the same
 DNS work already blocking Slice 6.
 
-## Wiring it up later
+## The send path
 
-`plan.ts` takes resolved recipients rather than looking them up, so routing
-can be exercised without a database. A send path needs:
+```
+state change  →  lib/notifications.ts  →  plan.ts   →  send.ts   →  Resend
+                 resolves recipients      what/whom    outbox row
+```
 
-1. Recipient resolution in `lib/db/repo.ts` — delegate from `project_phases`,
-   client contact from `projects.client_contact_id`, customer from
-   `customers.contact_email`, baseline from `phase_subscribers`.
-2. An outbox table, so a failed send is retryable and a review-before-send
-   step has somewhere to hold messages.
-3. A provider, blocked on DNS/CNAME for the sending domain.
+1. **Recipient resolution** — `resolveAudiences` in `lib/db/repo.ts`. Delegate
+   from `project_phases.assignee_id`, client contact from
+   `projects.client_contact_id`, customer via `resolveContactField` (project
+   overrides customer, per `lib/contact.ts`), baseline from
+   `phase_subscribers`. Leadership resolves to active admins — gate parties
+   (`austin`/`ryan`/`chosen`) are approval roles, not accounts, so there is no
+   column naming them.
+2. **Outbox** — `public.email_outbox`, added by
+   `supabase/migrations/20260821140000_email_outbox.sql`. The rendered html and
+   text are stored, so a retry sends the message that was *planned* rather than
+   whatever the templates produce today. Failed rows are retryable with
+   `npm run email:retry`.
+3. **Provider** — Resend's HTTP API, not SMTP. The app runs serverless, where
+   holding an SMTP connection open is slow and liable to time out mid-handshake.
+   Needs `RESEND_API_KEY` and `EMAIL_FROM`. Without the key, messages are still
+   written to the outbox as `pending` — set the key and retry to flush them.
 
-Call sites already exist and stay put: `notifyProjectEnteredActive` and
-`notifyGateRejected` in `lib/notifications.ts`.
+Call sites, all in `lib/notifications.ts`, none of which throw: a provider
+outage must not surface as a failed phase move.
+
+| Trigger | Function | Fired from |
+|---|---|---|
+| Any column move | `notifyPhaseEntry` | `moveProject` |
+| Contract upload → Active | `notifyProjectEnteredActive` | `uploadContractAndActivate` |
+| Gate rejected | `notifyGateRejected` | `rejectGateAction` |
+| Marked complete | `notifyProjectComplete` | `markProjectComplete` |
+
+Because the first row fires on *every* move, dragging a card back and forth on
+the board sends mail each time. That is what the routing table asks for; if it
+turns out noisy in practice, the throttle belongs in `notifications.ts`, not in
+the templates.
 
 ## Client rendering
 

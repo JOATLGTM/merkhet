@@ -15,7 +15,8 @@
     "check": "npm run check:schedule && npm run check:calendar && npm run check:workload && npm run check:contact",
     "check:gates": "tsx scripts/check-gates.ts",
     "email:preview": "tsx scripts/preview-emails.ts",
-    "email:send": "tsx scripts/send-test-email.ts"
+    "email:send": "tsx scripts/send-test-email.ts",
+    "email:retry": "tsx scripts/retry-emails.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

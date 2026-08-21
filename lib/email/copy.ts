@@ -158,7 +158,7 @@ export const CUSTOMER_COPY: Record<CustomerPhase, CustomerCopy> = {
     headline: "Your drawings are with the permitting office",
     lead: "Your project has moved into Permitting.",
     during:
-      "The completed set has been submitted for review. This stage is in the jurisdiction's hands rather than ours — typically two to four weeks, though it varies, and reviewers sometimes come back with comments we then address.",
+      "The completed set has been submitted for review. This stage is in the jurisdiction's hands rather than ours, and reviewers sometimes come back with comments we then address. We will let you know as soon as we hear.",
     fromYou:
       "Nothing is needed from you. We will let you know as soon as the permits are approved.",
   },

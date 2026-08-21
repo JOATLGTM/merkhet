@@ -11,6 +11,12 @@
  * 3. **Customer-visible phases only.** The input type admits four phases, and
  *    `assertCustomerVisible` re-checks at runtime for callers coming from
  *    plain JS or a widened union.
+ * 4. **No dates and no durations.** The client asked for the stage, not the
+ *    schedule: "the schedule flexes too much for us to be locked into exact
+ *    dates". There is deliberately no `expectedEnd` input and no target
+ *    completion — a field that does not exist cannot be filled in later by a
+ *    caller who means well. The progress track carries the stage; the reply
+ *    address carries anything a client wants to ask about timing.
  */
 import {
   button,
@@ -19,7 +25,6 @@ import {
   esc,
   eyebrow,
   heading,
-  metaGrid,
   paragraph,
   projectHeader,
   row,
@@ -34,7 +39,6 @@ import {
   phaseAccent,
 } from "@/lib/email/progress";
 import {
-  formatDate,
   textFooter,
   textLines,
   TEXT_RULE,
@@ -43,14 +47,11 @@ import {
   type RenderedEmail,
 } from "@/lib/email/render";
 import { COLOR, FIRM, FONT } from "@/lib/email/tokens";
-import { PHASE_PRESENTATION } from "@/lib/phases";
 import type { DesignPhase } from "@/lib/types";
 
 export type PhaseEntryCustomerInput = {
   project: EmailProject;
   phase: CustomerPhase;
-  /** When we expect this stage to finish. Omitted from the mail when unknown. */
-  expectedEnd: string | null;
   /**
    * The internal staff member who owns the client relationship — the person
    * signing the message. Not the phase delegate: the client hears from one
@@ -71,11 +72,10 @@ export function assertCustomerVisible(phase: DesignPhase): asserts phase is Cust
 export function renderPhaseEntryCustomer(
   input: PhaseEntryCustomerInput,
 ): RenderedEmail {
-  const { project, phase, expectedEnd, clientContact } = input;
+  const { project, phase, clientContact } = input;
   assertCustomerVisible(phase);
 
   const copy = CUSTOMER_COPY[phase];
-  const stage = PHASE_PRESENTATION[phase].customerLabel;
   const subject = copy.subject.replace("{project}", project.name);
   const preview = copy.lead;
 
@@ -92,19 +92,6 @@ export function renderPhaseEntryCustomer(
         </table>`
     : "";
 
-  const meta = [
-    {
-      label: `${stage} expected to finish`,
-      value: expectedEnd ? formatDate(expectedEnd) : "We will confirm shortly",
-    },
-    {
-      label: "Estimated completion",
-      value: project.targetCompletion
-        ? formatDate(project.targetCompletion)
-        : "We will confirm shortly",
-    },
-  ];
-
   const body = [
     row(
       `${eyebrow("Project update")}${heading(copy.headline)}`,
@@ -119,7 +106,6 @@ export function renderPhaseEntryCustomer(
     row(customerTrack(phase)),
     row(paragraph(esc(copy.lead), COLOR.ink)),
     row(paragraph(esc(copy.during)), "10px 32px 0 32px"),
-    row(`${spacer(6)}${metaGrid(meta)}`),
     copy.fromYou
       ? row(
           callout({
@@ -154,8 +140,6 @@ export function renderPhaseEntryCustomer(
     copy.during,
     "",
     customerTrackText(phase),
-    "",
-    ...meta.map((item) => `${item.label}: ${item.value}`),
     copy.fromYou ? `\nWHAT HAPPENS NEXT\n${copy.fromYou}` : null,
     clientContact
       ? textLines(

@@ -88,13 +88,9 @@ const LEADERSHIP_COLUMNS = new Set<BoardColumn>(["active", "permitting"]);
  * customer mail when the column is a customer-visible phase.
  */
 export function planPhaseEntry(
-  input: Omit<PhaseEntryInternalInput, "delegate"> & {
-    audiences: Audiences;
-    /** Expected end of the entered phase, shown to the customer. */
-    expectedEnd?: string | null;
-  },
+  input: Omit<PhaseEntryInternalInput, "delegate"> & { audiences: Audiences },
 ): EmailJob[] {
-  const { audiences, expectedEnd, ...rest } = input;
+  const { audiences, ...rest } = input;
   const { delegate, clientContact, customerContact } = audiences;
   const subscribers = audiences.subscribers ?? [];
   const leadership = audiences.leadership ?? [];
@@ -129,7 +125,6 @@ export function planPhaseEntry(
       email: renderPhaseEntryCustomer({
         project: input.project,
         phase: phase as CustomerPhase,
-        expectedEnd: expectedEnd ?? input.schedule?.plannedEnd ?? null,
         clientContact,
       }),
     });

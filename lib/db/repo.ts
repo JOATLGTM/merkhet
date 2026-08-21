@@ -25,6 +25,8 @@ import {
 } from "@/lib/types";
 import type { ApprovalParty, GatePhase } from "@/lib/types";
 import { deriveSchedule } from "@/lib/dates";
+import { resolveContactField } from "@/lib/contact";
+import type { Audiences } from "@/lib/email/plan";
 import type { WorkloadAssignment } from "@/lib/workload";
 
 type Db = Awaited<ReturnType<typeof createServerSupabase>>;
@@ -649,6 +651,12 @@ export async function toggleHold(
   return (await getProject(id))!;
 }
 
+/** Display name for whoever triggered a notification. */
+async function actorDisplayName(actorId: string): Promise<string> {
+  const actor = await getUserById(actorId);
+  return actor?.name ?? "A team member";
+}
+
 export async function moveProject(
   id: string,
   toColumn: BoardColumn,
@@ -675,6 +683,15 @@ export async function moveProject(
     p_actor_id: actorId,
   });
   throwOn(error, "Failed to move project");
+
+  const { notifyPhaseEntry } = await import("@/lib/notifications");
+  await notifyPhaseEntry({
+    projectId: id,
+    column: toColumn,
+    previousColumn: from,
+    actorName: await actorDisplayName(actorId),
+  });
+
   return (await getProject(id))!;
 }
 
@@ -698,6 +715,14 @@ export async function markProjectComplete(
     p_actor_id: actorId,
   });
   throwOn(error, "Failed to mark project complete");
+
+  const { notifyProjectComplete } = await import("@/lib/notifications");
+  await notifyProjectComplete({
+    projectId: id,
+    completedBy: await actorDisplayName(actorId),
+    completedOn: new Date().toISOString(),
+  });
+
   return (await getProject(id))!;
 }
 
@@ -794,6 +819,7 @@ export async function uploadContractAndActivate(
     projectName: project.name,
     projectNumber: project.project_number,
     actorId,
+    actorName: await actorDisplayName(actorId),
   });
 
   return (await getProject(projectId))!;
@@ -1513,3 +1539,95 @@ export function columnIsPhase(column: BoardColumn) {
 }
 
 export { DESIGN_PHASES };
+
+/**
+ * Turns a project into the recipient set `lib/email/plan.ts` expects.
+ *
+ * Lives here rather than in `plan.ts` on purpose — routing is pure and stays
+ * testable without a connection, so resolution is the database's job. Anyone
+ * without an address is dropped by `plan.ts`, not guessed at here.
+ */
+export async function resolveAudiences(
+  project: ProjectWithRelations,
+  phase: DesignPhase | null,
+): Promise<Audiences> {
+  const supabase = await db();
+
+  const delegateId = phase
+    ? (project.phases.find((p) => p.phase === phase)?.assignee_id ?? null)
+    : null;
+
+  const { data: subscriberRows } = phase
+    ? await supabase
+        .from("phase_subscribers")
+        .select("user_id")
+        .eq("phase", phase)
+    : { data: [] };
+
+  const subscriberIds = (subscriberRows ?? []).map((r) =>
+    String(r.user_id as string),
+  );
+  const wanted = [
+    ...new Set(
+      [delegateId, project.client_contact_id, ...subscriberIds].filter(
+        (id): id is string => Boolean(id),
+      ),
+    ),
+  ];
+
+  const { data: peopleRows } = wanted.length
+    ? await supabase
+        .from("users")
+        .select("id,name,email,is_active")
+        .in("id", wanted)
+    : { data: [] };
+
+  const byId = new Map(
+    (peopleRows ?? [])
+      .filter((row) => row.is_active)
+      .map((row) => [
+        String(row.id),
+        { name: String(row.name), email: String(row.email) },
+      ]),
+  );
+
+  /**
+   * "Leadership" in the routing table is Ryan and Austin. There is no column
+   * naming them — gate parties are approval roles, not accounts — so the
+   * standing signal for it is the admin role.
+   */
+  const { data: adminRows } = await supabase
+    .from("users")
+    .select("name,email")
+    .eq("role", "admin")
+    .eq("is_active", true);
+
+  // Null means "same as the customer", per lib/contact.ts.
+  const customerEmail = resolveContactField(
+    "contact_email",
+    project,
+    project.customer,
+  ).value;
+  const customerName = resolveContactField(
+    "contact_name",
+    project,
+    project.customer,
+  ).value;
+
+  return {
+    delegate: delegateId ? (byId.get(delegateId) ?? null) : null,
+    clientContact: project.client_contact_id
+      ? (byId.get(project.client_contact_id) ?? null)
+      : null,
+    customerContact: customerEmail
+      ? { name: customerName ?? project.customer.name, email: customerEmail }
+      : null,
+    subscribers: subscriberIds
+      .map((id) => byId.get(id))
+      .filter((p): p is { name: string; email: string } => Boolean(p)),
+    leadership: (adminRows ?? []).map((row) => ({
+      name: String(row.name),
+      email: String(row.email),
+    })),
+  };
+}
