@@ -25,18 +25,18 @@ chosen third** — whoever Austin or Ryan picked, staff or the client. This **su
 WORKFLOW-2 §3**, including its rule that the client is not an approver at Final review.
 [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md)
 
-⚠️ **Three migrations are written and unapplied**, and the last two must be run in order:
-`20260821100000_project_address_contact.sql`, then
+⚠️ **Two migrations are written and unapplied**, and they must run in order:
 `20260821120000_gate_parties_enum.sql` **alone**, then `20260821120100_gate_parties.sql`.
+(`20260821100000_project_address_contact.sql` **is applied** — verified against hosted
+Supabase on 2026-08-21.)
 
 **Project address and contact** was added the same day. A project's address, contact, email
 and phone now live on `projects`, and **null on a field means "same as the customer"** —
 resolved per field, with no `uses_customer_contact` flag. `WORKFLOW-2.md` §3 had listed both
 the client address and the project address since the start; neither column existed.
 
-⚠️ **`20260821100000_project_address_contact.sql` is written but NOT APPLIED.** Reads degrade
-quietly (every project reads as "same as customer"), but every save of one of these fields
-fails until it is run. [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md)
+`20260821100000_project_address_contact.sql` is **applied and verified** (2026-08-21).
+[PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md)
 
 **Slice 9 — the per-staff workload view — was built.** A **This week** column on the Team
 table on `/staff`, inheriting the page's admin gate; clicking a person expands their projects

@@ -6,20 +6,20 @@ Not committed as a formal backlog — use as a resume checklist.
 
 ## What happened on 2026-08-21
 
-### ⚠️ Three unapplied migrations
+### ⚠️ Two unapplied migrations
 
 ```
-20260821100000_project_address_contact.sql   -- PROJECT_CONTACT_APPLY.md
-20260821120000_gate_parties_enum.sql         -- run ALONE, before the next
-20260821120100_gate_parties.sql              -- GATE_PARTIES_APPLY.md
+20260821120000_gate_parties_enum.sql   -- run ALONE, first
+20260821120100_gate_parties.sql        -- GATE_PARTIES_APPLY.md
 ```
 
-The last two **must be separate statements** — Postgres will not let a transaction use an
-enum value it just added, and the second file names `'chosen'`. Same split as
-`20260812130000_workflow_1b_enum.sql`.
+They **must be separate statements** — Postgres will not let a transaction use an enum value
+it just added, and the second file names `'chosen'`. Same split as
+`20260812130000_workflow_1b_enum.sql`. Until they run, recording a Ryan or chosen-third
+sign-off fails.
 
-Until they run: saving a project address or contact fails (reads degrade quietly to "same as
-customer"), and recording a Ryan or chosen-third sign-off fails.
+`20260821100000_project_address_contact.sql` **is applied** — all five columns verified
+present on hosted Supabase, 2026-08-21.
 
 ### Project address and contact
 

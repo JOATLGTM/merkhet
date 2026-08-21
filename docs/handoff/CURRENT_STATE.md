@@ -70,7 +70,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
   field. The create dialog opens with "same as the customer" ticked and echoes what that
   means; the detail sheet's **Details → Address & contact** shows the resolved values, marks
   which came from the customer, and asks before discarding overrides. Migration
-  `20260821100000_project_address_contact.sql` — **written, not yet applied**. See
+  `20260821100000_project_address_contact.sql` — **applied + verified**. See
   [`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md)
 
 ### Email templates (2026-08-18, not wired)
@@ -115,7 +115,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260814100000_phase_planned_hours.sql`
 - `20260814120000_delegation_gate.sql`
 - `20260814160000_approval_gates.sql` — also fixes a pre-existing `move_project` bug, see `SLICE_5_APPLY.md` §3a
-- `20260821100000_project_address_contact.sql` — **WRITTEN, NOT APPLIED** (`PROJECT_CONTACT_APPLY.md`)
+- `20260821100000_project_address_contact.sql` — **applied + verified** (`PROJECT_CONTACT_APPLY.md`)
 - `20260821120000_gate_parties_enum.sql` + `20260821120100_gate_parties.sql` — **WRITTEN, NOT APPLIED**, run the enum file first and alone (`GATE_PARTIES_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,

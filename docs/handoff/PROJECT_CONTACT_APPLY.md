@@ -14,7 +14,7 @@ client's field/label list. This is a narrower, directly requested change that ha
 two of the fields Slice 3 will eventually surface. When Slice 3 resumes, these four columns
 already exist.
 
-## SQL — NOT YET APPLIED
+## SQL — APPLIED 2026-08-21 (verified against hosted Supabase)
 
 Apply `supabase/migrations/20260821100000_project_address_contact.sql` (hosted Supabase → SQL
 editor, same as prior slices).
@@ -34,9 +34,8 @@ alter table public.projects
 Additive and idempotent. No backfill — existing rows land at `null`, which is exactly "same
 as the customer", so every project that exists today reads correctly the moment it lands.
 
-**Until it is applied**, the four inputs render but every save fails: PostgREST rejects a
-patch naming a column that does not exist. Reads degrade quietly (missing columns map to
-`null`), so the UI will simply show every project as "same as customer".
+All five columns were confirmed present on hosted Supabase by probing them directly. Nothing
+outstanding here.
 
 ## The model
 

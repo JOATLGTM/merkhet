@@ -46,9 +46,8 @@ File 1 adds `'ryan'` and `'chosen'` to `approval_party`. File 2 adds
 `reject_gate` is untouched: it deletes a gate's approvals by phase and has never cared which
 parties they were.
 
-⚠️ **`20260821100000_project_address_contact.sql` is also still unapplied** — see
-[`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md). The two are independent; either
-order works.
+`20260821100000_project_address_contact.sql` **is applied** (verified 2026-08-21). These two
+are the only outstanding SQL in the tree.
 
 ## Existing approval rows
 
@@ -67,7 +66,14 @@ join public.projects p on p.id = a.project_id
 order by p.project_number, a.phase;
 ```
 
-If that returns nothing, there is no migration cost at all.
+**Checked on 2026-08-21 — seven rows, two projects:**
+
+| Project | Rows | Effect |
+|---|---|---|
+| `MK-0428` Tom Brady's Mansion | review ×3, final_review ×2 | **None.** Already at Permitting, past both gates. The rows become history. Only matters if it is ever rejected back, which is correct. |
+| `MK-0405` Halcyon Mews | final_review: client_contact, austin | **Reads 1/3 after the migration.** Austin still counts; client contact no longer does. Needs Ryan plus a chosen third to advance to Permitting. |
+
+So the whole migration cost is one project, `MK-0405`, needing two more sign-offs recorded.
 
 ## The model
 
