@@ -23,6 +23,7 @@ Requires a Supabase project. Fill `.env` from `.env.example`:
 | `NEXT_PUBLIC_SUPABASE_MERKET_URL` | Project URL |
 | `NEXT_PUBLIC_SUPABASE_MERKET_ANON_KEY` | Anon / publishable key |
 | `SUPABASE_SERVICE_MERKET_ROLE_KEY` | Service role — seed and admin invite only |
+| `NEXT_PUBLIC_SITE_URL` | Origin invite emails link back to. Defaults to `http://localhost:3000` |
 
 ```bash
 npm install
@@ -39,6 +40,50 @@ change — it is not hot-reloaded.
 | `dana@merkhet.studio` | `password` | Staff |
 
 ⌘K opens the command palette.
+
+## Inviting people
+
+There is no public sign-up — accounts are only created by an admin on `/staff`. Name plus
+email sends a Supabase invite email; the recipient sets their own password at
+`/accept-invite`. `handle_new_user` (in the init migration) copies `name` and `role` out of
+the invite metadata into `public.users`, so the row exists before they ever sign in.
+
+### Supabase configuration
+
+**Auth → URL Configuration** is the only required step:
+
+- **Site URL** — same origin as `NEXT_PUBLIC_SITE_URL`.
+- **Redirect URLs** — add `<NEXT_PUBLIC_SITE_URL>/accept-invite`. Supabase refuses to
+  redirect anywhere unlisted, so the invite call fails without it.
+
+**Auth → SMTP Settings** is required before inviting anyone who is not you. Supabase's
+built-in sender refuses addresses outside the project's team and is capped at ~2 messages
+an hour; custom SMTP lifts both (30/hour by default) and is what unlocks the email template
+editor. Until then you can only invite your own address, as a test.
+
+### How the link gets exchanged
+
+Supabase's stock invite template returns the session in a URL *fragment*
+(`#access_token=…`), which browsers never send to the server. `/accept-invite` is therefore
+a client page: it reads the fragment, installs the session with `setSession` (which writes
+through cookie storage, so the server sees it too), and strips the tokens from the address
+bar. It cannot rely on supabase-js doing this automatically — `createBrowserClient` pins
+`flowType: "pkce"` after its options spread, and auth-js rejects a fragment callback under
+PKCE.
+
+`/auth/confirm` handles the better variant, where the token arrives as a query string and
+never touches the browser's history. It needs a customised template, so it only becomes
+available once custom SMTP is on:
+
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/accept-invite
+```
+
+Point **Redirect URLs** at `/auth/confirm` as well if you switch. Both paths end at the same
+set-password screen.
+
+Invites expire (24h by default). A used or stale link shows an explanation and asks the
+recipient to request a new one; re-invite from `/staff`.
 
 ## Migrations
 

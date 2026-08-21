@@ -73,9 +73,9 @@ export function CustomerDetailClient({
           [
             ["name", "Name", customer.name],
             ["address", "Address", customer.address ?? ""],
-            ["contact_name", "Client name", customer.contact_name ?? ""],
-            ["contact_email", "Client email", customer.contact_email ?? ""],
-            ["contact_phone", "Client phone", customer.contact_phone ?? ""],
+            ["contact_name", "Customer name", customer.contact_name ?? ""],
+            ["contact_email", "Customer email", customer.contact_email ?? ""],
+            ["contact_phone", "Customer phone", customer.contact_phone ?? ""],
             ["spouse_name", "Spouse name", customer.spouse_name ?? ""],
           ] as const
         ).map(([field, label, value]) => (

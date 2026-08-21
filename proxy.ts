@@ -40,8 +40,16 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
+  /**
+   * Invite links arrive with no session yet — that is the whole point of them.
+   * Bouncing them to /login would also strip any URL fragment before the
+   * client could read it, so these two have to be reachable signed out.
+   */
+  const isInviteRoute =
+    pathname.startsWith("/auth/confirm") ||
+    pathname.startsWith("/accept-invite");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isInviteRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);

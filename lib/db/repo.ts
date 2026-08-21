@@ -1435,8 +1435,8 @@ export async function inviteUser(input: {
   email: string;
   role: UserRole;
 }) {
-  // Prefer service-role create when available; otherwise insert is blocked by
-  // users.id FK to auth.users — surface a clear error.
+  // Needs the service role: only it can mint the auth.users row, and
+  // public.users.id is FK'd to it — a bare insert would fail.
   const { createServiceClient } = await import("@/lib/supabase/admin");
   let admin;
   try {
@@ -1447,23 +1447,41 @@ export async function inviteUser(input: {
     );
   }
 
-  const { data: created, error: authError } = await admin.auth.admin.createUser(
-    {
-      email: input.email,
-      email_confirm: true,
-      password: crypto.randomUUID().slice(0, 12) + "Aa1!",
-      user_metadata: { name: input.name, role: input.role },
-    },
-  );
-  if (authError) throw new Error(authError.message);
-  if (!created.user) throw new Error("Failed to create auth user");
+  const { env } = await import("@/lib/env");
+
+  // `inviteUserByEmail` — not `createUser` — because the invitee has to be able
+  // to sign in. createUser would need a password only the server knows, leaving
+  // the account unreachable. The invite mails a one-time link instead; the
+  // recipient sets their own password at /accept-invite.
+  //
+  // Point straight at /accept-invite rather than /auth/confirm. Supabase only
+  // lets you customise the email template once the project has custom SMTP, so
+  // the stock `{{ .ConfirmationURL }}` has to work as-is — and that one hands
+  // the session back in a URL fragment, which a server route cannot read. The
+  // client page can. Editing the template later to target /auth/confirm still
+  // works; this just removes it from the critical path.
+  const { data: invited, error: authError } =
+    await admin.auth.admin.inviteUserByEmail(input.email, {
+      data: { name: input.name, role: input.role },
+      redirectTo: `${env.siteUrl}/accept-invite`,
+    });
+  if (authError) {
+    // Supabase reports a re-invite of an existing address as a generic 422.
+    // Say which of the two it is, since the fix differs.
+    if (/already been registered|already exists/i.test(authError.message)) {
+      throw new Error(`${input.email} already has an account.`);
+    }
+    throw new Error(authError.message);
+  }
+  const authUser = invited.user;
+  if (!authUser) throw new Error("Failed to create auth user");
 
   // Trigger may have inserted the public.users row; ensure role/name.
   const supabase = await db();
   const { data, error } = await supabase
     .from("users")
     .upsert({
-      id: created.user.id,
+      id: authUser.id,
       name: input.name,
       email: input.email,
       role: input.role,

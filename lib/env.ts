@@ -41,6 +41,16 @@ export const env = {
     }
     return found.value;
   },
+  /**
+   * Absolute origin the invite email links back to. Supabase builds the
+   * confirmation URL server-side, so it cannot infer the host from a request —
+   * it has to be told. Must also be listed under Auth → URL Configuration →
+   * Redirect URLs in the Supabase dashboard, or the link is rejected.
+   */
+  get siteUrl() {
+    const raw = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    return raw.replace(/\/+$/, "");
+  },
   /** Optional until seeding / admin invite needs it. */
   get supabaseServiceRoleKey() {
     return (

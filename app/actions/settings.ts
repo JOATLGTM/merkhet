@@ -37,13 +37,28 @@ export async function setActiveAction(userId: string, isActive: boolean) {
   return user;
 }
 
+export type InviteResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Returns the failure instead of throwing: an invite fails for reasons the
+ * admin can act on (address already taken, service key missing, SMTP not
+ * configured), and a thrown server action reaches the client as an opaque
+ * "unexpected error".
+ */
 export async function inviteUserAction(input: {
   name: string;
   email: string;
   role: UserRole;
-}) {
+}): Promise<InviteResult> {
   await requireAdmin();
-  const user = await inviteUser(input);
+  try {
+    await inviteUser(input);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not send invite.",
+    };
+  }
   revalidatePath("/staff");
-  return user;
+  return { ok: true };
 }

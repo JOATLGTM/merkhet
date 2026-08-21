@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import {
   inviteUserAction,
@@ -203,7 +204,11 @@ export function SettingsClient({
               </TableBody>
             </Table>
 
-            <div className="mt-6 flex max-w-xl flex-wrap items-end gap-3">
+            <p className="mt-8 text-[13px] text-ink-mid">
+              Inviting emails a one-time link. They pick their own password on
+              arrival; the account is active from that point.
+            </p>
+            <div className="mt-3 flex max-w-xl flex-wrap items-end gap-3">
               <div className="space-y-1.5">
                 <Label className="label-caps text-ink-soft">Name</Label>
                 <Input
@@ -225,7 +230,16 @@ export function SettingsClient({
                 disabled={pending || !name || !email}
                 onClick={() => {
                   startTransition(async () => {
-                    await inviteUserAction({ name, email, role: "staff" });
+                    const result = await inviteUserAction({
+                      name,
+                      email: email.trim(),
+                      role: "staff",
+                    });
+                    if (!result.ok) {
+                      toast.error(result.error);
+                      return;
+                    }
+                    toast.success(`Invite sent to ${email.trim()}`);
                     setName("");
                     setEmail("");
                     router.refresh();
