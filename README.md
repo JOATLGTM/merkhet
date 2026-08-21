@@ -62,6 +62,46 @@ built-in sender refuses addresses outside the project's team and is capped at ~2
 an hour; custom SMTP lifts both (30/hour by default) and is what unlocks the email template
 editor. Until then you can only invite your own address, as a test.
 
+### Setting up SMTP (Resend)
+
+Supabase's built-in sender is capped at ~2 messages an hour and refuses any address outside
+the Supabase organisation's own team, so real invites need custom SMTP. Any transactional
+provider works; these are the steps for Resend.
+
+1. **Add the domain.** Resend dashboard → Domains → Add Domain → `merkhetdrafting.com`.
+   Resend generates the DNS records for you — a DKIM `TXT`, an SPF `TXT` (usually on a
+   `send.` subdomain), and an optional `MX` for bounce handling. Values are per-domain, so
+   copy them from that screen rather than from any guide.
+2. **Add the records** wherever the domain's DNS lives — the registrar, or Cloudflare/Vercel
+   if the nameservers were moved — then hit Verify. Minutes usually, up to a few hours.
+3. **Create an API key.** Resend → API Keys → Create. Shown once.
+4. **Enable SMTP in Supabase** — Authentication → SMTP
+   (`/dashboard/project/<ref>/auth/smtp`), toggle Enable Custom SMTP:
+
+   | Field | Value |
+   |---|---|
+   | Sender email | `noreply@merkhetdrafting.com` |
+   | Sender name | `Merkhet` |
+   | Host | `smtp.resend.com` |
+   | Port | `587` |
+   | Username | `resend` |
+   | Password | the API key |
+
+   Sending as an address does not require being able to receive at it. Replies bounce unless
+   the mailbox exists, so use a monitored address if that matters.
+5. **Raise the rate limit** — Authentication → Rate Limits. The email field is locked at 2/hour
+   until custom SMTP is on, then defaults to 30/hour and becomes editable.
+6. **Test** from `/staff`: invite yourself, confirm the mail arrives and the link opens
+   `/accept-invite` with a set-password form.
+
+Before verification completes you can send from `onboarding@resend.dev` to check the wiring.
+Resend's docs do not say whether that shared sender reaches recipients other than your own
+account address — treat it as a smoke test, not as a way to onboard staff.
+
+Invite links are built from Supabase's **Site URL**, so they point wherever that is set. While
+it is `http://localhost:3000` the emails only work on that machine — deploy and update Site
+URL, `NEXT_PUBLIC_SITE_URL`, and the Redirect URLs allowlist before inviting anyone else.
+
 ### How the link gets exchanged
 
 Supabase's stock invite template returns the session in a URL *fragment*

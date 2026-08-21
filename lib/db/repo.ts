@@ -1466,10 +1466,25 @@ export async function inviteUser(input: {
       redirectTo: `${env.siteUrl}/accept-invite`,
     });
   if (authError) {
-    // Supabase reports a re-invite of an existing address as a generic 422.
-    // Say which of the two it is, since the fix differs.
+    // Supabase's own wording for these is too terse to act on, and the fix
+    // differs sharply between them.
     if (/already been registered|already exists/i.test(authError.message)) {
       throw new Error(`${input.email} already has an account.`);
+    }
+    if (
+      authError.status === 429 ||
+      /rate limit/i.test(authError.message)
+    ) {
+      throw new Error(
+        "Supabase's built-in email sender is rate limited (about 2 per hour). " +
+          "Configure custom SMTP to send invites properly.",
+      );
+    }
+    if (/not authorized/i.test(authError.message)) {
+      throw new Error(
+        `Supabase will not email ${input.email} until custom SMTP is configured — ` +
+          "the built-in sender only delivers to your Supabase project's own team.",
+      );
     }
     throw new Error(authError.message);
   }
