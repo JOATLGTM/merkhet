@@ -104,12 +104,22 @@ const approvalsOf = async (projectId: string, phase: string) => {
   return (data ?? []).map((r) => r.party).sort();
 };
 
-async function approve(projectId: string, phase: string, party: string) {
+/**
+ * `approverUserId` only applies to the `chosen` slot: a staff id, or null for
+ * the client. Austin and Ryan are the party, so they carry no identity.
+ */
+async function approve(
+  projectId: string,
+  phase: string,
+  party: string,
+  approverUserId: string | null = null,
+) {
   const { error } = await sb.from("project_approvals").upsert(
     {
       project_id: projectId,
       phase,
       party,
+      approver_user_id: party === "chosen" ? approverUserId : null,
       status: "approved",
       approved_at: new Date().toISOString(),
       recorded_by: actorId,
@@ -223,19 +233,23 @@ async function main() {
   await allowed("DD → Review", projectId, "review");
 
   await blocked("Review → CD with 0 sign-offs", projectId, "construction_documents", "Review needs all three sign-offs");
-  await approve(projectId, "review", "client_contact");
   await approve(projectId, "review", "austin");
+  await approve(projectId, "review", "ryan");
   await blocked("Review → CD with 2 of 3 sign-offs", projectId, "construction_documents", "Review needs all three sign-offs");
-  await approve(projectId, "review", "client");
+  // The chosen third as a staff member.
+  await approve(projectId, "review", "chosen", actorId);
   await allowed("Review → CD with all 3 sign-offs", projectId, "construction_documents");
 
-  await blocked("CD → Permitting skips Final review", projectId, "permitting", "Final review needs both sign-offs");
+  await blocked("CD → Permitting skips Final review", projectId, "permitting", "Final review needs all three sign-offs");
   await allowed("CD → Final review", projectId, "final_review");
-  await blocked("Final review → Permitting with 0 sign-offs", projectId, "permitting", "Final review needs both sign-offs");
-  await approve(projectId, "final_review", "client_contact");
-  await blocked("Final review → Permitting with 1 of 2", projectId, "permitting", "Final review needs both sign-offs");
+  await blocked("Final review → Permitting with 0 sign-offs", projectId, "permitting", "Final review needs all three sign-offs");
   await approve(projectId, "final_review", "austin");
-  await allowed("Final review → Permitting with both", projectId, "permitting");
+  await blocked("Final review → Permitting with 1 of 3", projectId, "permitting", "Final review needs all three sign-offs");
+  await approve(projectId, "final_review", "ryan");
+  await blocked("Final review → Permitting with 2 of 3", projectId, "permitting", "Final review needs all three sign-offs");
+  // The chosen third as the client — null approver, same slot.
+  await approve(projectId, "final_review", "chosen", null);
+  await allowed("Final review → Permitting with all three", projectId, "permitting");
 
   await allowed("backward moves are never gated (Permitting → CD)", projectId, "construction_documents");
 
@@ -261,7 +275,7 @@ async function main() {
   check("pass 1: CD is in_progress", rows.get("construction_documents")?.status, "in_progress");
   check("pass 1: rejected gate is not_started, not completed", rows.get("final_review")?.status, "not_started");
   check("pass 1: Final review sign-offs cleared", await approvalsOf(projectId, "final_review"), []);
-  check("pass 1: Review sign-offs untouched", await approvalsOf(projectId, "review"), ["austin", "client", "client_contact"]);
+  check("pass 1: Review sign-offs untouched", await approvalsOf(projectId, "review"), ["austin", "chosen", "ryan"]);
   check("pass 1: reworked CD re-dated from today", rows.get("construction_documents")?.planned_start, workToday);
   check(
     "pass 1: completed phases keep their old dates",
@@ -288,11 +302,12 @@ async function main() {
 
   // === Rework loop, pass 2 — the same project, a second time ===============
   console.log("\n[Rework loop — pass 2, same project]");
-  await blocked("pass 2: CD → Permitting blocked again after the reset", projectId, "permitting", "Final review needs both sign-offs");
+  await blocked("pass 2: CD → Permitting blocked again after the reset", projectId, "permitting", "Final review needs all three sign-offs");
   await allowed("pass 2: CD → Final review", projectId, "final_review");
-  await approve(projectId, "final_review", "client_contact");
   await approve(projectId, "final_review", "austin");
-  check("pass 2: sign-offs recorded again on a re-entered gate", await approvalsOf(projectId, "final_review"), ["austin", "client_contact"]);
+  await approve(projectId, "final_review", "ryan");
+  await approve(projectId, "final_review", "chosen", actorId);
+  check("pass 2: sign-offs recorded again on a re-entered gate", await approvalsOf(projectId, "final_review"), ["austin", "chosen", "ryan"]);
 
   await rejectGate(projectId, "final_review");
   proj = await currentPhase(projectId);

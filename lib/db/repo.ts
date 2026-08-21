@@ -16,6 +16,7 @@ import type {
   Consultant,
 } from "@/lib/types";
 import {
+  CHOSEN_PARTY,
   DELEGATED_PHASES,
   DESIGN_PHASES,
   GATE_PARTIES,
@@ -120,6 +121,7 @@ function mapApproval(row: Record<string, unknown>): ProjectApproval {
     project_id: String(row.project_id),
     phase: row.phase as DesignPhase,
     party: row.party as ProjectApproval["party"],
+    approver_user_id: (row.approver_user_id as string | null) ?? null,
     status: row.status as ProjectApproval["status"],
     approved_at: (row.approved_at as string | null) ?? null,
     recorded_by: (row.recorded_by as string | null) ?? null,
@@ -1054,10 +1056,18 @@ export async function recordApproval(
   phase: GatePhase,
   party: ApprovalParty,
   actorId: string,
+  /**
+   * Only meaningful on the `chosen` slot: the staff member who signed off, or
+   * null for the client. Ignored on the fixed parties, whose identity *is* the
+   * party.
+   */
+  approverUserId: string | null = null,
 ): Promise<ProjectWithRelations> {
   if (!GATE_PARTIES[phase]?.includes(party)) {
     throw new Error(`${party} does not sign off at ${phase}`);
   }
+
+  const approver = party === CHOSEN_PARTY ? approverUserId : null;
 
   const supabase = await db();
   const { error } = await supabase.from("project_approvals").upsert(
@@ -1065,6 +1075,7 @@ export async function recordApproval(
       project_id: projectId,
       phase,
       party,
+      approver_user_id: approver,
       status: "approved",
       approved_at: new Date().toISOString(),
       recorded_by: actorId,
@@ -1077,7 +1088,8 @@ export async function recordApproval(
     project_id: projectId,
     actor_id: actorId,
     event_type: "approval.recorded",
-    payload: { phase, party },
+    // The chosen slot means nothing in the log without the person in it.
+    payload: { phase, party, approver_user_id: approver },
   });
   throwOn(activityError, "Failed to log the approval");
 

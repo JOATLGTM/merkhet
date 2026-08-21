@@ -198,6 +198,37 @@ locks anything not `not_started`; rejection locks `completed` and `skipped` but 
 **Phase dates are read-only in the UI.** Durations are the source (WORKFLOW-2 §3).
 `updatePhaseDates` still exists in the repo and actions layer but is off the UI path.
 
+## Gate sign-off parties (Aug 21, 2026) — supersedes WORKFLOW-2 §3
+
+Full write-up in [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md).
+
+**Both gates take Austin, Ryan, and a chosen third.** User decision. Review was client
+contact + Austin + client; Final review was client contact + Austin. They are now identical,
+and WORKFLOW-2's deliberate distinction — "the client is **not** an approver at Final
+review" — is gone on purpose. The firm wanted one rule.
+
+**The client did not lose their sign-off, it became discretionary.** Previously mandatory at
+Review and forbidden at Final review; now available at both and required at neither, as one
+of the things the chosen slot resolves to. Making it mandatory again means editing
+`GATE_PARTIES` *and* the two `unnest(array[…])` lists in `move_project` — the rule lives in
+both places by design, so the UI cannot talk the database past it.
+
+**`approver_user_id` names the chosen third; null there means the client.** Not "unset" —
+approval rows exist only once approved, so a `chosen` row always records a decision. A check
+constraint keeps the column off the fixed parties, whose identity *is* the party.
+
+**One party value for the slot, not two.** Modelling the client as `party = 'client'` and a
+colleague as `party = 'chosen'` would let `unique (project_id, phase, party)` hold both at
+once and half-satisfy the gate twice over. One value keeps the check a plain existence test
+and clearing a single delete.
+
+**The third is picked at record time, not at delegation.** Who reviews a set of drawings is
+not knowable when the project is planned. That is why it is a dropdown and not a column on
+`projects`.
+
+**`client_contact` and `client` stay in the enum.** Historical rows and the activity log
+reference them by name. No gate requires either any more.
+
 ## Approval gates and rework (Slice 5, Aug 14, 2026)
 
 Full write-up in [`SLICE_5_APPLY.md`](./SLICE_5_APPLY.md). The non-negotiables:

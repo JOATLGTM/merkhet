@@ -63,7 +63,10 @@ import { formatFullDate } from "@/lib/dates";
 import {
   COLUMN_LABELS,
   DELEGATED_PHASES,
+  CHOSEN_PARTY,
+  CLIENT_APPROVER,
   GATE_PARTIES,
+  approverName,
   GATE_REJECT_TARGET,
   PARTY_LABELS,
   boardColumnOf,
@@ -164,6 +167,8 @@ export function ProjectDetailSheet({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  /** Who to record the chosen third sign-off for. Reset once it is recorded. */
+  const [chosenApprover, setChosenApprover] = useState("none");
   const [delegationOpen, setDelegationOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDiscipline, setNewDiscipline] = useState("");
@@ -258,6 +263,19 @@ export function ProjectDetailSheet({
       .map((a) => [a.party as ApprovalParty, a]),
   );
   const gateParties = gate ? GATE_PARTIES[gate] : [];
+
+  /**
+   * The chosen third is picked at the moment of recording — it is whoever
+   * Austin or Ryan settled on for this project, which is not knowable earlier.
+   * Active staff plus the client, who has no user row and so has a sentinel.
+   */
+  const approverItems = [
+    { label: "Select person…", value: "none" },
+    ...users
+      .filter((u) => u.is_active)
+      .map((u) => ({ label: u.name, value: u.id })),
+    { label: "The client", value: CLIENT_APPROVER },
+  ];
   const recordedCount = gateParties.filter((p) =>
     approvalByParty.has(p),
   ).length;
@@ -630,10 +648,11 @@ export function ProjectDetailSheet({
                 </span>
               </div>
               <p className="mt-2 text-[12px] text-ink-soft">
-                Every party below has to sign off before this project can leave{" "}
-                {COLUMN_LABELS[gate]}. The client does not use Merkhet — staff
-                record the client&rsquo;s approval on their behalf once it comes
-                in (WORKFLOW-2 §3).
+                All three have to sign off before this project can leave{" "}
+                {COLUMN_LABELS[gate]}. The third is whoever Austin or Ryan
+                chose — a colleague, or the client. Nobody outside the firm
+                uses Merkhet, so a client sign-off is recorded by staff on
+                their behalf once it comes in.
               </p>
 
               <ul className="mt-3 space-y-2">
@@ -642,6 +661,8 @@ export function ProjectDetailSheet({
                   const recorder = approval?.recorded_by
                     ? (usersById.get(approval.recorded_by)?.name ?? "someone")
                     : null;
+                  // Austin and Ryan are the party; the third is a person.
+                  const isChosen = party === CHOSEN_PARTY;
 
                   return (
                     <li
@@ -650,7 +671,12 @@ export function ProjectDetailSheet({
                     >
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-ink">
-                          {PARTY_LABELS[party]}
+                          {approval
+                            ? approverName(
+                                approval,
+                                (id) => usersById.get(id)?.name,
+                              )
+                            : PARTY_LABELS[party]}
                         </p>
                         <p className="text-[12px] text-ink-mid">
                           {approval
@@ -659,7 +685,9 @@ export function ProjectDetailSheet({
                                   ? ` · ${formatFullDate(approval.approved_at)}`
                                   : ""
                               }`
-                            : "Pending"}
+                            : isChosen
+                              ? "Pending · pick who signs off"
+                              : "Pending"}
                         </p>
                       </div>
                       {approval ? (
@@ -691,20 +719,65 @@ export function ProjectDetailSheet({
                           Clear
                         </button>
                       ) : (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {isChosen && (
+                            <Select
+                              items={approverItems}
+                              value={chosenApprover}
+                              onValueChange={(v) =>
+                                setChosenApprover(v ?? "none")
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-44 rounded-none border-rule-strong text-[13px]">
+                                <SelectValue placeholder="Select person…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  Select person…
+                                </SelectItem>
+                                {users
+                                  .filter((u) => u.is_active)
+                                  .map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
+                                <SelectItem value={CLIENT_APPROVER}>
+                                  The client
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
                         <Button
                           type="button"
                           variant="outline"
+                          disabled={isChosen && chosenApprover === "none"}
                           className="h-auto shrink-0 rounded-none border-rule-strong px-2.5 py-1.5 text-[13px] font-normal text-ink"
                           onClick={() => {
                             startTransition(async () => {
                               try {
+                                // Null is the client — they have no user row.
+                                const approver = !isChosen
+                                  ? null
+                                  : chosenApprover === CLIENT_APPROVER
+                                    ? null
+                                    : chosenApprover;
                                 await recordApprovalAction(
                                   project.id,
                                   gate,
                                   party,
+                                  approver,
                                 );
+                                setChosenApprover("none");
                                 toast.success(
-                                  `${PARTY_LABELS[party]} sign-off recorded`,
+                                  isChosen
+                                    ? `${
+                                        approver
+                                          ? (usersById.get(approver)?.name ??
+                                            "Sign-off")
+                                          : "The client"
+                                      }'s sign-off recorded`
+                                    : `${PARTY_LABELS[party]} sign-off recorded`,
                                 );
                                 router.refresh();
                               } catch (e) {
@@ -719,6 +792,7 @@ export function ProjectDetailSheet({
                         >
                           Record approval
                         </Button>
+                        </div>
                       )}
                     </li>
                   );

@@ -62,7 +62,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Detail sheet: hold, contract upload/view, consultants attach (+ new inline), phases, activity
 - **Planned hours per phase** in the detail sheet Phases grid (Review excluded — it's a gate); section header totals them. Legacy project-level `hours_per_week` retired from the UI
 - **Plan schedule** (delegation): assignee + duration for the 5 delegated phases in one form; dates derived from durations in working days; planned hours optional. Raised on entry to Active, and available at any phase for backfill. Active → SD is gated on it in `move_project`
-- **Approval gates**: sign-offs recorded in the detail sheet at Review (client contact, Austin, client) and Final review (client contact, Austin). The client's sign-off is recorded by staff on their behalf. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
+- **Approval gates**: sign-offs recorded in the detail sheet at Review and Final review. Both gates take **Austin, Ryan, and a chosen third** (2026-08-21) — the third picked at record time from active staff or **The client**, whose sign-off staff record on their behalf. Supersedes WORKFLOW-2 §3; see [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md). Migrations **written, not applied**. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
 - Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
 - New project: inline **+ New customer** (now with an Address field)
 - **Project address & contact** (2026-08-21): a project's address, contact, email and phone
@@ -116,6 +116,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260814120000_delegation_gate.sql`
 - `20260814160000_approval_gates.sql` — also fixes a pre-existing `move_project` bug, see `SLICE_5_APPLY.md` §3a
 - `20260821100000_project_address_contact.sql` — **WRITTEN, NOT APPLIED** (`PROJECT_CONTACT_APPLY.md`)
+- `20260821120000_gate_parties_enum.sql` + `20260821120100_gate_parties.sql` — **WRITTEN, NOT APPLIED**, run the enum file first and alone (`GATE_PARTIES_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
 `SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,

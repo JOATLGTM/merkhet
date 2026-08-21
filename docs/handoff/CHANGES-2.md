@@ -61,7 +61,8 @@ by-staff rows, bounded window with paging. No SQL. Geometry is covered by
 by the user.
 
 **Slice 5 (approval gates + rework loops) built and verified 2026-08-14.** Sign-offs at Review
-and Final review, gate-crossing enforcement in `move_project` (which also blocks *skipping* a
+and Final review (**parties changed 2026-08-21** to Austin · Ryan · chosen at both gates —
+`GATE_PARTIES_APPLY.md`), gate-crossing enforcement in `move_project` (which also blocks *skipping* a
 gate), and a `reject_gate` rework path. `project_approvals` and `phase_transitions` are finally
 in use. Migration applied; 50 live assertions pass via `npm run check:gates`. See
 `SLICE_5_APPLY.md` — including a **pre-existing `move_project` bug** it uncovered, where an
@@ -358,6 +359,10 @@ Make the existing manual date inputs in `project-detail-sheet.tsx` read-only; re
 # Slice 5 — Approval gates and rework loops
 
 Highest-risk slice. Depends on `phase_transitions` from 1B.
+
+> **Party list superseded 2026-08-21.** Both gates now take **Austin, Ryan, and a chosen
+> third** — see [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md). The slice as built is
+> described below; only who signs off changed, not how the gate works.
 
 Review gate (post-DD): three sign-offs — client contact, Austin, client. All three required
 to advance to CD.

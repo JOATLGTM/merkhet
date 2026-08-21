@@ -21,7 +21,20 @@ export type PhaseStatus =
   | "completed"
   | "skipped";
 
-export type ApprovalParty = "client_contact" | "austin" | "client";
+/**
+ * Who signs off at a gate.
+ *
+ * `chosen` is the third slot — whoever Austin or Ryan picked for this project.
+ * `client_contact` and `client` are retained for rows recorded before
+ * 2026-08-21; no gate requires either any more. The client is still reachable,
+ * as one of the things `chosen` can resolve to.
+ */
+export type ApprovalParty =
+  | "client_contact"
+  | "austin"
+  | "ryan"
+  | "client"
+  | "chosen";
 export type ApprovalStatus = "pending" | "approved";
 export type TransitionDirection = "forward" | "backward";
 
@@ -126,6 +139,12 @@ export type ProjectApproval = {
   project_id: string;
   phase: DesignPhase;
   party: ApprovalParty;
+  /**
+   * Who the chosen third actually is. Set only on `party === "chosen"`; null
+   * there means **the client**, recorded by staff on their behalf. Not
+   * "unset" — rows exist only once approved.
+   */
+  approver_user_id: string | null;
   status: ApprovalStatus;
   approved_at: string | null;
   recorded_by: string | null;
@@ -186,13 +205,23 @@ export const GATE_PHASES: DesignPhase[] = ["review", "final_review"];
 export type GatePhase = "review" | "final_review";
 
 /**
- * Who must sign off at each gate (WORKFLOW-2 §3). The client is an approver at
- * Review only — at Final Review they are deliberately not.
+ * Who must sign off at each gate.
+ *
+ * **Supersedes WORKFLOW-2 §3** (user decision, 2026-08-21), which had Review
+ * as client contact + Austin + client and Final review as client contact +
+ * Austin. Both gates now take the same three, and the difference WORKFLOW-2
+ * drew between them is gone on purpose — the firm wanted one rule.
+ *
+ * The third is a *slot*, not a fixed person: `chosen` is whoever Austin or
+ * Ryan picks, which may be a staff member or the client.
  */
 export const GATE_PARTIES: Record<GatePhase, ApprovalParty[]> = {
-  review: ["client_contact", "austin", "client"],
-  final_review: ["client_contact", "austin"],
+  review: ["austin", "ryan", "chosen"],
+  final_review: ["austin", "ryan", "chosen"],
 };
+
+/** The party whose identity is picked per project rather than fixed. */
+export const CHOSEN_PARTY: ApprovalParty = "chosen";
 
 /** Where a rejected gate sends the project back to. */
 export const GATE_REJECT_TARGET: Record<GatePhase, DesignPhase> = {
@@ -203,8 +232,28 @@ export const GATE_REJECT_TARGET: Record<GatePhase, DesignPhase> = {
 export const PARTY_LABELS: Record<ApprovalParty, string> = {
   client_contact: "Client contact",
   austin: "Austin",
+  ryan: "Ryan",
   client: "Client",
+  chosen: "Third sign-off",
 };
+
+/** Value the chosen-third picker uses for "the client", who has no user row. */
+export const CLIENT_APPROVER = "__client__";
+
+/**
+ * Name to show against a recorded sign-off.
+ *
+ * Only the chosen slot carries an identity; the rest are the party. A chosen
+ * row with no user is the client (see `ProjectApproval.approver_user_id`).
+ */
+export function approverName(
+  approval: ProjectApproval,
+  userName: (id: string) => string | undefined,
+): string {
+  if (approval.party !== "chosen") return PARTY_LABELS[approval.party];
+  if (!approval.approver_user_id) return "The client";
+  return userName(approval.approver_user_id) ?? "Unknown person";
+}
 
 export function isGatePhase(phase: DesignPhase | null): phase is GatePhase {
   return phase === "review" || phase === "final_review";

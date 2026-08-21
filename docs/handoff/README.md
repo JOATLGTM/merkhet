@@ -13,11 +13,21 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [FILE_MAP.md](./FILE_MAP.md) | Where code lives |
 | [SLICE_4_SCOPE.md](./SLICE_4_SCOPE.md) | Delegation spec — six settled decisions, build from this |
 | [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md) | Project vs customer address/contact — **has an unapplied migration** |
+| [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md) | Gate sign-offs = Austin · Ryan · chosen — **has two unapplied migrations** |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
 ## State as of 2026-08-21
+
+**Gate sign-offs changed shape.** Both Review and Final review now take **Austin, Ryan, and a
+chosen third** — whoever Austin or Ryan picked, staff or the client. This **supersedes
+WORKFLOW-2 §3**, including its rule that the client is not an approver at Final review.
+[GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md)
+
+⚠️ **Three migrations are written and unapplied**, and the last two must be run in order:
+`20260821100000_project_address_contact.sql`, then
+`20260821120000_gate_parties_enum.sql` **alone**, then `20260821120100_gate_parties.sql`.
 
 **Project address and contact** was added the same day. A project's address, contact, email
 and phone now live on `projects`, and **null on a field means "same as the customer"** —
@@ -98,6 +108,9 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
   number in, not for fabricating it — **"not planned" is never `0h`**, in any view
 - Approval rows exist **only when approved** — absence is pending, clearing is a `DELETE`.
   Never seed pending rows
+- Gate parties are **Austin · Ryan · chosen** at both gates (2026-08-21), which contradicts
+  WORKFLOW-2 §3 — the doc was not edited, `GATE_PARTIES_APPLY.md` is the record. On a
+  `chosen` row, a null `approver_user_id` means **the client**
 - Rejection is `reject_gate`, **not** `move_project` — the latter marks the phase being left
   `completed`, the opposite of what a rejection means
 - `npm run check:gates` **writes to hosted Supabase** (one throwaway project, deleted after).

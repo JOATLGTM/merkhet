@@ -6,12 +6,20 @@ Not committed as a formal backlog — use as a resume checklist.
 
 ## What happened on 2026-08-21
 
-### ⚠️ Unapplied migration
+### ⚠️ Three unapplied migrations
 
-`supabase/migrations/20260821100000_project_address_contact.sql` is **written and not run** —
-the only outstanding SQL in the tree. Until it is applied, saving a project address or contact
-fails; reads degrade quietly to "same as customer".
-[`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md) has the SQL and a verify list.
+```
+20260821100000_project_address_contact.sql   -- PROJECT_CONTACT_APPLY.md
+20260821120000_gate_parties_enum.sql         -- run ALONE, before the next
+20260821120100_gate_parties.sql              -- GATE_PARTIES_APPLY.md
+```
+
+The last two **must be separate statements** — Postgres will not let a transaction use an
+enum value it just added, and the second file names `'chosen'`. Same split as
+`20260812130000_workflow_1b_enum.sql`.
+
+Until they run: saving a project address or contact fails (reads degrade quietly to "same as
+customer"), and recording a Ryan or chosen-third sign-off fails.
 
 ### Project address and contact
 
@@ -24,6 +32,25 @@ customer, and asks before discarding an override. `customers.address` was a WORK
 field that had never been added.
 
 Covered by `npm run check:contact` (23 assertions, inside `npm run check`).
+
+### Gate sign-offs: Austin, Ryan, and a chosen third
+
+**Both** Review and Final review now take the same three. The third is a slot, picked when the
+sign-off is recorded from a dropdown of active staff plus **The client**; on the row,
+`approver_user_id` names them and null means the client.
+
+**This supersedes `WORKFLOW-2.md` §3** in three places, including its rule that the client is
+not an approver at Final review. WORKFLOW-2 was not edited —
+[`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md) is the record, and it lists what to change
+to put the client back as mandatory.
+
+Any project already parked at a gate loses sign-off progress: Austin still counts, the old
+client-contact row no longer does. The apply doc has a query to see whether that affects
+anything before you run it.
+
+`npm run check:gates` is updated for the new parties and exercises the chosen slot both ways
+(a staff member, and the client). It writes to the live DB, so it is not part of `npm run
+check`.
 
 ### Slice 9 — per-staff workload
 

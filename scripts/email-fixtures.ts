@@ -119,7 +119,7 @@ export const cases: EmailCase[] = [
       previousColumn: "design_development",
       movedBy: "Dana Whitfield",
       schedule: sched("2026-10-09", "2026-10-09", null, null),
-      approvedParties: ["client_contact"],
+      approvedParties: ["austin"],
       audiences: audiences(null),
     }),
   },

@@ -207,9 +207,17 @@ export async function recordApprovalAction(
   projectId: string,
   phase: GatePhase,
   party: ApprovalParty,
+  /** The chosen third: a staff member's id, or null for the client. */
+  approverUserId: string | null = null,
 ) {
   const user = await requireUser();
-  const project = await recordApproval(projectId, phase, party, user.id);
+  const project = await recordApproval(
+    projectId,
+    phase,
+    party,
+    user.id,
+    approverUserId,
+  );
   revalidateAll();
   return project;
 }
