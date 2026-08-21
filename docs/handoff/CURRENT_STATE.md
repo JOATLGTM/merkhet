@@ -82,11 +82,12 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Customers list + detail
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
-- Staff (`/staff`, admin): Team · **Workload** · Phase subscribers
+- Staff (`/staff`, admin): Team (with **weekly workload**) + Phase subscribers
 
 ### Workload (2026-08-21, Slice 9)
-- Third tab on `/staff`, between Team and Phase subscribers, inheriting the page's admin gate.
-  No new route, no nav change
+- A **This week** column on the Team table already on `/staff`, so it inherits the page's
+  admin gate. No new tab, no new route, no nav change. Clicking a person expands their
+  projects underneath their row; Role and Active stay editable inline as before
 - Per person: every `project_phases` row assigned to them with `status = 'in_progress'`, and a
   weekly total for the week containing today (Monday–Sunday, matching the calendar) —
   `planned_hours / (duration_days / 5)`, summed over the in-progress phases whose planned range
@@ -144,7 +145,7 @@ Neither covers rendering.
 | 6 Notifications | **Templates done** (2026-08-18) — provider/outbox/call sites open, blocked on DNS |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
-| 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Workload tab) |
+| 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Team, This week column) |
 | 10 Calendar redesign | Done — visual check passed |
 | 11 Planned hours per phase | Done — applied + verified |
 

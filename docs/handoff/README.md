@@ -18,8 +18,9 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 
 ## State as of 2026-08-21
 
-**Slice 9 — the per-staff workload view — was built.** A third tab on `/staff`, between Team
-and Phase subscribers, inheriting the page's admin gate. Per person: their `in_progress`
+**Slice 9 — the per-staff workload view — was built.** A **This week** column on the Team
+table on `/staff`, inheriting the page's admin gate; clicking a person expands their projects
+under their row. Per person: their `in_progress`
 phases, plus a weekly total for the week containing today
 (`planned_hours / (duration_days / 5)`, summed over the phases overlapping that week).
 **Derived from delegation — no migration, no schema change.**
@@ -27,7 +28,7 @@ phases, plus a weekly total for the week containing today
 It also settles what the planned-hours number is *for*: **capacity planning**. That had been
 `NEXT.md`'s standing open question; the reasoning is in [DECISIONS.md](./DECISIONS.md).
 
-The section reads sparse because the data is — delegation is backfilled on ~22% of phase rows
+The column reads sparse because the data is — delegation is backfilled on ~22% of phase rows
 — and it says so rather than papering over it. An assigned, in-progress phase with no budget
 reads **"Not planned", never `0h`**.
 

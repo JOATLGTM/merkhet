@@ -41,7 +41,7 @@
 - `.label-caps`, `.page-title` utilities in `app/globals.css`
 - Nav: 208px → 56px collapsed; teal “M”; active = white + 2px inset left `--phase-5`
 - Nav items: Board, Calendar, Customers, Consultants, Completed projects, Staff (admin)
-- **Staff (`/staff`)** carries three tabs: Team, Workload, Phase subscribers. Workload is Slice 9 (built 2026-08-21) — a section on this page rather than a route of its own, so it inherits the admin gate for free
+- **Staff (`/staff`)** keeps its two tabs, Team and Phase subscribers. Slice 9's workload is a **This week** column on the Team table (built 2026-08-21), expanding per person on click — a column on the roster rather than a surface of its own, so it inherits the admin gate for free and asks its question where the person is already named
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
 - Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
@@ -307,8 +307,16 @@ phase rows and 29% are dated (`SLICE_11_APPLY.md`), and hours are optional by de
 
 - **A missing budget is never `0h`.** It reads "Not planned". This is the same rule the detail
   sheet and the delegation dialog already follow — do not collapse it to `?? 0` here either.
-- **A person with no derivable hours has `null`, not `0`.** Their header reads "No hours
-  planned". Three unplanned phases must not render as an idle person.
+- **A person with no derivable hours has `null`, not `0`.** And the column distinguishes
+  *three* absences, because they mean opposite things to someone reading for capacity:
+
+  | Cell | Means |
+  |---|---|
+  | `—` | nothing in progress at all |
+  | "Nothing this week" | every phase is dated outside this week — they are genuinely clear |
+  | "No hours planned" | phases are in progress and we cannot say how much |
+
+  Collapsing any of those into `0 h/wk` reads as free capacity in all three.
 - **Every gap is counted next to the total it is missing from** — per person and for the
   section. A total that cannot be complete has to say so, or it gets read as capacity.
 - **"Not this week" is not a gap.** A dated phase that falls outside the week is knowledge,
@@ -320,6 +328,14 @@ phase rows and 29% are dated (`SLICE_11_APPLY.md`), and hours are optional by de
 **Still do not make `planned_hours` required, and still do not default it from
 `duration_days`.** Capacity planning being the answer is an argument for *filling the number
 in*, not for fabricating it. See "Scheduling and hours" above — the reasoning is unchanged.
+
+**It is a column on the roster, not a surface of its own.** Built first as a third tab and
+reshaped the same day: "how loaded is this person" is a fact *about a staff member*, so it
+belongs on the Team row that already names them rather than on a parallel roster beside it.
+The projects behind the number expand under the row on click. Practical consequences — Role
+and Active stay inline-editable, the expand affordance lives on the name cell rather than the
+whole row (a row-level click target would nest the Select and Checkbox inside a button), and
+`/staff` still has exactly two tabs.
 
 **In-progress only.** The view lists `project_phases` rows with `status = 'in_progress'`, not
 everything assigned. "What is this person working on" is a present-tense question; the

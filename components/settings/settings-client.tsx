@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -28,7 +28,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { WorkloadPanel } from "@/components/settings/workload-panel";
+import {
+  WorkloadCell,
+  WorkloadDetail,
+  WorkloadSummary,
+  WorkloadToggle,
+} from "@/components/settings/staff-workload";
 import { cn } from "@/lib/utils";
 import type { Week, WorkloadPerson } from "@/lib/workload";
 import {
@@ -54,7 +59,17 @@ export function SettingsClient({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [tab, setTab] = useState<"team" | "workload" | "subscribers">("team");
+  const [tab, setTab] = useState<"team" | "subscribers">("team");
+  // Several people can be open at once — comparing two rows is the point.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const workloadBy = new Map(workload.map((person) => [person.userId, person]));
+
+  const toggle = (userId: string) =>
+    setExpanded((open) => {
+      const next = new Set(open);
+      if (!next.delete(userId)) next.add(userId);
+      return next;
+    });
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -77,18 +92,6 @@ export function SettingsClient({
           </button>
           <button
             type="button"
-            onClick={() => setTab("workload")}
-            className={cn(
-              "pb-2 text-[13px]",
-              tab === "workload"
-                ? "border-b-2 border-phase-5 font-medium text-ink"
-                : "text-ink-mid hover:text-ink",
-            )}
-          >
-            Workload
-          </button>
-          <button
-            type="button"
             onClick={() => setTab("subscribers")}
             className={cn(
               "pb-2 text-[13px]",
@@ -105,6 +108,8 @@ export function SettingsClient({
       <div className="flex-1 overflow-auto bg-paper px-5 py-5">
         {tab === "team" ? (
           <>
+            <WorkloadSummary people={workload} week={week} />
+
             <Table>
               <TableHeader>
                 <TableRow className="border-rule hover:bg-transparent">
@@ -115,6 +120,9 @@ export function SettingsClient({
                     Email
                   </TableHead>
                   <TableHead className="label-caps h-9 text-ink-soft">
+                    This week
+                  </TableHead>
+                  <TableHead className="label-caps h-9 text-ink-soft">
                     Role
                   </TableHead>
                   <TableHead className="label-caps h-9 text-ink-soft">
@@ -123,18 +131,29 @@ export function SettingsClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className="border-rule">
+                {users.map((user) => {
+                  const person = workloadBy.get(user.id);
+                  const open = expanded.has(user.id);
+                  return (
+                  <Fragment key={user.id}>
+                  <TableRow className="border-rule">
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="grid h-6 w-6 place-items-center rounded-full bg-phase-5 font-mono text-[9px] font-medium text-paper">
+                      <WorkloadToggle
+                        expanded={open}
+                        disabled={!person || person.rows.length === 0}
+                        onToggle={() => toggle(user.id)}
+                      >
+                        <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-phase-5 font-mono text-[9px] font-medium text-paper">
                           {initials(user.name)}
                         </div>
                         <span className="text-[14px] text-ink">{user.name}</span>
-                      </div>
+                      </WorkloadToggle>
                     </TableCell>
                     <TableCell className="font-mono text-[12px] text-ink-mid">
                       {user.email}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <WorkloadCell person={person} />
                     </TableCell>
                     <TableCell>
                       <Select
@@ -171,7 +190,16 @@ export function SettingsClient({
                       />
                     </TableCell>
                   </TableRow>
-                ))}
+                  {open && person && (
+                    <TableRow className="border-rule hover:bg-transparent">
+                      <TableCell colSpan={5} className="p-0">
+                        <WorkloadDetail person={person} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
 
@@ -208,8 +236,6 @@ export function SettingsClient({
               </Button>
             </div>
           </>
-        ) : tab === "workload" ? (
-          <WorkloadPanel people={workload} week={week} />
         ) : (
           <div className="space-y-4">
             {DESIGN_PHASES.map((phase) => {

@@ -11,7 +11,7 @@
 | Consultants | `app/(app)/consultants/page.tsx` → `components/consultants/consultants-client.tsx` |
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
-| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team · Workload · Phase subscribers) |
+| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team + Phase subscribers) |
 | Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
@@ -53,7 +53,7 @@
 | Phase rule (6-seg) | `components/projects/phase-rule.tsx` |
 | New project dialog | `components/projects/new-project-dialog.tsx` |
 | Delegation / Plan schedule dialog | `components/projects/delegation-dialog.tsx` |
-| Workload tab (Slice 9) | `components/settings/workload-panel.tsx` |
+| Workload column + drill-down (Slice 9) | `components/settings/staff-workload.tsx` — rendered into the Team table |
 | Phase subscribers popover | `components/board/subscriber-popover.tsx` |
 | shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |

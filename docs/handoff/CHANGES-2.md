@@ -72,8 +72,8 @@ Blocked on the client, not on us: **Slice 3** (intake — note the columns alrea
 
 **Slice 9 (staff workload view) built and verified 2026-08-21.** Confirmed rather than
 dismissed as redundant: the calendar's By-staff mode answers *when*, the workload tab answers
-*how much, right now*. A third tab on `/staff`, derived from delegation — no migration, no
-schema change. It also settles what planned hours are *for* (capacity planning), which
+*how much, right now*. A column on the Team table on `/staff`, expanding per person on
+click, derived from delegation — no migration, no schema change. It also settles what planned hours are *for* (capacity planning), which
 `NEXT.md` had carried as an open question; see `DECISIONS.md`.
 
 Untracked and worth a decision: **RLS.** Every table is `authenticated_full_access`
@@ -425,9 +425,14 @@ with write access can complete).
 calendar's By-staff mode answers *when* work sits, which is not the same question as *how much
 is on this person right now*. Both survive.
 
-**A section, not a route.** A third tab on `/staff` — Team · **Workload** · Phase subscribers
-— which is what makes it inherit the page's admin gate with no new gating code, no new route
-and no nav change.
+**A column, not a route — and not a tab either.** A **This week** column on the Team table
+that `/staff` already renders, with the projects behind each number expanding under the
+person's row on click. That is what makes it inherit the page's admin gate with no new gating
+code, no new route and no nav change.
+
+It was first built as a third tab (Team · Workload · Phase subscribers) and reshaped the same
+day: "how loaded is this person" is a fact *about a staff member*, so it belongs on the row
+that already names them, not on a parallel roster beside it. One table, one list of people.
 
 Per person: every `project_phases` row where they are the assignee and the status is
 `in_progress`, plus a weekly total for the week containing today —

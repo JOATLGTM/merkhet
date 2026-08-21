@@ -6,9 +6,10 @@ Not committed as a formal backlog — use as a resume checklist.
 
 ## What happened on 2026-08-21
 
-**Slice 9 — the per-staff workload view — was built.** A third tab on `/staff`, between Team
-and Phase subscribers, inheriting the page's admin gate. No new route, no nav change, no
-migration, no schema: it is derived entirely from delegation.
+**Slice 9 — the per-staff workload view — was built.** A **This week** column on the Team
+table on `/staff`, inheriting the page's admin gate; clicking a person expands their projects
+under their row. No new tab, no new route, no nav change, no migration, no schema: it is
+derived entirely from delegation.
 
 Per person it lists every `project_phases` row where they are the assignee and the status is
 `in_progress`, and totals a weekly load for the week containing today:
@@ -23,7 +24,7 @@ The view reads sparse, and that is the data, not the view: delegation is backfil
 22% of phase rows and 29% are dated (`SLICE_11_APPLY.md`), and planned hours are optional by
 design. A phase can be assigned, in progress and still yield no hours figure — it renders
 "Not planned", never `0h`, and every such gap is counted next to the total it is missing
-from. **Backfill (item 2 under Immediate) is what makes this section useful.**
+from. **Backfill (item 2 under Immediate) is what makes this column useful.**
 
 Arithmetic lives in `lib/workload.ts`, React-free, covered by `npm run check:workload`
 (65 assertions, now part of `npm run check`).

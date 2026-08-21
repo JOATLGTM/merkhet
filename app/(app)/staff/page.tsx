@@ -45,14 +45,9 @@ export default async function StaffPage() {
   // one non-deterministic input in the section, and computing it on the client
   // would make it a hydration mismatch waiting for a midnight render.
   const week = weekOf(new Date());
-  // Active staff always get a row; a deactivated one only if they are still
-  // holding in-progress work, which is a thing worth seeing rather than hiding.
-  const assigned = new Set(assignments.map((a) => a.assigneeId));
-  const workload = buildWorkload({
-    assignments,
-    users: users.filter((u) => u.is_active || assigned.has(u.id)),
-    week,
-  });
+  // The whole roster, matching the Team table this renders into — including
+  // deactivated staff, who can still be holding in-progress work.
+  const workload = buildWorkload({ assignments, users, week });
 
   return (
     <SettingsClient
