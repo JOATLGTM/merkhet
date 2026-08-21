@@ -55,9 +55,20 @@ newest migration touching `move_project` is the one that defines it.
 - `npm run check` — schedule + calendar arithmetic (73 assertions, no database)
 - `npm run check:gates` — workflow gates + rework loop (50 assertions) — **writes to hosted
   Supabase**; creates one throwaway project and deletes it. Deliberately outside `check`.
+- `npm run email:preview` — render all 16 notification emails to `out/emails/`. No network.
+- `npm run email:send` — list the cases; `-- --case <n>` sends one through Gmail SMTP. A test
+  harness, **not** the app's send path. Needs the `GMAIL_TEST_*` vars in `.env`.
 
 There is no test runner; these are plain scripts that exit non-zero. **Nothing verifies
 rendering.**
+
+## Email
+
+Templates for phase-change notifications live in [`lib/email/`](lib/email/) — internal mail on
+every column, client mail on the phases flagged `customerVisible` in `lib/phases.ts`. Rendering
+only: there is no provider, no outbox, and `lib/notifications.ts` is still a stub. Routing
+table and deliverability notes in [`lib/email/README.md`](lib/email/README.md); build history in
+[`docs/handoff/SLICE_6_TEMPLATES.md`](docs/handoff/SLICE_6_TEMPLATES.md).
 
 ## Status
 

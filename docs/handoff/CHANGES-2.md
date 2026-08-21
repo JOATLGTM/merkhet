@@ -89,7 +89,7 @@ decision anywhere, and Slice 5 sharpens it — approval sign-offs are precisely 
 | —     | 7 — Consultants                            | **Done**                      |
 | 8     | 8 — Permitting exit + archive              | **Done**                      |
 | 6     | 5 — Approval gates + rework loops          | **Done — applied + verified** |
-| 7     | 6 — Notifications                          | Open                          |
+| 7     | 6 — Notifications                          | **Templates done** — send open |
 | 9     | 9 — Staff view                             | Confirm need first            |
 | 10    | 10 — Calendar (daily + staff grouping)     | **Done**                      |
 | —     | 11 — Planned hours per phase               | **Done**                      |
@@ -370,15 +370,23 @@ to survive a repeat.
 
 # Slice 6 — Notifications
 
+> **Partly built 2026-08-18.** Templates, copy and routing are done and documented in
+> [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md). The provider, the outbox and the call
+> sites are still open and still blocked on DNS. The note below describes the slice as it was
+> originally scoped; two of its assumptions have since changed — see the two bold lines.
+
 Greenfield: no provider, no outbox, no templates, no `notifications` table. Nothing to reuse
-— `phase_subscribers` is demoted, not repurposed.
+— `phase_subscribers` is demoted, not repurposed. **Templates now exist** (`lib/email/`).
 
 Implement the recipient table in `WORKFLOW-2.md` §4. Recipients resolve from per-project
 delegates.
 
-**Internal recipients only.** Client-facing email is deferred to Phase 2. Build the resolver
-with a place for client recipients to slot in, and keep the send path structured so a
-review-before-send step can be added with one change.
+~~**Internal recipients only.** Client-facing email is deferred to Phase 2.~~ **Superseded
+2026-08-18** — the client asked for it now, and for every customer-visible phase rather than
+the three in WORKFLOW-2 §4. `customerVisible` in `lib/phases.ts` is the switch. See
+[`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md).
+
+Keep the send path structured so a review-before-send step can be added with one change.
 
 Reword the Settings tab and board column popover so `phase_subscribers` reads as a standing
 baseline rather than the routing model.
@@ -443,7 +451,8 @@ Left unspecified, these get invented.
 
 - **Client portal, client login, magic links, external approval flows.** Every user is
   internal staff.
-- **Client-facing email.** Deferred to Phase 2 (`WORKFLOW-2.md` §4).
+- ~~**Client-facing email.** Deferred to Phase 2 (`WORKFLOW-2.md` §4).~~ **Unblocked
+  2026-08-18** — templates built; sending still blocked on DNS.
 - **General file/document management.** LOI and contract only.
 - **Time entry, timesheets, rates, invoicing.** Phase 2. Planned hours only — budgeted per
   phase (Slice 11), never logged against.

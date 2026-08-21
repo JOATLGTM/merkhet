@@ -1,11 +1,11 @@
 # Current state
 
-**Last updated: 2026-08-14**
+**Last updated: 2026-08-18**
 
-> **Resuming?** Start with [`NEXT.md`](./NEXT.md). Slices 11, 4, 10 and 5 were built on
-> 2026-08-14 and committed as **`f8d0526`** (local only, not pushed). All three migrations
-> from that day are applied and verified, and the calendar and approvals UI have both had a
-> visual pass. Nothing from that day is outstanding.
+> **Resuming?** Start with [`NEXT.md`](./NEXT.md). The 2026-08-14 slices (11, 4, 10, 5) are
+> committed as **`f8d0526`** with all migrations applied and verified. On **2026-08-18** the
+> template half of Slice 6 was built — see [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md).
+> No SQL, nothing wired into the app; sending is still blocked on DNS.
 
 ## Product
 
@@ -65,6 +65,17 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
 - New project: inline **+ New customer**
 
+### Email templates (2026-08-18, not wired)
+- `lib/email/` — four templates covering 11 events / 16 messages, each returning
+  `{ subject, preview, html, text }`. Internal and client vocabularies split across two copy sets
+- Client mail fires on **customer-visible phases only** — driven by `customerVisible` in
+  `lib/phases.ts`, so both approval gates and every rejection stay internal
+- `lib/notifications.ts` is **still a stub**; no call site renders a template yet
+- Harnesses: `npm run email:preview` (renders to `out/emails/`), `npm run email:send`
+  (Gmail SMTP — a test harness, not the send path)
+- Gmail send test on 2026-08-18 **delivered, landed in spam**. Auth passed; the cause is
+  sender reputation, which only the real domain fixes. Detail in `SLICE_6_TEMPLATES.md`
+
 ### Other surfaces
 - Calendar: days/weeks/months zoom · by-project or by-staff rows · bounded window with paging (`SLICE_10_APPLY.md`, visually verified)
 - Customers list + detail
@@ -91,6 +102,9 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 ```bash
 npm run check         # check:schedule (28 assertions) + check:calendar (45)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
+
+npm run email:preview # render all 16 messages to out/emails/ — no network
+npm run email:send    # list cases; --case <n> sends via Gmail SMTP (see .env.example)
 ```
 
 No test runner. `npm run check` covers the two pieces of real arithmetic — `deriveSchedule`
@@ -99,7 +113,7 @@ No test runner. `npm run check` covers the two pieces of real arithmetic — `de
 on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
 Neither covers rendering.
 
-## Slice status (2026-08-14)
+## Slice status (2026-08-18)
 
 | Slice | State |
 |---|---|
@@ -110,7 +124,7 @@ Neither covers rendering.
 | 3 Intake expansion | **Reverted — on hold** |
 | 4 Delegation | Done — applied + verified |
 | 5 Approval gates | Done — applied + verified |
-| 6 Notifications | Open (stubs only) |
+| 6 Notifications | **Templates done** (2026-08-18) — provider/outbox/call sites open, blocked on DNS |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | Confirm need (nav Staff ≠ this) |

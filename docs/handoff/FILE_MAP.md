@@ -28,7 +28,11 @@
 | Supabase clients | `lib/supabase/{client,server,admin}.ts` |
 | Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
 | Session | `lib/auth/session.ts` |
-| Notification stubs | `lib/notifications.ts` |
+| Notification stubs | `lib/notifications.ts` — **still stubs**, nothing renders a template yet |
+| Email templates | `lib/email/` (`README.md` there has the routing table) |
+| Email copy — every sentence | `lib/email/copy.ts` |
+| Email routing (pure, no DB) | `lib/email/plan.ts` |
+| Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
 | Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Activity copy | `lib/activity.ts` |

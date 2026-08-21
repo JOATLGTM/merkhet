@@ -13,7 +13,16 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [FILE_MAP.md](./FILE_MAP.md) | Where code lives |
 | [SLICE_4_SCOPE.md](./SLICE_4_SCOPE.md) | Delegation spec — six settled decisions, build from this |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
+| [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
+
+## State as of 2026-08-18
+
+The **template half of Slice 6** was built on 2026-08-18: `lib/email/`, four templates,
+11 events, 16 messages, two harnesses. **No SQL and nothing wired into the app** —
+`lib/notifications.ts` is still a stub. A Gmail send test delivered and landed in spam;
+authentication passed, so the cause is sender reputation, not the templates.
+See [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md). Not committed.
 
 ## State as of 2026-08-14
 
@@ -29,8 +38,8 @@ phase loop could leave two rows `in_progress` at once and trip
 `one_active_phase_per_project`, showing up as an intermittent failed drag on longer-lived
 projects. [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) §3a.
 
-Nothing built that day is outstanding. Next up is **Slice 6 (notifications)**, half of which is
-blocked on DNS for the sending domain.
+Nothing built that day is outstanding. **Slice 6 (notifications)** followed on 2026-08-18 —
+templates only; the provider, outbox and call sites remain blocked on DNS.
 
 **Product requirements (authoritative for non-workflow):** [`../PRD.md`](../PRD.md)  
 **System design reference:** [`../SYSTEM_DESIGN_REFERENCE.md`](../SYSTEM_DESIGN_REFERENCE.md) — general reference, **not** Merkhet architecture.  
@@ -58,5 +67,10 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
   `completed`, the opposite of what a rejection means
 - `npm run check:gates` **writes to hosted Supabase** (one throwaway project, deleted after).
   It is not part of `npm run check` for that reason
+- Client email routes off **`customerVisible` in `lib/phases.ts`**, not a list. There is no
+  client copy for the approval gates and no customer variant of the rejection mail — those
+  absences are the safeguard, not an oversight (`SLICE_6_TEMPLATES.md`)
+- `npm run email:send` talks to **real Gmail**. Every recipient is overridden with
+  `GMAIL_TEST_TO`, because two fixture addresses are on a live domain
 
-Last updated: 2026-08-14
+Last updated: 2026-08-18

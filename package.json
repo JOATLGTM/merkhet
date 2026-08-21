@@ -11,7 +11,9 @@
     "check:schedule": "tsx scripts/check-schedule.ts",
     "check:calendar": "tsx scripts/check-calendar.ts",
     "check": "npm run check:schedule && npm run check:calendar",
-    "check:gates": "tsx scripts/check-gates.ts"
+    "check:gates": "tsx scripts/check-gates.ts",
+    "email:preview": "tsx scripts/preview-emails.ts",
+    "email:send": "tsx scripts/send-test-email.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -38,6 +40,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
@@ -45,6 +48,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "nodemailer": "^9.0.5",
     "supabase": "^2.112.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",

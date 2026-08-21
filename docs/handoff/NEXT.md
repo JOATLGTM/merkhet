@@ -2,7 +2,22 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-14**
+**Last updated: 2026-08-18**
+
+## What happened on 2026-08-18
+
+The **template half of Slice 6** was built — `lib/email/`, four templates, 11 events, 16
+messages, plus two harnesses. No SQL, no migration, and **nothing wired into the app**:
+`lib/notifications.ts` is the same stub it has always been.
+
+A Gmail send test delivered successfully and **landed in spam**. Authentication passed
+(`mailed-by` / `signed-by` both `gmail.com`); the cause is sender reputation, which no
+template change fixes. Full write-up in [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md).
+
+Copy is deliberately held as-is pending a conversation with the client. It lives in one file
+(`lib/email/copy.ts`) so that conversation stays out of the code.
+
+Not committed.
 
 ## Read this first if you are resuming
 
@@ -46,11 +61,20 @@ in bar tooltips — but the load treatment is a follow-on if that is the answer.
 
 See [`CHANGES-2.md`](./CHANGES-2.md) status table.
 
-1. **Slice 6 — Notifications** — replace the stubs in `lib/notifications.ts`
-   (`notifyProjectEnteredActive`, `notifyGateRejected`). **Blocked on DNS/CNAME** for the
-   sending domain, so build only what does not need it: recipient resolution from per-project
-   delegates (WORKFLOW-2 §4 table), the outbox structure, and the call sites. Actual sending
-   and the `.html` templates come after DNS is verified.
+1. **Slice 6 — Notifications** — templates are **done** (`lib/email/`, 2026-08-18). What
+   remains, in order of what is unblocked:
+   - **Recipient resolution** in `lib/db/repo.ts` — delegate from `project_phases`, client
+     contact from `projects.client_contact_id`, customer from `customers.contact_email`,
+     baseline from `phase_subscribers`. `plan.ts` takes resolved people, so this is additive.
+   - **The outbox table**, so a failed send is retryable and review-before-send has somewhere
+     to hold messages.
+   - **Call sites** — replace the stubs in `lib/notifications.ts`
+     (`notifyProjectEnteredActive`, `notifyGateRejected`) and add the phase-entry hook.
+   - **Reword Settings + the board column popover** so `phase_subscribers` reads as a standing
+     baseline rather than the routing model (WORKFLOW-2 §4). Still not done.
+   - **The provider and the DNS records.** Still blocked. Note that deliverability cannot be
+     tested before this exists — the Gmail harness proves the pipe and the rendering, nothing
+     more.
 2. **Slice 3 — Intake form expansion** — on hold until the client clarifies fields/labels.
 3. **Slice 9 — Staff workload view** — **probably redundant now.** The calendar's By-staff
    mode is the staff-grouped view Ryan asked for. Confirm before building anything.
@@ -95,6 +119,18 @@ not cover rendering** — nothing here checks how anything looks. Run it after t
 hosted Supabase**, creating one throwaway project and deleting it in a `finally`. It touches no
 existing project but burns a `project_number_seq` value per run. Run it after touching
 `move_project`, `reject_gate`, or the approval functions in `lib/db/repo.ts`.
+
+## Email — open questions and unverified ground
+
+- **Copy review with the client.** Held 2026-08-18. `lib/email/copy.ts`, two vocabularies.
+- **No client except a browser has rendered these.** No Litmus, no Email on Acid, no Outlook —
+  the client most likely to break a table layout. Worth one Litmus pass before a real send.
+- **`FIRM` in `lib/email/tokens.ts` is placeholder data** — address, phone, reply address.
+- **`NEXT_PUBLIC_APP_URL` defaults to `http://localhost:3000`**, so internal mail deep-links
+  are unreachable and mildly spam-flavoured. Set it before any real send;
+  `appUrlIsLocal` exists to make this visible and the send harness warns on it.
+- **Do not re-test placement with the same two Gmail accounts.** Marking the first message
+  "Not spam" trained that filter; placement between them no longer measures anything.
 
 ## Polish / engineering
 

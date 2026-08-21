@@ -246,6 +246,37 @@ writes to production.
 The checks cover arithmetic and database behaviour. **Nothing in this repo verifies
 rendering.**
 
+## Email routing (Aug 18, 2026)
+
+**`customerVisible` in `lib/phases.ts` is the routing switch for client mail** — not a second
+list, and not the WORKFLOW-2 §4 table. Client mail fires on SD, DD, CD, Permitting and
+completion; both approval gates are silent because that flag is already false on them.
+
+This is a **deliberate widening** of WORKFLOW-2 §4, which scoped client mail to DD/CD/Permitting
+and deferred it entirely. The client asked for it now and for every stage they can see.
+Narrowing back is an edit to `lib/phases.ts`, not to any template.
+
+Three rules the code enforces rather than documents. Do not "fix" any of them:
+
+- **No client copy exists for the gates.** `CUSTOMER_COPY` has no `review` / `final_review`
+  key, so there is no string to send by accident; `assertCustomerVisible` throws if a caller
+  tries. The absence *is* the safeguard.
+- **Rejection is internal, permanently.** There is no customer variant of `gate-rejected` and
+  none should be added — a client reads "rejected" as failure where the firm means an ordinary
+  correction.
+- **Client mail links nowhere.** Clients have no login (WORKFLOW-2 §1), so any link dead-ends
+  at `/login`. The reply address is the only CTA, and the **client contact** signs it, not the
+  phase delegate.
+
+**`EmailProject` is a narrow whitelist, not `ProjectWithRelations`.** Budgets and internal
+notes are unreachable from a template on purpose. Do not widen it to "make it easier".
+
+**`lib/email/` renders and nothing else.** No transport lives there — the Gmail harness is in
+`scripts/send-test-email.ts` so the library cannot quietly become the send path.
+
+**Copy lives in `lib/email/copy.ts`, all of it.** Templates hold no sentences. That is what
+lets the client copy conversation happen without a code change.
+
 ## Locale
 
 - US / America/Chicago (showcase UK-ish copy was filler; seed is Chicago-flavored)
