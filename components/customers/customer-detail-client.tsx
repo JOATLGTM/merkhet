@@ -11,6 +11,14 @@ import {
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +49,7 @@ export function CustomerDetailClient({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [projectId, setProjectId] = useState<string | null>(initialProjectId);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const usersById = new Map(users.map((u) => [u.id, u]));
   const selected = projects.find((p) => p.id === projectId) ?? null;
 
@@ -114,17 +123,7 @@ export function CustomerDetailClient({
           variant="outline"
           className="rounded-[3px] text-redline"
           disabled={pending}
-          onClick={() => {
-            startTransition(async () => {
-              const result = await deleteCustomerAction(customer.id);
-              if (!result.ok) {
-                toast.error(result.error);
-                return;
-              }
-              router.push("/customers");
-              router.refresh();
-            });
-          }}
+          onClick={() => setDeleteOpen(true)}
         >
           Delete customer
         </Button>
@@ -194,6 +193,53 @@ export function CustomerDetailClient({
         open={Boolean(selected)}
         onClose={() => setProjectId(null)}
       />
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="rounded-none sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete {customer.name}?</DialogTitle>
+            <DialogDescription>
+              {projects.length > 0
+                ? /* `deleteCustomer` refuses this server-side. Saying so here
+                     turns a guaranteed error toast into an answer. */
+                  `${customer.name} has ${projects.length} project${
+                    projects.length === 1 ? "" : "s"
+                  }. A customer with projects cannot be deleted — delete or reassign them first.`
+                : "This permanently removes the customer and their contact details. It cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-none"
+              onClick={() => setDeleteOpen(false)}
+            >
+              No
+            </Button>
+            <Button
+              type="button"
+              disabled={pending || projects.length > 0}
+              className="rounded-none bg-redline text-white hover:opacity-90"
+              onClick={() => {
+                startTransition(async () => {
+                  const result = await deleteCustomerAction(customer.id);
+                  if (!result.ok) {
+                    toast.error(result.error);
+                    return;
+                  }
+                  setDeleteOpen(false);
+                  toast.success(`${customer.name} deleted`);
+                  router.push("/customers");
+                  router.refresh();
+                });
+              }}
+            >
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

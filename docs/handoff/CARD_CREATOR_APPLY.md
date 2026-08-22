@@ -27,10 +27,10 @@ Ruled out along the way: RLS is a blanket `authenticated_full_access` on `users`
 **There was no creator to show.** `projects` had no owner column. The creator existed only
 as an `activity_log` row with `event_type = 'project.created'` and an `actor_id`.
 
-## SQL — NOT YET APPLIED
+## SQL — APPLIED 2026-08-22 (verified against hosted Supabase)
 
-Apply `supabase/migrations/20260822100000_project_created_by.sql` (hosted Supabase → SQL
-editor, same as prior slices).
+`supabase/migrations/20260822100000_project_created_by.sql`, run in the hosted Supabase SQL
+editor, same as prior slices.
 
 ```sql
 alter table public.projects
@@ -51,8 +51,20 @@ create index if not exists projects_created_by_idx on public.projects (created_b
 ```
 
 Additive and idempotent — the backfill only fills rows still null, so it is safe to re-run.
-**The six production projects get their real creators from the backfill**; nothing needs to
-be re-entered by hand.
+
+**Verified: 6/6 production projects have a creator, and every one matches the earliest
+`project.created` row in the activity log.** `npm run check:creator` re-runs the check —
+read-only, it confirms the column exists, that `created_by` agrees with the activity log,
+that no board project still renders `—`, and that no card resolves to a deleted or
+deactivated user. State at verification:
+
+| Project | Column | Avatar source | Renders |
+|---|---|---|---|
+| MK-0400 | Design development | assignee | Chris Vo |
+| MK-0401 – MK-0405 | Pending | creator | Austin Stinemetz |
+
+That is the reported bug: five Pending projects filed by Austin, all of which read `—`
+before this change because Pending has no phase to carry an assignee.
 
 `on delete set null` matches `project_phases.assignee_id`: deleting a person must not delete
 their projects. A null `created_by` still renders `—`, exactly as today.
@@ -82,6 +94,7 @@ changes. This only fills in columns that were previously blank by construction.
 - `components/projects/project-card.tsx` — the fallback and the muted style
 - `lib/db/demo-store.ts` — `makeProject` defaults `created_by` to the seed admin
 - `scripts/seed-demo.ts` — maps the seed creator through `userMap`
+- `scripts/check-creator.ts` — read-only verification, `npm run check:creator`
 
 ## Still open
 
@@ -91,3 +104,6 @@ has been deactivated still falls back to `—`.** Not fixed here, because the sa
 prop also populates the assignee filter and the detail sheet's assignee selects, which
 should keep offering active staff only. The fix is to separate "directory for name lookups"
 from "people you can assign", not to flip the flag.
+
+`check:creator` fails loudly if this ever bites — it flags any project whose resolved person
+is deactivated. Nobody is deactivated today, so it passes.

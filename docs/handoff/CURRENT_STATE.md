@@ -12,11 +12,11 @@
 > 3. **Slice 6 sends.** Notifications are wired end to end and delivering to both audiences.
 >    [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
 >
-> **2026-08-22:** one migration is **waiting on SQL** —
-> `20260822100000_project_created_by.sql` adds `projects.created_by` and backfills it from
-> the activity log, so board cards in Pending and Active stop reading `—`.
-> [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md). Every other migration in the tree is
-> applied and verified.
+> **2026-08-22:** `projects.created_by` added and backfilled from the activity log, so board
+> cards in Pending and Active no longer read `—`.
+> [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md).
+>
+> Every migration in the tree is applied and verified. Nothing is waiting on SQL.
 
 ## Product
 
@@ -90,7 +90,8 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
   §6.2). Pending and the Active holding column have `current_phase = null` by construction,
   so those cards were anonymous until someone planned a schedule. They now fall back to
   `projects.created_by`, rendered **outlined rather than solid** so a creator never reads as
-  an assignee. Migration `20260822100000_project_created_by.sql` — **not yet applied**. See
+  an assignee. Migration `20260822100000_project_created_by.sql` — **applied + verified**
+  (6/6 projects carry a creator; `npm run check:creator`). See
   [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md)
 - New project: inline **+ New customer** (now with an Address field)
 - **Project address & contact** (2026-08-21): a project's address, contact, email and phone
@@ -161,6 +162,7 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 npm run check         # check:schedule (28) + check:calendar (45)
                       #  + check:workload (65) + check:contact (23)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
+npm run check:creator # board-card avatar resolution against hosted Supabase — read-only
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
 npm run email:supabase # compile the two Supabase auth templates — no network

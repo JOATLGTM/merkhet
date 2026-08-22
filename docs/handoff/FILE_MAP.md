@@ -43,6 +43,7 @@
 | Activity copy | `lib/activity.ts` |
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
+| Card creator live check | `scripts/check-creator.ts` (`npm run check:creator` — read-only) |
 | Workload arithmetic check | `scripts/check-workload.ts` |
 | Contact fallback check | `scripts/check-contact.ts` |
 | Migrations | `supabase/migrations/*.sql` |
