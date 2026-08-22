@@ -410,6 +410,61 @@ fields since the start. Same for the project address among the project fields.
 **This is not Slice 3.** Intake expansion stays on hold pending the client's field list. Two
 of its eventual fields now exist, which is a head start, not the slice.
 
+## Board card avatar (Aug 22, 2026)
+
+**The circle is the current-phase assignee, falling back to the creator.** PRD §6.2 specified
+only the assignee, and that was reported as a bug from production: five colleagues had filed
+projects and every card read `—`.
+
+It was not a data bug. `createProject` forces `current_phase = null` for anything not already
+active, and `boardColumnOf` puts `status = 'active'` with no phase in the **Active** holding
+column. Neither has a phase row to carry an assignee, so *by construction* the whole Pending
+column and the whole Active column were anonymous until somebody ran Plan schedule. With one
+person filing projects that reads as "not planned yet"; with six it reads as "nobody owns
+this".
+
+**The creator went on `projects`, not derived from the activity log.** The creator already
+existed as an `activity_log` row with `event_type = 'project.created'`. That is an
+append-only audit stream — not indexed for this, a second query and a scan per board render,
+and nothing guarantees exactly one such row per project. A fact about the project belongs on
+the project. `20260822100000_project_created_by.sql` adds it and backfills from the earliest
+create event per project.
+
+**Assignee always wins, and the two never share a style.** Assignee is solid `bg-phase-5`;
+creator is outlined `border-rule-strong`. A creator is not the person the work is sitting
+with, and a card that let those read as the same fact would be worse than the `—` it
+replaced.
+
+**`on delete set null`, matching `project_phases.assignee_id`.** Deleting a person must not
+delete their projects. A null creator renders `—`, exactly as before.
+
+Verified live by `npm run check:creator` (read-only). Known gap, recorded there and not yet
+fixed: the board builds `usersById` from `listUsers()`, which defaults to active staff only,
+so a **deactivated** assignee or creator still renders `—`. The fix separates "directory for
+name lookups" from "people you can assign" — it is not flipping the flag, because the same
+`users` prop feeds the assignee filter and the sheet's assignee selects.
+
+## Destructive actions (Aug 22, 2026)
+
+Confirmation is graded by what is actually at stake, not applied uniformly:
+
+| Action | Guard |
+|---|---|
+| Mark project complete | No/Yes modal — reversible, it is an archive |
+| Delete customer | No/Yes modal, plus a server-side refusal if they have projects |
+| Delete project | Type the project number — takes phases, sign-offs, activity and contract with it |
+| Delete staff user | Trash icon → confirm dialog (`ACCOUNTS_APPLY.md`) |
+
+**Type-to-confirm is reserved for deletes that destroy history.** A project carries its
+phases, schedule, sign-offs, activity log and uploaded contract; a customer with no projects
+carries a name and a phone number. Making both equally awkward would train people to type
+through the one that matters.
+
+**A dialog that knows the action will fail says so instead of asking.** `deleteCustomer`
+refuses when the customer has projects. The detail page already has those projects in scope,
+so the modal names the count, says to delete or reassign them first, and disables **Yes** —
+rather than accepting the click and returning an error toast.
+
 ## Locale
 
 - US / America/Chicago (showcase UK-ish copy was filler; seed is Chicago-flavored)

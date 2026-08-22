@@ -7,7 +7,7 @@
 | Board `/` | `app/(app)/page.tsx` → `components/board/board-view.tsx` |
 | Calendar | `app/(app)/calendar/page.tsx` → `components/calendar/calendar-view.tsx` |
 | Customers | `app/(app)/customers/page.tsx` → `components/customers/customers-client.tsx` |
-| Customer detail | `app/(app)/customers/[id]/page.tsx` → `components/customers/customer-detail-client.tsx` |
+| Customer detail | `app/(app)/customers/[id]/page.tsx` → `components/customers/customer-detail-client.tsx` — inline field saves on blur; **Delete customer** behind a No/Yes confirm modal |
 | Consultants | `app/(app)/consultants/page.tsx` → `components/consultants/consultants-client.tsx` |
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |

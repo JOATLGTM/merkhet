@@ -1,6 +1,6 @@
 # Current state
 
-**Last updated: 2026-08-21 (evening)**
+**Last updated: 2026-08-22**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). Three things changed on the evening of
 > **2026-08-21** and invalidate parts of what is written below:
@@ -119,7 +119,11 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 
 ### Other surfaces
 - Calendar: days/weeks/months zoom · by-project or by-staff rows · bounded window with paging (`SLICE_10_APPLY.md`, visually verified)
-- Customers list + detail
+- Customers list + detail. **Delete customer** (2026-08-22) sits behind a No/Yes confirm
+  modal, matching Mark Complete. `deleteCustomer` refuses server-side when the customer has
+  projects (`lib/db/repo.ts`), so the dialog reads that off the projects already in scope:
+  with projects it names the count, says they must be deleted or reassigned first, and
+  disables **Yes** rather than letting the click fail into a toast
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
 - Staff (`/staff`, admin): Team (with **weekly workload**) + Phase subscribers

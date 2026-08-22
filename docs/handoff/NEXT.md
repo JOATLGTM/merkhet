@@ -2,18 +2,52 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-21 (evening)**
+**Last updated: 2026-08-22**
 
 ## ✅ No unapplied migrations
 
 Every migration in `supabase/migrations/` is applied to hosted Supabase and was verified
 column-by-column on 2026-08-21, including the gate-parties pair this file previously flagged
-as outstanding and the two new email-outbox migrations.
+as outstanding and the two new email-outbox migrations. `20260822100000_project_created_by.sql`
+was added and applied on 2026-08-22, verified by `npm run check:creator`.
 
 > Verify with a round-trip insert, not `select … { head: true }`. A head count **returns no
 > error for a table that does not exist** — during this session it reported `email_outbox` as
 > present a full step before the table had been created. Check against a control table you
 > know is absent.
+
+## What happened on 2026-08-22
+
+Two changes, both committed. No migrations outstanding — the one added this day is applied
+and verified.
+
+### Board cards showed `—` instead of a name
+
+Reported from production: five colleagues had created projects and only the reporter's card
+showed initials. **Not a data or permissions bug.** The circle is the current-phase assignee
+(PRD §6.2), and Pending plus the Active holding column both carry `current_phase = null` by
+construction, so there was no phase row to read an assignee from.
+
+`projects.created_by` added and backfilled from the earliest `project.created` activity row
+(`20260822100000_project_created_by.sql`, **applied + verified**). Cards now fall back to the
+creator, outlined rather than solid so it never reads as an assignee. Verified live: 6/6
+projects carry a creator, all matching the activity log. `npm run check:creator` re-runs it,
+read-only. Detail in [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md).
+
+**Still open:** the board builds `usersById` from `listUsers()`, which defaults to
+`activeOnly = true`, so a **deactivated** assignee or creator still renders `—`. Nobody is
+deactivated today, so `check:creator` passes and will fail loudly when that changes. The fix
+separates "directory for name lookups" from "people you can assign" — do **not** just flip
+the flag, the same `users` prop feeds the assignee filter and the sheet's assignee selects.
+
+### Delete customer asks first
+
+`Delete customer` on the customer detail page fired immediately on click. Now behind a No/Yes
+modal matching Mark Complete. Because `deleteCustomer` refuses server-side when the customer
+has projects, the dialog reads the count off the projects already in scope, says they must be
+deleted or reassigned first, and disables **Yes** rather than failing into a toast.
+
+**Not verified in a browser** — it compiles and lints clean, but nobody has clicked it.
 
 ## What happened on 2026-08-21 (evening session)
 
@@ -271,6 +305,7 @@ npm run check:workload   # week bounds + weekly rate + grouping — 65 assertion
 npm run check:contact    # project vs customer address/contact — 23 assertions
 
 npm run check:gates      # workflow gates + rework loop — 50 assertions, HITS THE LIVE DB
+npm run check:creator    # board-card avatar resolution — READS the live DB, writes nothing
 ```
 
 No test runner in the repo; these are plain scripts that exit non-zero on failure. `check`
@@ -284,6 +319,11 @@ hosted Supabase**. ⚠️ **That account was deleted in the 2026-08-21 wipe, so 
 until it is repointed at a live one.** It also, creating one throwaway project and deleting it in a `finally`. It touches no
 existing project but burns a `project_number_seq` value per run. Run it after touching
 `move_project`, `reject_gate`, or the approval functions in `lib/db/repo.ts`.
+
+`check:creator` also hits the live database but is **read-only** — no sign-in, no writes, no
+sequence burn. It asserts `projects.created_by` exists, agrees with the activity log, that no
+board project still renders `—`, and that no card resolves to a deleted or deactivated user.
+Run it after adding projects or deactivating staff.
 
 ## Email — open questions and unverified ground
 
@@ -314,6 +354,11 @@ Mail is **live in production** to both audiences. What is still outstanding:
 - Pixel-diff vs Lovable where still soft; Staff page Active-column UX
 - Client-updates Phase 2 (`/client-updates`); client-facing email on phase entry (deferred in WORKFLOW)
 - RLS audit against live DB
+- `listUsers()` defaults to active-only and the board calls it bare, so cards whose assignee
+  or creator has been deactivated fall back to `—`. Needs a full directory for name lookups
+  kept separate from the assignable list — see 2026-08-22 above
+- Destructive-action guards are now graded (see `DECISIONS.md` → Destructive actions). The
+  customer-delete modal has not been exercised in a browser
 - Board: add dnd-kit `KeyboardSensor` (PRD §12.6)
 - Two pre-existing `react-hooks/set-state-in-effect` lint errors remain, in
   `project-detail-sheet.tsx` (`InlineText`) and `board-view.tsx` (localStorage read).

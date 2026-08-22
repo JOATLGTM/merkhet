@@ -18,7 +18,19 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md) | Gate sign-offs = Austin · Ryan · chosen |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
+| [CARD_CREATOR_APPLY.md](./CARD_CREATOR_APPLY.md) | Board card avatar — assignee, falling back to `projects.created_by` |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
+
+## State as of 2026-08-22
+
+**Board cards no longer read `—`.** The avatar is the current-phase assignee, which Pending
+and the Active holding column cannot have — so every freshly filed project was anonymous.
+`projects.created_by` was added and backfilled from the activity log; cards fall back to the
+creator, outlined rather than solid. Applied and verified live (`npm run check:creator`).
+[CARD_CREATOR_APPLY.md](./CARD_CREATOR_APPLY.md)
+
+**Delete customer asks first** — a No/Yes modal, with **Yes** disabled when the customer has
+projects, because the server refuses that anyway. Not yet clicked in a browser.
 
 ## State as of 2026-08-21 (evening)
 
