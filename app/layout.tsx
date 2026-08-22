@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, JetBrains_Mono } from "next/font/google";
 
+import { AuthFragmentRelay } from "@/components/auth/auth-fragment-relay";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
@@ -30,6 +31,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${archivo.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col bg-paper font-sans text-ink">
+        {/* Root, not /login: a misrouted auth fragment can land on any page
+            the Supabase Site URL happens to point at. */}
+        <AuthFragmentRelay />
         <ThemeProvider>
           <MotionProvider>{children}</MotionProvider>
         </ThemeProvider>

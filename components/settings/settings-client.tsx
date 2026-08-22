@@ -2,9 +2,11 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
+  deleteUserAction,
   inviteUserAction,
   setActiveAction,
   setSubscribersAction,
@@ -12,6 +14,14 @@ import {
 } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -52,11 +62,14 @@ export function SettingsClient({
   subscribers,
   workload,
   week,
+  currentUserId,
 }: {
   users: User[];
   subscribers: PhaseSubscriber[];
   workload: WorkloadPerson[];
   week: Week;
+  /** Whose session this is — the one row that cannot offer a delete button. */
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -73,6 +86,12 @@ export function SettingsClient({
     });
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  // Holds the row being confirmed, not a boolean — the dialog needs the person
+  // to name them and to count what deleting them costs.
+  const [pendingDelete, setPendingDelete] = useState<User | null>(null);
+  const deleteImpact = pendingDelete
+    ? (workloadBy.get(pendingDelete.id)?.rows.length ?? 0)
+    : 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -128,6 +147,9 @@ export function SettingsClient({
                   </TableHead>
                   <TableHead className="label-caps h-9 text-ink-soft">
                     Active
+                  </TableHead>
+                  <TableHead className="label-caps h-9 w-10 text-ink-soft">
+                    <span className="sr-only">Delete</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -190,10 +212,30 @@ export function SettingsClient({
                         }}
                       />
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="rounded-[3px] text-ink-soft hover:text-redline"
+                        // Deleting yourself would end the session mid-request,
+                        // so the server refuses it too — this only keeps the
+                        // admin from finding that out by clicking.
+                        disabled={pending || user.id === currentUserId}
+                        title={
+                          user.id === currentUserId
+                            ? "You cannot delete your own account"
+                            : `Delete ${user.name}`
+                        }
+                        onClick={() => setPendingDelete(user)}
+                      >
+                        <Trash2 />
+                        <span className="sr-only">Delete {user.name}</span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                   {open && person && (
                     <TableRow className="border-rule hover:bg-transparent">
-                      <TableCell colSpan={5} className="p-0">
+                      <TableCell colSpan={6} className="p-0">
                         <WorkloadDetail person={person} />
                       </TableCell>
                     </TableRow>
@@ -295,6 +337,84 @@ export function SettingsClient({
           </div>
         )}
       </div>
+
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <DialogContent className="rounded-none sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[16px]">
+              Delete {pendingDelete?.name}?
+            </DialogTitle>
+            <DialogDescription className="text-[13px]">
+              Removes the login as well as the profile. There is no undo, and
+              the account cannot be restored by re-inviting — that creates a new
+              one.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ul className="space-y-1.5 text-[13px] text-ink-mid">
+            <li>
+              <span className="font-mono tabular-nums text-ink">
+                {deleteImpact}
+              </span>{" "}
+              in-progress {deleteImpact === 1 ? "phase" : "phases"} lose their
+              assignee. The work stays where it is.
+            </li>
+            <li>
+              Their activity history is kept but stops carrying their name.
+            </li>
+            <li>Phase subscriptions are removed.</li>
+            <li>
+              <span className="font-mono text-[12px] text-ink">
+                {pendingDelete?.email}
+              </span>{" "}
+              becomes free to invite again.
+            </li>
+          </ul>
+
+          <p className="border-t border-rule pt-3 text-[12px] text-ink-soft">
+            To stop someone signing in without losing any of that, untick
+            Active instead — that is the reversible one.
+          </p>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-none"
+              onClick={() => setPendingDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-none text-redline"
+              disabled={pending}
+              onClick={() => {
+                const target = pendingDelete;
+                if (!target) return;
+                startTransition(async () => {
+                  const result = await deleteUserAction(target.id);
+                  if (!result.ok) {
+                    toast.error(result.error);
+                    return;
+                  }
+                  toast.success(`${target.name} deleted`);
+                  setPendingDelete(null);
+                  router.refresh();
+                });
+              }}
+            >
+              Delete account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

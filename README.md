@@ -98,9 +98,40 @@ Before verification completes you can send from `onboarding@resend.dev` to check
 Resend's docs do not say whether that shared sender reaches recipients other than your own
 account address — treat it as a smoke test, not as a way to onboard staff.
 
-Invite links are built from Supabase's **Site URL**, so they point wherever that is set. While
-it is `http://localhost:3000` the emails only work on that machine — deploy and update Site
-URL, `NEXT_PUBLIC_SITE_URL`, and the Redirect URLs allowlist before inviting anyone else.
+### When the link lands on the wrong page
+
+Two symptoms, one cause. The link arrives pointing at `localhost:3000`, or it reaches the
+right domain but drops the recipient on `/` — which the proxy bounces to `/login`, where they
+are asked for a password they have never set. Both mean Supabase substituted its **Site URL**
+for the `redirectTo` the app sent.
+
+Tell them apart by the `redirect_to` on the Supabase verify URL in the email:
+`…/auth/v1/verify?token=…&type=invite&redirect_to=https://merkhetdrafting.com` — a bare origin
+with no `/accept-invite` is the substitution, and the allowlist is what is missing.
+
+The address comes from one of two places, and both have to be right:
+
+1. **`redirectTo`**, which the app sends with the invite — `env.siteUrl` (`lib/env.ts`):
+   `NEXT_PUBLIC_SITE_URL`, else Vercel's `VERCEL_PROJECT_PRODUCTION_URL`, else `VERCEL_URL`,
+   else `http://localhost:3000`.
+2. **Supabase's own Site URL**, which *replaces* that `redirectTo` whenever the target is not
+   in the Redirect URLs allowlist. No error is raised — this is the usual cause of a link that
+   arrives pointing at `localhost:3000` even after the env var is set.
+
+So a correct `NEXT_PUBLIC_SITE_URL` alone is not enough: Site URL and the allowlist are edited
+in the Supabase dashboard, not in this repo, and a stale value there overrides the app. Fix
+all three together. Inviting from a production build whose origin still resolves to `localhost`
+now fails loudly rather than mailing a dead single-use link.
+
+Vercel preview deployments each get their own hostname; add `https://*.vercel.app/**` to the
+allowlist if invites need to work from a preview.
+
+`AuthFragmentRelay` (mounted in the root layout) is the belt to that braces. Wherever a
+session-bearing fragment lands, it reads the `type` Supabase stamps on it and forwards to
+`/accept-invite` or `/reset-password` with the fragment intact — so a misconfigured allowlist
+degrades to a working invite rather than a sign-in form the recipient cannot use. It does not
+replace fixing the allowlist: the tokens still take a detour through a page that was never
+meant to see them.
 
 ### How the link gets exchanged
 
@@ -125,6 +156,37 @@ set-password screen.
 
 Invites expire (24h by default). A used or stale link shows an explanation and asks the
 recipient to request a new one; re-invite from `/staff`.
+
+### Removing an account
+
+Admins delete accounts from `/staff` — the trash button on each row, which asks first and
+says what the deletion costs. It removes the login as well as the profile, so the address
+becomes invitable again. **Deactivating is the reversible option**: unticking Active stops
+someone signing in and keeps their history intact, and is what you want for someone who has
+left. Delete is for accounts that should not exist at all.
+
+`project_phases.assignee_id` and `activity_log.actor_id` are `on delete set null`, so the
+work and the history survive and lose their name; `phase_subscribers` rows cascade away. An
+admin cannot delete their own account — that would end the session mid-request, and if they
+were the only admin, leave nobody able to invite anyone back.
+
+**Deleting the row from the `users` table in the Supabase dashboard does not delete the
+account.** `public.users.id` is `references auth.users(id) on delete cascade`, so the cascade
+runs from the login down to the profile and never the other way. Removing the profile in the
+table editor leaves the login behind: the table shows nothing, and the next invite to that
+address is refused as already registered. `/staff` gets this right; the table editor does not.
+
+To clean up an orphan that predates this, or one made by hand, delete under
+**Authentication → Users** in the dashboard, or:
+
+```bash
+npx tsx scripts/delete-user.ts someone@example.com        # report what exists
+npx tsx scripts/delete-user.ts someone@example.com --yes  # delete
+```
+
+Report mode names the orphan case explicitly and counts what the deletion touches —
+`project_phases.assignee_id` and `activity_log.actor_id` go null, `phase_subscribers` rows
+go away. Like `reset-data.ts`, it is not wired into `npm run`.
 
 ### Forgotten passwords
 

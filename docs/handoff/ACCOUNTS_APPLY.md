@@ -113,6 +113,42 @@ Consequences for anything that reads as stale in the older handoff docs:
 - "Backfill delegation on the 18 live projects" is moot — there are no such projects.
 - `project_number_seq` was reset to 400, so the first real project is MK-0400.
 
+### Deleting one account — the `users` table is the wrong place
+
+**2026-08-21.** Hit while re-testing with `whoskawaii@gmail.com`: the row was deleted from the
+`users` table, and the next invite still failed with *"already has an account"* while the
+table editor showed the address as gone.
+
+`public.users.id` is `references auth.users(id) on delete cascade` (init migration, line 15).
+The cascade runs **auth → profile only**. Deleting the profile leaves the login registered,
+so `inviteUserByEmail` keeps refusing an address that looks absent everywhere an admin would
+think to look. `inviteUser` now detects exactly this — login present, profile missing — and
+says so instead of repeating the generic message.
+
+`/staff` now carries a per-row delete (trash icon → confirm dialog), which is the path an
+admin should use — `deleteUserAction` gates on `requireAdmin`, refuses self-deletion, and
+`deleteUser` in `lib/db/repo.ts` goes through the service-role admin API so the login goes
+with the profile. The dialog names the cost before it happens: how many in-progress phases
+lose their assignee (read off the workload data the page already has, so no extra query),
+that activity history stays but goes unattributed, and that subscriptions are dropped. It
+also points at Active as the reversible alternative.
+
+Self-deletion is refused because it would revoke the session mid-request; since the caller is
+an admin and cannot be the target, at least one admin always survives, which is why there is
+no separate last-admin check.
+
+`scripts/delete-user.ts` remains for anything the UI cannot see — an orphaned login has no
+row on `/staff`, so only the script can reach it:
+
+```bash
+npx tsx scripts/delete-user.ts someone@example.com        # report only
+npx tsx scripts/delete-user.ts someone@example.com --yes  # delete
+```
+
+Reports before deleting, and counts the references it will disturb: `assignee_id` and
+`actor_id` go null (history kept, attribution lost), `phase_subscribers` rows are deleted.
+Not wired into `npm run`, for the same reason `reset-data.ts` isn't.
+
 ### The script
 
 `scripts/reset-data.ts`. Deliberately **not** wired into `npm run` — it should be awkward

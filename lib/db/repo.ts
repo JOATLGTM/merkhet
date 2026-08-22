@@ -1456,6 +1456,49 @@ export async function setUserActive(id: string, isActive: boolean) {
   return mapUser(data);
 }
 
+/**
+ * Removes an account for good — the `auth.users` row, which is the one that
+ * matters. `public.users.id` is `references auth.users(id) on delete cascade`,
+ * so the profile follows; going the other way leaves a login with no profile
+ * that nothing in the UI can see and no invite can replace.
+ *
+ * Needs the service role — deleting an auth user is an admin API call, not a
+ * table write. Callers must gate on admin themselves; this does not.
+ *
+ * What survives: `project_phases.assignee_id` and `activity_log.actor_id` are
+ * `on delete set null`, so the work and the history stay and lose their name.
+ * `phase_subscribers` rows cascade away.
+ */
+export async function deleteUser(id: string) {
+  const { createServiceClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createServiceClient();
+  } catch {
+    throw new Error(
+      "Deleting users requires SUPABASE_SERVICE_MERKET_ROLE_KEY on the server.",
+    );
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) {
+    // The reverse orphan: a profile row whose login is already gone. Only a
+    // hand-edit in the table editor produces one, but it would otherwise be
+    // undeletable from here — the admin API has nothing to delete, and the
+    // profile stays on the roster forever.
+    if (error.status === 404 || /not found/i.test(error.message)) {
+      const supabase = await db();
+      const { error: profileError } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", id);
+      throwOn(profileError, "Failed to delete user");
+      return;
+    }
+    throw new Error(error.message || "Failed to delete user");
+  }
+}
+
 export async function inviteUser(input: {
   name: string;
   email: string;
@@ -1474,6 +1517,18 @@ export async function inviteUser(input: {
   }
 
   const { env } = await import("@/lib/env");
+
+  // A deployed build that resolves to localhost would mail a link only the
+  // developer's machine can open — and the invite is single-use, so the
+  // recipient cannot be rescued by re-sending until the config is fixed.
+  // Fail before Supabase burns the token rather than after.
+  if (env.siteUrlIsLocal && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Invite links would point at localhost. Set NEXT_PUBLIC_SITE_URL to " +
+        "the deployed origin (and match it in Supabase → Auth → URL " +
+        "Configuration) before inviting anyone.",
+    );
+  }
 
   // `inviteUserByEmail` — not `createUser` — because the invitee has to be able
   // to sign in. createUser would need a password only the server knows, leaving
@@ -1495,6 +1550,25 @@ export async function inviteUser(input: {
     // Supabase's own wording for these is too terse to act on, and the fix
     // differs sharply between them.
     if (/already been registered|already exists/i.test(authError.message)) {
+      // Deleting the row from the `users` table does not delete the account:
+      // `public.users.id references auth.users(id) on delete cascade` cascades
+      // downwards only, so the login outlives the profile. The table editor
+      // then shows nothing while the invite keeps being refused — worth naming,
+      // because the fix is somewhere the person looking has already checked.
+      const supabase = await db();
+      const { data: profile } = await supabase
+        .from("users")
+        .select("id")
+        .ilike("email", input.email)
+        .maybeSingle();
+      if (!profile) {
+        throw new Error(
+          `${input.email} still has a login even though its profile row is ` +
+            "gone — deleting from the users table does not delete the " +
+            "account. Remove it under Authentication → Users in Supabase, or " +
+            `run: npx tsx scripts/delete-user.ts ${input.email} --yes`,
+        );
+      }
       throw new Error(`${input.email} already has an account.`);
     }
     if (

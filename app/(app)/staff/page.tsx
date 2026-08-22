@@ -55,6 +55,7 @@ export default async function StaffPage() {
       subscribers={subscribers}
       workload={workload}
       week={week}
+      currentUserId={user.id}
     />
   );
 }

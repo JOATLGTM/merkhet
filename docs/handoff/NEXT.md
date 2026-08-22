@@ -42,7 +42,9 @@ every account it created was unreachable. Now sends a real invite; `/accept-invi
 `merkhetdrafting.com`) is configured and sending.
 
 **Blocking:** `NEXT_PUBLIC_SITE_URL` and Supabase **Site URL** still say `localhost:3000`, so
-invite and reset links only work on the developer's machine. No staff member can be onboarded
+invite and reset links only work on the developer's machine — still reproducing as of the
+2026-08-21 invite; see **Immediate** §1 for the exact dashboard fields. No staff member can be
+onboarded
 until that changes. See [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
 
 ### Slice 6 is done — notifications send
@@ -149,11 +151,51 @@ runnable script. Nothing built that day is outstanding.
 
 ## Immediate
 
-1. **Point the deployed URLs at `merkhetdrafting.com`.** `NEXT_PUBLIC_SITE_URL`,
-   `NEXT_PUBLIC_APP_URL`, Supabase **Site URL**, and the **Redirect URLs** allowlist
-   (`/accept-invite`, `/reset-password`). Until this is done, invite and password-reset links
-   point at `localhost` and **no staff member can be onboarded** — which is the thing blocking
-   everything else.
+1. **Point the deployed URLs at `merkhetdrafting.com`.** Still the thing blocking staff
+   onboarding, now one field short of done.
+
+   Two invites were sent on 2026-08-21 and each failed differently:
+
+   - The first arrived at `http://localhost:3000/accept-invite#access_token=…` — Site URL was
+     still localhost.
+   - The second, after Site URL moved, arrived at
+     `…/auth/v1/verify?token=…&redirect_to=https://merkhetdrafting.com` — **the bare origin,
+     no `/accept-invite`.** That is Supabase replacing the app's `redirectTo` because the
+     path is not in the **Redirect URLs** allowlist. It landed on `/`, the proxy bounced it to
+     `/login?next=%2F` with the fragment still attached, and the invitee was shown a sign-in
+     form asking for a password they had never set.
+
+   A third invite settled it: `redirect_to=http://localhost:3000/accept-invite`, passed
+   through **unsubstituted**. Supabase only substitutes what it rejects, so the allowlist was
+   never the problem — Site URL and both Redirect URLs were already correct. The app was
+   generating a localhost origin because `NEXT_PUBLIC_SITE_URL` was set nowhere at all.
+
+   **Fixed locally 2026-08-21:** `.env` now sets `NEXT_PUBLIC_SITE_URL` and
+   `NEXT_PUBLIC_APP_URL` to `https://merkhetdrafting.com` — deliberately production, even
+   under `npm run dev`, because a real invite must never mail a localhost link. The trade is
+   that the invite flow can no longer be walked end-to-end against a local server.
+
+   **Still outstanding: the same two variables in Vercel, then a redeploy.** `NEXT_PUBLIC_*`
+   is inlined at build time, so setting them does not reach a deployment that already exists.
+
+   The app side is now defensive on both counts — `env.siteUrl` falls back to Vercel's
+   `VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL` when `NEXT_PUBLIC_SITE_URL` is unset, a
+   production invite that would resolve to `localhost` throws rather than mailing a dead
+   single-use link, and `AuthFragmentRelay` (root layout) forwards a misrouted
+   `#access_token=…&type=invite` fragment to `/accept-invite` from wherever it lands. **None
+   of that fixes the config**, and the relay still routes the tokens through a page that
+   should never have seen them.
+
+   Still to do, none of it in this repo:
+
+   - Supabase → Auth → URL Configuration → **Site URL** = `https://merkhetdrafting.com`.
+   - **Redirect URLs** += `https://merkhetdrafting.com/accept-invite`,
+     `https://merkhetdrafting.com/reset-password` (keep the `localhost:3000` pair for dev; add
+     `https://*.vercel.app/**` if previews need to send invites).
+   - Vercel env: set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_APP_URL` explicitly, then
+     **redeploy** — `NEXT_PUBLIC_*` is inlined at build time, so editing it does not reach a
+     deployment that already exists.
+   - Any invite already sent is spent. Re-invite from `/staff` after the above.
 2. **Replace the placeholder firm details** in `lib/email/tokens.ts` — the Austin address,
    `(512) 555-0142` and `studio@merkhet.studio` (a domain the firm does not own) appear on
    **every client email**, and client mail is now live. Deferred by the user, not resolved.
@@ -250,8 +292,10 @@ Mail is **live in production** to both audiences. What is still outstanding:
 - **`FIRM` in `lib/email/tokens.ts` is placeholder data** — Austin address,
   `(512) 555-0142`, `studio@merkhet.studio`, a domain the firm does not own. It is on **every
   client email**, and client email now sends. Deferred by the user 2026-08-21, not resolved.
-- **`NEXT_PUBLIC_APP_URL` is unset**, so internal mail deep-links to `localhost` — unreachable
-  for recipients and mildly spam-flavoured. `appUrlIsLocal` exists to make this visible.
+- **`NEXT_PUBLIC_APP_URL` is set locally but not in Vercel**, so internal mail sent from the
+  deployed app still deep-links to `localhost` — unreachable for recipients and mildly
+  spam-flavoured. `appUrlIsLocal` exists to make this visible. Set it alongside
+  `NEXT_PUBLIC_SITE_URL` in the Vercel dashboard; see **Immediate** §1.
 - **No client except a browser has rendered these.** No Litmus, no Email on Acid, no Outlook —
   the client most likely to break a table layout. More pressing now that real inboxes receive
   them, not less.
