@@ -68,7 +68,12 @@ in use. Migration applied; 50 live assertions pass via `npm run check:gates`. Se
 `SLICE_5_APPLY.md` — including a **pre-existing `move_project` bug** it uncovered, where an
 unordered phase loop could trip `one_active_phase_per_project` on longer-lived projects.
 
-**Next:** **Slice 6 (notifications)** — `notifyGateRejected` is a stub and rejection
+**Slice 6 (notifications) built and verified 2026-08-21.** Recipient resolution, an outbox
+table, the Resend provider and all four call sites; internal and customer mail both delivering
+in production. Client-facing copy carries no dates or durations, at the client's request.
+See [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+
+**Superseded below (2026-08-14):** **Slice 6 (notifications)** — `notifyGateRejected` is a stub and rejection
 notifications depend on it. Blocked on DNS/CNAME for the sending domain; the recipient
 resolution, outbox and call sites can be built ahead of that.
 
@@ -99,7 +104,7 @@ decision anywhere, and Slice 5 sharpens it — approval sign-offs are precisely 
 | —     | 7 — Consultants                            | **Done**                      |
 | 8     | 8 — Permitting exit + archive              | **Done**                      |
 | 6     | 5 — Approval gates + rework loops          | **Done — applied + verified** |
-| 7     | 6 — Notifications                          | **Templates done** — send open |
+| 7     | 6 — Notifications                          | **Done — sending 2026-08-21** |
 | 9     | 9 — Staff workload view                    | **Done — 2026-08-21**         |
 | 10    | 10 — Calendar (daily + staff grouping)     | **Done**                      |
 | —     | 11 — Planned hours per phase               | **Done**                      |
@@ -384,10 +389,12 @@ to survive a repeat.
 
 # Slice 6 — Notifications
 
-> **Partly built 2026-08-18.** Templates, copy and routing are done and documented in
-> [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md). The provider, the outbox and the call
-> sites are still open and still blocked on DNS. The note below describes the slice as it was
-> originally scoped; two of its assumptions have since changed — see the two bold lines.
+> **Complete 2026-08-21** — [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md). Provider, outbox and
+> all four call sites are built and sending to both audiences.
+>
+> *Historical:* partly built 2026-08-18 — templates, copy and routing only
+> ([`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md)). The note below describes the slice as it
+> was originally scoped; two of its assumptions have since changed — see the two bold lines.
 
 Greenfield: no provider, no outbox, no templates, no `notifications` table. Nothing to reuse
 — `phase_subscribers` is demoted, not repurposed. **Templates now exist** (`lib/email/`).
@@ -491,8 +498,9 @@ Left unspecified, these get invented.
 
 - **Client portal, client login, magic links, external approval flows.** Every user is
   internal staff.
-- ~~**Client-facing email.** Deferred to Phase 2 (`WORKFLOW-2.md` §4).~~ **Unblocked
-  2026-08-18** — templates built; sending still blocked on DNS.
+- ~~**Client-facing email.** Deferred to Phase 2 (`WORKFLOW-2.md` §4).~~ **Shipped
+  2026-08-21** — sending from `noreply@merkhetdrafting.com`, gated behind
+  `EMAIL_CUSTOMER_ENABLED`. Carries no dates or durations, at the client's request.
 - **General file/document management.** LOI and contract only.
 - **Time entry, timesheets, rates, invoicing.** Phase 2. Planned hours only — budgeted per
   phase (Slice 11), never logged against.

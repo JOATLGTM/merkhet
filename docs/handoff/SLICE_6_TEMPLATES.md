@@ -1,5 +1,8 @@
 # Slice 6 (part 1) — Email templates
 
+> **Superseded 2026-08-21.** This documents the template half only. The provider, outbox
+> and call sites were built and are sending — [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+
 **Built 2026-08-18. No SQL, no migration, nothing wired into the app.**
 
 Slice 6 splits cleanly in two. This is the half that does not need DNS:
@@ -7,7 +10,7 @@ Slice 6 splits cleanly in two. This is the half that does not need DNS:
 | Part | State |
 |---|---|
 | Templates, copy, routing | **Done — this document** |
-| Provider, outbox, call sites | Open — blocked on DNS for the sending domain |
+| Provider, outbox, call sites | ~~Open~~ **Done 2026-08-21** — `SLICE_6_APPLY.md` |
 
 `lib/notifications.ts` is still the same stub it always was. Nothing calls the
 templates from the app.

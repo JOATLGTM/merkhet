@@ -28,11 +28,14 @@
 | Supabase clients | `lib/supabase/{client,server,admin}.ts` |
 | Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
 | Session | `lib/auth/session.ts` |
-| Notification stubs | `lib/notifications.ts` — **still stubs**, nothing renders a template yet |
+| Notification call sites | `lib/notifications.ts` — resolves recipients, plans, enqueues. Never throws |
+| Email send path + outbox | `lib/email/send.ts` — the only module that talks to a provider |
+| Recipient resolution | `resolveAudiences` in `lib/db/repo.ts` |
 | Email templates | `lib/email/` (`README.md` there has the routing table) |
 | Email copy — every sentence | `lib/email/copy.ts` |
 | Email routing (pure, no DB) | `lib/email/plan.ts` |
 | Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
+| Outbox retry | `scripts/retry-emails.ts` (`npm run email:retry`) |
 | Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Per-staff weekly load (pure) | `lib/workload.ts` (checks: `npm run check:workload`) |
@@ -62,7 +65,12 @@
 | Command palette | `components/command/command-palette.tsx` |
 | Motion provider | `components/providers/motion-provider.tsx` |
 | Login background paths | `components/kokonutui/background-paths.tsx` |
-| Auth gate / redirects | `proxy.ts` |
+| Auth gate / redirects | `proxy.ts` — invite/reset routes are reachable signed out |
+| Sign-in / invite / reset screens | `app/(auth)/` — `login`, `accept-invite`, `reset-password`, `forgot-password` |
+| Emailed-link exchange | `app/auth/confirm/route.ts` |
+| Shared set-password form | `components/auth/set-password-form.tsx` (invite **and** reset) |
+| Invite + reset actions | `inviteUser` in `lib/db/repo.ts`; `requestPasswordReset` in `app/actions/auth.ts` |
+| ⚠️ Destructive data wipe | `scripts/reset-data.ts` — not in `npm run` on purpose |
 
 ## Config
 

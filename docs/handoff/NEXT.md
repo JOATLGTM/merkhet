@@ -2,24 +2,59 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-21**
+**Last updated: 2026-08-21 (evening)**
 
-## What happened on 2026-08-21
+## ✅ No unapplied migrations
 
-### ⚠️ Two unapplied migrations
+Every migration in `supabase/migrations/` is applied to hosted Supabase and was verified
+column-by-column on 2026-08-21, including the gate-parties pair this file previously flagged
+as outstanding and the two new email-outbox migrations.
 
-```
-20260821120000_gate_parties_enum.sql   -- run ALONE, first
-20260821120100_gate_parties.sql        -- GATE_PARTIES_APPLY.md
-```
+> Verify with a round-trip insert, not `select … { head: true }`. A head count **returns no
+> error for a table that does not exist** — during this session it reported `email_outbox` as
+> present a full step before the table had been created. Check against a control table you
+> know is absent.
 
-They **must be separate statements** — Postgres will not let a transaction use an enum value
-it just added, and the second file names `'chosen'`. Same split as
-`20260812130000_workflow_1b_enum.sql`. Until they run, recording a Ryan or chosen-third
-sign-off fails.
+## What happened on 2026-08-21 (evening session)
 
-`20260821100000_project_address_contact.sql` **is applied** — all five columns verified
-present on hosted Supabase, 2026-08-21.
+Three things landed, all committed and deployed to `merkhetdrafting.com`. **The database was
+wiped of demo data** — read that section before trusting anything below dated earlier.
+
+### ⚠️ The database is empty and the seed logins are gone
+
+All demo data deleted; the firm is entering real records. **One account survives**,
+`christopher.vo.h@gmail.com`, promoted staff → admin. `chris@merkhet.studio` / `password` and
+the other four seed users **no longer exist**.
+
+Knock-on effects on older instructions in this file:
+
+- `npm run check:gates` signs in as `chris@merkhet.studio` — it will **fail** until repointed.
+- "Backfill delegation on the 18 live projects" is moot; there are no such projects.
+- `project_number_seq` reset to 400, so the first real project is MK-0400.
+
+Script and full account is [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
+
+### Accounts: invite and password reset
+
+Invites were **silently broken** — `inviteUser` minted a random password and sent no email, so
+every account it created was unreachable. Now sends a real invite; `/accept-invite`,
+`/reset-password`, `/forgot-password` and `/auth/confirm` added. Custom SMTP (Resend, on
+`merkhetdrafting.com`) is configured and sending.
+
+**Blocking:** `NEXT_PUBLIC_SITE_URL` and Supabase **Site URL** still say `localhost:3000`, so
+invite and reset links only work on the developer's machine. No staff member can be onboarded
+until that changes. See [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
+
+### Slice 6 is done — notifications send
+
+Recipient resolution, an outbox table, a provider and every call site. Internal **and**
+customer mail verified delivering in production. Customer mail is gated behind
+`EMAIL_CUSTOMER_ENABLED` and currently **on**.
+
+Client-facing copy no longer carries dates or durations, at the client's request. Full write-up
+in [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md), including two things to decide: gate email goes to
+admins rather than the `austin`/`ryan` approval parties (nothing links them), and every column
+move mails the customer — including backwards ones.
 
 ### Project address and contact
 
@@ -79,6 +114,10 @@ Arithmetic lives in `lib/workload.ts`, React-free, covered by `npm run check:wor
 
 ## What happened on 2026-08-18
 
+> **Superseded 2026-08-21.** Everything below described the state when only templates
+> existed. Slice 6 is now wired and sending — [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+> `lib/notifications.ts` is no longer a stub, and the provider is no longer blocked.
+
 The **template half of Slice 6** was built — `lib/email/`, four templates, 11 events, 16
 messages, plus two harnesses. No SQL, no migration, and **nothing wired into the app**:
 `lib/notifications.ts` is the same stub it has always been.
@@ -110,13 +149,21 @@ runnable script. Nothing built that day is outstanding.
 
 ## Immediate
 
-1. **Apply `20260821100000_project_address_contact.sql`** — see above. Nothing else in the
-   tree is waiting on SQL.
-2. **Push** the local commits if the remote should have them — everything is local only.
-3. **Backfill delegation on the 18 live projects** — open each, "Plan schedule". Coverage is
-   22% of phase rows assigned / 29% dated until this is done, and the staff calendar reads
-   `assignee_id`, so By-staff mode looks mostly empty until then. Measured table in
-   `SLICE_11_APPLY.md`.
+1. **Point the deployed URLs at `merkhetdrafting.com`.** `NEXT_PUBLIC_SITE_URL`,
+   `NEXT_PUBLIC_APP_URL`, Supabase **Site URL**, and the **Redirect URLs** allowlist
+   (`/accept-invite`, `/reset-password`). Until this is done, invite and password-reset links
+   point at `localhost` and **no staff member can be onboarded** — which is the thing blocking
+   everything else.
+2. **Replace the placeholder firm details** in `lib/email/tokens.ts` — the Austin address,
+   `(512) 555-0142` and `studio@merkhet.studio` (a domain the firm does not own) appear on
+   **every client email**, and client mail is now live. Deferred by the user, not resolved.
+3. **Add the Resend SPF and bounce-MX records.** Only DKIM verified; mail authenticates but
+   hard bounces are invisible, so a typo'd address fails silently. Records are on the Resend
+   Domains page; DNS is at **Vercel**, not the registrar. The `send` subdomain — do not touch
+   the root MX, which is Google Workspace.
+4. **Repoint `npm run check:gates`** at a live account, or it fails on the wiped seed user.
+5. **Decide the gate-email question** — see `SLICE_6_APPLY.md`. Making Austin and Ryan admins
+   is the zero-work answer.
 
 ## Answered 2026-08-21 — what the planned-hours number is for
 
@@ -136,20 +183,14 @@ Two follow-ons it unblocks rather than closes, neither of them started:
 
 See [`CHANGES-2.md`](./CHANGES-2.md) status table.
 
-1. **Slice 6 — Notifications** — templates are **done** (`lib/email/`, 2026-08-18). What
-   remains, in order of what is unblocked:
-   - **Recipient resolution** in `lib/db/repo.ts` — delegate from `project_phases`, client
-     contact from `projects.client_contact_id`, customer from `customers.contact_email`,
-     baseline from `phase_subscribers`. `plan.ts` takes resolved people, so this is additive.
-   - **The outbox table**, so a failed send is retryable and review-before-send has somewhere
-     to hold messages.
-   - **Call sites** — replace the stubs in `lib/notifications.ts`
-     (`notifyProjectEnteredActive`, `notifyGateRejected`) and add the phase-entry hook.
+1. ~~**Slice 6 — Notifications**~~ — **built and sending 2026-08-21.** Recipient resolution,
+   outbox, provider and all four call sites. See [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+   Two pieces of it were *not* done and are still open:
    - **Reword Settings + the board column popover** so `phase_subscribers` reads as a standing
-     baseline rather than the routing model (WORKFLOW-2 §4). Still not done.
-   - **The provider and the DNS records.** Still blocked. Note that deliverability cannot be
-     tested before this exists — the Gmail harness proves the pipe and the rendering, nothing
-     more.
+     baseline rather than the routing model (WORKFLOW-2 §4).
+   - **A forward-only guard on customer mail.** Every column move mails the customer,
+     including backwards ones — dragging DD → SD sends "schematic design has begun".
+     `phase_transitions.direction` already has what is needed.
 2. **Slice 3 — Intake form expansion** — on hold until the client clarifies fields/labels.
    Note that **project address and the customer address now exist** (2026-08-21) — two of the
    fields Slice 3 will surface are already in the schema and on screen.
@@ -197,19 +238,30 @@ anything looks. Run it after touching `lib/dates.ts`, `lib/calendar.ts`, `lib/wo
 `lib/contact.ts`.
 
 `check:gates` is separate on purpose: it signs in as `chris@merkhet.studio` and **writes to
-hosted Supabase**, creating one throwaway project and deleting it in a `finally`. It touches no
+hosted Supabase**. ⚠️ **That account was deleted in the 2026-08-21 wipe, so the script fails
+until it is repointed at a live one.** It also, creating one throwaway project and deleting it in a `finally`. It touches no
 existing project but burns a `project_number_seq` value per run. Run it after touching
 `move_project`, `reject_gate`, or the approval functions in `lib/db/repo.ts`.
 
 ## Email — open questions and unverified ground
 
-- **Copy review with the client.** Held 2026-08-18. `lib/email/copy.ts`, two vocabularies.
+Mail is **live in production** to both audiences. What is still outstanding:
+
+- **`FIRM` in `lib/email/tokens.ts` is placeholder data** — Austin address,
+  `(512) 555-0142`, `studio@merkhet.studio`, a domain the firm does not own. It is on **every
+  client email**, and client email now sends. Deferred by the user 2026-08-21, not resolved.
+- **`NEXT_PUBLIC_APP_URL` is unset**, so internal mail deep-links to `localhost` — unreachable
+  for recipients and mildly spam-flavoured. `appUrlIsLocal` exists to make this visible.
 - **No client except a browser has rendered these.** No Litmus, no Email on Acid, no Outlook —
-  the client most likely to break a table layout. Worth one Litmus pass before a real send.
-- **`FIRM` in `lib/email/tokens.ts` is placeholder data** — address, phone, reply address.
-- **`NEXT_PUBLIC_APP_URL` defaults to `http://localhost:3000`**, so internal mail deep-links
-  are unreachable and mildly spam-flavoured. Set it before any real send;
-  `appUrlIsLocal` exists to make this visible and the send harness warns on it.
+  the client most likely to break a table layout. More pressing now that real inboxes receive
+  them, not less.
+- **SPF and bounce-MX never landed at Resend** — only DKIM verified. Hard bounces are
+  invisible, so a typo'd recipient fails silently. DNS is at **Vercel**; the records go on the
+  `send` subdomain, and the root MX (Google Workspace) must not be touched.
+- **`client_contact_id` is null on live projects**, so client mail arrives unsigned, and
+  `phase_subscribers` is empty.
+- ~~Copy review with the client~~ — **done 2026-08-21.** Client asked for no dates or
+  durations in client-facing mail; applied, see `SLICE_6_APPLY.md`.
 - **Do not re-test placement with the same two Gmail accounts.** Marking the first message
   "Not spam" trained that filter; placement between them no longer measures anything.
 

@@ -142,4 +142,5 @@ in `scripts/check-schedule.ts`:
 
 `lib/notifications.ts` gained `notifyGateRejected`, still a console stub like its neighbour.
 Recipient is the delegate of the phase being returned to (WORKFLOW-2 §4); the action resolves
-that id and passes it. Real sending is Slice 6, blocked on DNS.
+that id and passes it. Real sending is Slice 6 — **built 2026-08-21**, no longer a stub
+([`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md)).

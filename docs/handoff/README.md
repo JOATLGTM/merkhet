@@ -12,23 +12,45 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [DECISIONS.md](./DECISIONS.md) | Authority order, design refs, non-negotiables |
 | [FILE_MAP.md](./FILE_MAP.md) | Where code lives |
 | [SLICE_4_SCOPE.md](./SLICE_4_SCOPE.md) | Delegation spec — six settled decisions, build from this |
-| [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md) | Project vs customer address/contact — **has an unapplied migration** |
-| [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md) | Gate sign-offs = Austin · Ryan · chosen — **has two unapplied migrations** |
+| [ACCOUNTS_APPLY.md](./ACCOUNTS_APPLY.md) | **Invite-only accounts, password reset, and the data wipe** |
+| [SLICE_6_APPLY.md](./SLICE_6_APPLY.md) | **Notifications, wired** — outbox, provider, call sites, client copy |
+| [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md) | Project vs customer address/contact |
+| [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md) | Gate sign-offs = Austin · Ryan · chosen |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
-## State as of 2026-08-21
+## State as of 2026-08-21 (evening)
+
+⚠️ **The hosted database was wiped of demo data.** The firm is entering real records. One
+account survives — `christopher.vo.h@gmail.com`, promoted staff → admin. The
+`chris@merkhet.studio` / `password` seed logins **no longer exist**, which breaks
+`npm run check:gates` until it is repointed. [ACCOUNTS_APPLY.md](./ACCOUNTS_APPLY.md)
+
+**Accounts are invite-only, and invites now work.** The old `inviteUser` minted a random
+password and sent no email, so every account it created was unreachable. `/accept-invite`,
+`/forgot-password`, `/reset-password` and `/auth/confirm` were added, with custom SMTP on
+`merkhetdrafting.com`. **Still blocked:** `NEXT_PUBLIC_SITE_URL` and Supabase Site URL point
+at `localhost`, so the links only work on the developer's machine — no staff member can be
+onboarded until that changes.
+
+**Slice 6 sends.** Recipient resolution, an `email_outbox` table, the Resend HTTP API and all
+four call sites. Internal and customer mail both verified delivering in production. Client
+mail carries **no dates or durations**, at the client's request.
+[SLICE_6_APPLY.md](./SLICE_6_APPLY.md)
+
+✅ **Every migration in the tree is applied and verified.** Nothing is waiting on SQL.
+
+## State as of 2026-08-21 (earlier)
 
 **Gate sign-offs changed shape.** Both Review and Final review now take **Austin, Ryan, and a
 chosen third** — whoever Austin or Ryan picked, staff or the client. This **supersedes
 WORKFLOW-2 §3**, including its rule that the client is not an approver at Final review.
 [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md)
 
-⚠️ **Two migrations are written and unapplied**, and they must run in order:
-`20260821120000_gate_parties_enum.sql` **alone**, then `20260821120100_gate_parties.sql`.
-(`20260821100000_project_address_contact.sql` **is applied** — verified against hosted
-Supabase on 2026-08-21.)
+Both gate-parties migrations (`20260821120000_gate_parties_enum.sql`, then
+`20260821120100_gate_parties.sql`) are **applied and verified** — as is
+`20260821100000_project_address_contact.sql`.
 
 **Project address and contact** was added the same day. A project's address, contact, email
 and phone now live on `projects`, and **null on a field means "same as the customer"** —
@@ -57,6 +79,9 @@ assertions, now inside `npm run check`).
 
 ## State as of 2026-08-18
 
+> **Superseded.** Slice 6 is wired and sending as of 2026-08-21 —
+> [SLICE_6_APPLY.md](./SLICE_6_APPLY.md).
+
 The **template half of Slice 6** was built on 2026-08-18: `lib/email/`, four templates,
 11 events, 16 messages, two harnesses. **No SQL and nothing wired into the app** —
 `lib/notifications.ts` is still a stub. A Gmail send test delivered and landed in spam;
@@ -78,7 +103,7 @@ phase loop could leave two rows `in_progress` at once and trip
 projects. [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) §3a.
 
 Nothing built that day is outstanding. **Slice 6 (notifications)** followed on 2026-08-18 —
-templates only; the provider, outbox and call sites remain blocked on DNS.
+templates only; the provider, outbox and call sites followed on 2026-08-21.
 
 **Product requirements (authoritative for non-workflow):** [`../PRD.md`](../PRD.md)  
 **System design reference:** [`../SYSTEM_DESIGN_REFERENCE.md`](../SYSTEM_DESIGN_REFERENCE.md) — general reference, **not** Merkhet architecture.  

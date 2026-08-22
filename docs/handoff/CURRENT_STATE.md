@@ -1,12 +1,18 @@
 # Current state
 
-**Last updated: 2026-08-21**
+**Last updated: 2026-08-21 (evening)**
 
-> **Resuming?** Start with [`NEXT.md`](./NEXT.md). The 2026-08-14 slices (11, 4, 10, 5) are
-> committed as **`f8d0526`** with all migrations applied and verified. On **2026-08-18** the
-> template half of Slice 6 was built — see [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPLATES.md).
-> No SQL, nothing wired into the app; sending is still blocked on DNS. On **2026-08-21**
-> Slice 9 (per-staff workload) landed on `/staff` — derived from delegation, no migration.
+> **Resuming?** Start with [`NEXT.md`](./NEXT.md). Three things changed on the evening of
+> **2026-08-21** and invalidate parts of what is written below:
+>
+> 1. **The database was wiped of demo data** and the seed logins deleted. One admin account
+>    survives. [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
+> 2. **Accounts are invite-only** and password reset exists. Invites had been silently
+>    broken — every account the old code created was unreachable.
+> 3. **Slice 6 sends.** Notifications are wired end to end and delivering to both audiences.
+>    [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+>
+> Every migration in the tree is applied and verified. Nothing is waiting on SQL.
 
 ## Product
 
@@ -27,10 +33,12 @@ npm run dev
 
 Open http://localhost:3000
 
-| Email | Password | Role |
-|---|---|---|
-| `chris@merkhet.studio` | `password` | Admin |
-| `dana@merkhet.studio` | `password` | Staff |
+⚠️ **There are no demo logins.** The seed accounts were deleted on 2026-08-21 and the
+database holds real records. `npm run seed` restores demo data if a throwaway environment is
+wanted — do not run it against the live project.
+
+Accounts are **invite-only**, created by an admin on `/staff`. Password reset is at
+`/forgot-password`. See [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
 
 ⌘K = command palette.
 
@@ -41,6 +49,11 @@ Open http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_MERKET_URL` | Project URL |
 | `NEXT_PUBLIC_SUPABASE_MERKET_ANON_KEY` | Anon / publishable key |
 | `SUPABASE_SERVICE_MERKET_ROLE_KEY` | Service role / secret (seed, admin invite) |
+| `NEXT_PUBLIC_SITE_URL` | Origin auth emails link back to; must match Supabase **Site URL** |
+| `RESEND_API_KEY` | Transactional mail. Unset → messages queue as `pending`, never send |
+| `EMAIL_FROM` | e.g. `Merkhet <noreply@merkhetdrafting.com>` |
+| `EMAIL_CUSTOMER_ENABLED` | `true` sends client-facing mail. Anything else holds it |
+| `NEXT_PUBLIC_APP_URL` | Deep-link origin inside internal mail |
 
 Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/env.ts`. Restart `npm run dev` after changing `.env`.
 
@@ -62,7 +75,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Detail sheet: hold, contract upload/view, consultants attach (+ new inline), phases, activity
 - **Planned hours per phase** in the detail sheet Phases grid (Review excluded — it's a gate); section header totals them. Legacy project-level `hours_per_week` retired from the UI
 - **Plan schedule** (delegation): assignee + duration for the 5 delegated phases in one form; dates derived from durations in working days; planned hours optional. Raised on entry to Active, and available at any phase for backfill. Active → SD is gated on it in `move_project`
-- **Approval gates**: sign-offs recorded in the detail sheet at Review and Final review. Both gates take **Austin, Ryan, and a chosen third** (2026-08-21) — the third picked at record time from active staff or **The client**, whose sign-off staff record on their behalf. Supersedes WORKFLOW-2 §3; see [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md). Migrations **written, not applied**. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
+- **Approval gates**: sign-offs recorded in the detail sheet at Review and Final review. Both gates take **Austin, Ryan, and a chosen third** (2026-08-21) — the third picked at record time from active staff or **The client**, whose sign-off staff record on their behalf. Supersedes WORKFLOW-2 §3; see [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md). Migrations **applied and verified 2026-08-21**. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
 - Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
 - New project: inline **+ New customer** (now with an Address field)
 - **Project address & contact** (2026-08-21): a project's address, contact, email and phone
@@ -152,7 +165,7 @@ Neither covers rendering.
 | 3 Intake expansion | **Reverted — on hold** |
 | 4 Delegation | Done — applied + verified |
 | 5 Approval gates | Done — applied + verified |
-| 6 Notifications | **Templates done** (2026-08-18) — provider/outbox/call sites open, blocked on DNS |
+| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites) |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Team, This week column) |
@@ -160,6 +173,10 @@ Neither covers rendering.
 | 11 Planned hours per phase | Done — applied + verified |
 
 ## Seed sample
+
+⚠️ **Describes `npm run seed` only — none of this is in the live database any more.** The
+hosted project was wiped on 2026-08-21 and holds real records; the accounts below were
+deleted. Do not run `npm run seed` against it.
 
 Team: Chris Alvarado (admin), Dana Whitfield, Ines Okafor, Marcus Reed, Priya Raman  
 20 projects (`MK-0400`–`MK-0419`), 8 customers. After seed: `setval('public.project_number_seq', 419)`.
