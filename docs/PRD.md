@@ -411,7 +411,7 @@ Backlog, Pending, and Completed have no subscriber control in MVP.
 - Project number
 - Project name
 - Customer name (secondary text)
-- Assignee avatar for the current phase
+- Assignee avatar for the current phase — falling back to the project's creator, muted, when no phase is running (Pending and the Active holding column always have `current_phase = null`; added 2026-08-22, see `handoff/CARD_CREATOR_APPLY.md`)
 - Target completion date, color-coded: neutral if more than 14 days out, amber within 14 days, red if past
 - Hours/week, if set
 - On-hold indicator if applicable

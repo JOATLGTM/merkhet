@@ -41,6 +41,19 @@ export function ProjectCard({
   const assignee = currentPhaseRow?.assignee_id
     ? usersById.get(currentPhaseRow.assignee_id)
     : null;
+  /**
+   * Pending and the Active holding column both carry `current_phase = null`,
+   * so no phase row can name an assignee and the avatar would read `—` on
+   * every project until somebody plans a schedule. Falling back to whoever
+   * filed the project keeps those cards attributable. Muted rather than
+   * solid: a creator is not a person the work is currently sitting with, and
+   * the two must not read as the same fact.
+   */
+  const creator =
+    !assignee && project.created_by
+      ? usersById.get(project.created_by)
+      : null;
+  const person = assignee ?? creator;
   const urgency = dateUrgency(project.target_completion);
 
   return (
@@ -86,14 +99,21 @@ export function ProjectCard({
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div
+            title={
+              assignee
+                ? `${assignee.name} — current phase`
+                : creator
+                  ? `${creator.name} — created this project`
+                  : "Unassigned"
+            }
             className={cn(
               "grid h-5 w-5 place-items-center rounded-full font-mono text-[8px] font-medium",
-              assignee
-                ? "bg-phase-5 text-paper"
-                : "bg-rule text-ink-soft",
+              assignee && "bg-phase-5 text-paper",
+              creator && "border border-rule-strong text-ink-mid",
+              !person && "bg-rule text-ink-soft",
             )}
           >
-            {assignee ? initials(assignee.name) : "—"}
+            {person ? initials(person.name) : "—"}
           </div>
           {project.hours_per_week != null && project.hours_per_week > 0 && (
             <span className="num font-mono text-[11px] text-ink-mid">

@@ -93,6 +93,52 @@ Dashboard navigation moved at some point: SMTP is **Authentication → SMTP**
 (`/auth/smtp`), rate limits **Authentication → Rate Limits** (`/auth/rate-limits`) — not
 under Project Settings.
 
+**Auth → Emails** — the invite and reset templates are the firm's, not GoTrue's.
+
+Both were stock markup (`<h2>You've been invited</h2>` and two paragraphs) while every other
+message the firm sends carried the wordmark, the rule and the palette — and the invite is the
+first thing a new employee ever sees from this system. They now render through the same shell
+as the project mail:
+
+```
+npm run email:supabase        # writes out/emails/supabase-{invite,recovery}.html
+```
+
+| Dashboard template | File | API field | Pairs with redirect |
+|---|---|---|---|
+| Invite user | `supabase-invite.html` | `mailer_templates_invite_content` | `<site>/accept-invite` |
+| Reset password | `supabase-recovery.html` | `mailer_templates_recovery_content` | `<site>/reset-password` |
+
+Two ways to land it in the project:
+
+```
+npm run email:supabase:push            # what would change, writes nothing
+npm run email:supabase:push -- --yes   # writes it
+```
+
+The push needs `SUPABASE_ACCESS_TOKEN` in `.env` — a **personal access token** (`sbp_…`) from
+[account/tokens](https://supabase.com/dashboard/account/tokens), not the service role key.
+Templates are project *configuration*, and the Management API is account-scoped: the service
+key 401s here, and the failure reads like a permissions bug rather than a wrong credential.
+That token reaches every project the account owns, which is why nothing in the app uses it and
+why leaving it unset is a reasonable choice. It PATCHes four fields and touches nothing else;
+whatever is live is written to `out/emails/*.backup.html` first.
+
+`supabase config push` is the wrong tool here and the script says so: it applies the whole
+`[auth]` block from `config.toml`, and with no `config.toml` in this repo that means Site URL,
+redirect URLs, SMTP and rate limits all reset to CLI defaults on the first push.
+
+Otherwise paste each file into the matching template's **Body** in the dashboard, replacing
+everything there, and set the **Subject** the render script prints.
+
+Source is `lib/email/templates/auth-link.ts`; copy is `AUTH_COPY` in `lib/email/copy.ts`.
+**Edits made in the dashboard are lost on the next paste** — edit the copy, re-render, re-paste.
+
+Only `{{ .ConfirmationURL }}` and `{{ .Email }}` are interpolated, and the link target is
+unchanged, so the fragment flow above still applies exactly as described. The one thing to
+check after pasting: send yourself an invite and confirm the link still lands on
+`/accept-invite`, because a template paste is also an opportunity to lose a placeholder.
+
 ## ⚠️ The database was wiped
 
 **2026-08-21.** All demo data removed; the firm is entering real records.
@@ -180,6 +226,8 @@ it cannot do; it prints the SQL.
 - **The hydrated states on `/accept-invite` and `/reset-password`** — set-password vs expired.
   No browser tooling was available; the initial HTML is the "checking" state either way.
 - **No real invite or reset email has been opened end to end.**
+- **The branded auth templates have not been sent** — rendered and read as files only,
+  never through Supabase into a real client.
 
 ## Still open
 

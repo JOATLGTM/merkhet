@@ -12,6 +12,10 @@ export {
   type GateRejectedInput,
 } from "@/lib/email/templates/gate-rejected";
 export {
+  renderAuthLink,
+  type AuthLinkInput,
+} from "@/lib/email/templates/auth-link";
+export {
   renderProjectComplete,
   type ProjectCompleteInput,
 } from "@/lib/email/templates/project-complete";

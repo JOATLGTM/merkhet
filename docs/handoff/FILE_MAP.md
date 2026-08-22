@@ -53,7 +53,7 @@
 |---|---|
 | Tokens / light+dark | `app/globals.css` (`.dark`) |
 | Theme provider / toggle | `components/providers/theme-provider.tsx`, `components/shell/theme-toggle.tsx` |
-| Project card | `components/projects/project-card.tsx` |
+| Project card | `components/projects/project-card.tsx` — avatar is the current-phase assignee, falling back to `projects.created_by` (muted) when no phase is running |
 | Detail sheet | `components/projects/project-detail-sheet.tsx` |
 | Phase rule (6-seg) | `components/projects/phase-rule.tsx` |
 | New project dialog | `components/projects/new-project-dialog.tsx` |
@@ -70,6 +70,8 @@
 | Emailed-link exchange | `app/auth/confirm/route.ts` |
 | Shared set-password form | `components/auth/set-password-form.tsx` (invite **and** reset) |
 | Invite + reset actions | `inviteUser` in `lib/db/repo.ts`; `requestPasswordReset` in `app/actions/auth.ts` |
+| Invite + reset **email** HTML | `lib/email/templates/auth-link.ts` → `npm run email:supabase` |
+| Pushing those into Supabase | `scripts/push-supabase-templates.ts` (`npm run email:supabase:push`) — needs a personal access token |
 | ⚠️ Destructive data wipe | `scripts/reset-data.ts` — not in `npm run` on purpose |
 
 ## Config

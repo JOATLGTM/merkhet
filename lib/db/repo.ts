@@ -95,6 +95,7 @@ function mapProject(row: Record<string, unknown>): Project {
     contract_path: (row.contract_path as string | null) ?? null,
     contract_filename: (row.contract_filename as string | null) ?? null,
     contract_uploaded_at: (row.contract_uploaded_at as string | null) ?? null,
+    created_by: (row.created_by as string | null) ?? null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
@@ -548,6 +549,7 @@ export async function createProject(input: {
       project_contact_name: input.project_contact_name ?? null,
       project_contact_email: input.project_contact_email ?? null,
       project_contact_phone: input.project_contact_phone ?? null,
+      created_by: input.actor_id,
     })
     .select("*")
     .single();

@@ -52,7 +52,7 @@ function wordmark(): string {
       </table>`;
 }
 
-function footer(audience: "internal" | "customer"): string {
+function footer(audience: Audience): string {
   const lines =
     audience === "customer"
       ? [
@@ -60,15 +60,22 @@ function footer(audience: "internal" | "customer"): string {
           ...FIRM.addressLines,
           `${FIRM.phone} &middot; ${FIRM.replyTo}`,
         ]
-      : [
-          `${FIRM.name} &middot; internal project tracking`,
-          `You receive this because you are assigned to this project or subscribed to this phase.`,
-        ];
+      : audience === "account"
+        ? [
+            `${FIRM.name} &middot; project tracking`,
+            `You receive this because someone at ${FIRM.shortName} created an account for this address, or a reset was requested for it.`,
+          ]
+        : [
+            `${FIRM.name} &middot; internal project tracking`,
+            `You receive this because you are assigned to this project or subscribed to this phase.`,
+          ];
 
   const note =
     audience === "customer"
       ? `Replying to this message reaches your project team directly.`
-      : `Sent automatically when a project changes phase.`;
+      : audience === "account"
+        ? `Sent automatically by ${FIRM.shortName}. Nobody here can see the password you choose.`
+        : `Sent automatically when a project changes phase.`;
 
   return `
       <tr>
@@ -86,10 +93,17 @@ function footer(audience: "internal" | "customer"): string {
       </tr>`;
 }
 
+/**
+ * `account` is Supabase auth mail — invite and password reset. It is neither
+ * project mail nor client mail: it carries no project, and its footer must not
+ * claim a subscription the recipient does not have yet.
+ */
+type Audience = "internal" | "customer" | "account";
+
 export type ShellInput = {
   title: string;
   preview: string;
-  audience: "internal" | "customer";
+  audience: Audience;
   /** Accent stripe across the top — the phase colour, or redline on rework. */
   accent: string;
   body: string;

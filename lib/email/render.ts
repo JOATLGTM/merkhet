@@ -10,7 +10,7 @@ import { FIRM } from "@/lib/email/tokens";
 import { formatFullDate } from "@/lib/dates";
 import type { Customer, DesignPhase, Project, User } from "@/lib/types";
 
-export type EmailAudience = "internal" | "customer";
+export type EmailAudience = "internal" | "customer" | "account";
 
 export type RenderedEmail = {
   /** Subject line. */
@@ -102,6 +102,16 @@ export function textLines(...lines: Array<string | null | undefined>): string {
 
 /** Standard sign-off for the text part. */
 export function textFooter(audience: EmailAudience): string {
+  if (audience === "account") {
+    return textLines(
+      "",
+      TEXT_RULE,
+      `${FIRM.name} · project tracking`,
+      "You receive this because someone at Merkhet created an account for this",
+      "address, or a reset was requested for it.",
+      "Nobody here can see the password you choose.",
+    );
+  }
   if (audience === "customer") {
     return textLines(
       "",

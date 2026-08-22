@@ -99,6 +99,12 @@ export type Project = {
   contract_path: string | null;
   contract_filename: string | null;
   contract_uploaded_at: string | null;
+  /**
+   * Staff member who created the project. Null for rows predating the column
+   * or whose creator was deleted. The board card falls back to this, muted,
+   * when the current phase has no assignee.
+   */
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };

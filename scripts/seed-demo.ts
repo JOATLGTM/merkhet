@@ -202,6 +202,9 @@ async function main() {
       contract_path: project.contract_path,
       contract_filename: project.contract_filename,
       contract_uploaded_at: project.contract_uploaded_at,
+      created_by: project.created_by
+        ? userMap.get(project.created_by) ?? null
+        : null,
       created_at: project.created_at,
       updated_at: project.updated_at,
     });

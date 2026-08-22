@@ -7,6 +7,12 @@
 export * from "@/lib/email/templates";
 export * from "@/lib/email/plan";
 export * from "@/lib/email/render";
-export { CUSTOMER_COPY, INTERNAL_COPY, type CustomerPhase } from "@/lib/email/copy";
+export {
+  AUTH_COPY,
+  CUSTOMER_COPY,
+  INTERNAL_COPY,
+  type AuthKind,
+  type CustomerPhase,
+} from "@/lib/email/copy";
 export { CUSTOMER_PHASES, isCustomerVisible } from "@/lib/email/progress";
 export { APP_URL, COLOR, FIRM, FONT } from "@/lib/email/tokens";

@@ -21,6 +21,9 @@ Outbox statuses:
 
 ```
 npm run email:preview                      # render every template to out/emails/
+npm run email:supabase                     # compile the two auth templates
+npm run email:supabase:push                # dry-run the push into Supabase
+npm run email:supabase:push -- --yes       # write them into Supabase
 npm run email:send                         # list the cases, send nothing
 npm run email:send -- --verify             # test the Gmail login only
 npm run email:send -- --case 03            # put both messages for case 03 in an inbox
@@ -38,7 +41,8 @@ you look at and the message you send are the same message.
 | `progress.ts` | Six-segment phase rule (internal) and four-step track (customer) |
 | `copy.ts` | **Every user-facing sentence**, split into internal and customer vocabularies |
 | `render.ts` | `RenderedEmail`, input types, formatting and text helpers |
-| `templates/*.ts` | Four templates, each returning `{ subject, preview, html, text }` |
+| `templates/*.ts` | Five templates, each returning `{ subject, preview, html, text }` |
+| `templates/auth-link.ts` | The two **Supabase** auth mails — see *Auth mail* below |
 | `plan.ts` | Pure routing — event in, rendered messages with recipients out |
 
 ## Routing
@@ -73,6 +77,70 @@ Three rules the code enforces rather than documents:
 This is wider than WORKFLOW-2 §4, which scoped client mail to DD, CD and
 Permitting. The `customerVisible` flag is the switch — narrowing back to the
 original three is an edit to `lib/phases.ts`, not to any template.
+
+## Auth mail — the two Supabase sends
+
+The invite and the password reset are the only messages this app does **not**
+send. Supabase renders them from HTML held in its own dashboard, so they were
+stock GoTrue markup — an `<h2>` and two `<p>`s on a white page — while every
+other message the firm sends carried the wordmark, the rule and the palette.
+
+`templates/auth-link.ts` renders both through the same `shell()` as everything
+else. The output is a build artefact, not a runtime call:
+
+```
+npm run email:supabase        # writes out/emails/supabase-{invite,recovery}.html
+```
+
+Getting it into Supabase, either way:
+
+- **Push it** — `npm run email:supabase:push` reports what would change,
+  `-- --yes` writes it. Needs `SUPABASE_ACCESS_TOKEN` in `.env`: a personal
+  access token, **not** the service role key, because email templates are
+  project *configuration* and the Management API is account-scoped. The live
+  templates are saved to `out/emails/*.backup.html` before anything is
+  overwritten.
+- **Paste it** — Supabase → **Authentication → Emails**, each file into the
+  matching template's **Body**, replacing everything there, plus the
+  **Subject** the render script prints.
+
+The template editor is only unlocked once the project has custom SMTP (see
+`docs/handoff/ACCOUNTS_APPLY.md`). Either way, **send yourself one invite
+afterwards and open it** — a push or a paste is also an opportunity to lose a
+placeholder, and the link is single-use.
+
+Dynamic values are Go template placeholders GoTrue substitutes at send time —
+`{{ .ConfirmationURL }}` for the one-time link and `{{ .Email }}` for the
+recipient. Only those two are used: each one added is another thing to get
+wrong in a message whose link burns on first use. They pass through `esc()`
+untouched, so the ordinary `layout.ts` blocks work on them as they are.
+
+Three things this template does that the stock one did not:
+
+1. **Prints the link as text** under the button. A gateway that strips or
+   rewrites buttons leaves the recipient of a single-use invite with no second
+   path, and re-sending mints a new token rather than re-sending the old one.
+2. **Names the address** the account belongs to, so an invite that lands in a
+   shared or forwarded mailbox says who it is for.
+3. **Carries a "if you were not expecting this" line.** Every credential mail
+   needs one, and neither stock template had it.
+
+Two constraints of the dashboard worth knowing before editing:
+
+- **There is no plain-text part** — one HTML field per template. The `.txt`
+  written beside each file is reference only, so the copy can be read without
+  a browser. This is the one place the text-alternative rule above cannot be
+  followed.
+- **Edits made in the dashboard are lost** on the next push. Copy lives in
+  `AUTH_COPY` in `copy.ts`; edit, re-render, re-push. The push reports a
+  no-change run as *already current*, so it is safe to re-run.
+
+The link target is deliberately unchanged. `{{ .ConfirmationURL }}` resolves
+against the `redirectTo` that `inviteUser` passes (`/accept-invite`), which
+returns the session in a URL fragment the client page reads. Now that custom
+SMTP has unlocked the editor, the `/auth/confirm?token_hash=…` variant in
+`ACCOUNTS_APPLY.md` §*The fragment problem* becomes available — but it is a
+change to the auth flow, not to the design, and nothing here depends on it.
 
 ## Sending a real one
 

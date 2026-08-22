@@ -244,6 +244,7 @@ function makeProject(
     | "project_contact_name"
     | "project_contact_email"
     | "project_contact_phone"
+    | "created_by"
   > &
     Partial<
       Pick<
@@ -260,6 +261,7 @@ function makeProject(
         | "project_contact_name"
         | "project_contact_email"
         | "project_contact_phone"
+        | "created_by"
       >
     >,
 ): Project {
@@ -282,6 +284,9 @@ function makeProject(
     project_contact_name: null,
     project_contact_email: null,
     project_contact_phone: null,
+    // Seeded projects are the admin's unless a fixture says otherwise, so the
+    // card's creator fallback has something to show on the Pending column.
+    created_by: chrisId,
     ...partial,
   };
 }

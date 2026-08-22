@@ -179,3 +179,61 @@ export const GATE_LABEL: Record<GatePhase, string> = {
   review: "Review",
   final_review: "Final review",
 };
+
+/* ------------------------------------------------------------------ auth -- */
+
+/**
+ * Supabase auth mail — the invite and the password reset.
+ *
+ * These are the only two messages the app does not send itself: Supabase
+ * renders them from templates pasted into its dashboard, so the copy here is
+ * compiled to static HTML by `npm run email:supabase` rather than called at
+ * runtime. Edited here, re-rendered, re-pasted. See `templates/auth-link.ts`.
+ *
+ * The vocabulary is a third one again. An invitee has never seen the board, so
+ * "phase", "delegate" and "gate" mean nothing to them yet, and a password
+ * reset has no project to name at all.
+ */
+export type AuthCopy = {
+  /** Subject line, pasted into the dashboard's Subject field separately. */
+  subject: string;
+  eyebrow: string;
+  headline: string;
+  lead: string;
+  /** Button label on the confirmation link. */
+  cta: string;
+  /** Title and body of the callout under the button. */
+  noticeTitle: string;
+  notice: string;
+  /** The "wasn't me" line. Every credential mail needs one. */
+  unexpected: string;
+};
+
+export type AuthKind = "invite" | "recovery";
+
+export const AUTH_COPY: Record<AuthKind, AuthCopy> = {
+  invite: {
+    subject: "You have been invited to Merkhet",
+    eyebrow: "Account invitation",
+    headline: "You've been invited to Merkhet",
+    lead: "Someone at Merkhet Architecture has created an account for you. Merkhet is the studio's project board — where every project is tracked from contract through design, review and permitting.",
+    cta: "Accept the invitation",
+    noticeTitle: "What happens next",
+    notice:
+      "The link opens a page where you choose your own password, and takes you to the board once it is set. It can only be used once. If it has already expired, ask an admin to send a new invite.",
+    unexpected:
+      "If you were not expecting this, you can ignore this message — the account cannot be used until the link is opened.",
+  },
+  recovery: {
+    subject: "Reset your Merkhet password",
+    eyebrow: "Password reset",
+    headline: "Reset your password",
+    lead: "We received a request to reset the password on the Merkhet account for this address.",
+    cta: "Choose a new password",
+    noticeTitle: "What happens next",
+    notice:
+      "The link opens a page where you set a new password and signs you in once it is saved. It can only be used once. If it has already expired, request another from the sign-in page.",
+    unexpected:
+      "If you did not ask for this, you can ignore this message — your current password stays as it is unless the link is used.",
+  },
+};

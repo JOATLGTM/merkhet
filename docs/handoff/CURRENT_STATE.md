@@ -12,7 +12,11 @@
 > 3. **Slice 6 sends.** Notifications are wired end to end and delivering to both audiences.
 >    [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
 >
-> Every migration in the tree is applied and verified. Nothing is waiting on SQL.
+> **2026-08-22:** one migration is **waiting on SQL** —
+> `20260822100000_project_created_by.sql` adds `projects.created_by` and backfills it from
+> the activity log, so board cards in Pending and Active stop reading `—`.
+> [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md). Every other migration in the tree is
+> applied and verified.
 
 ## Product
 
@@ -38,7 +42,8 @@ database holds real records. `npm run seed` restores demo data if a throwaway en
 wanted — do not run it against the live project.
 
 Accounts are **invite-only**, created by an admin on `/staff`. Password reset is at
-`/forgot-password`. See [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
+`/forgot-password`. Both emails are the firm's own HTML, held in Supabase and rebuilt with
+`npm run email:supabase`. See [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
 
 ⌘K = command palette.
 
@@ -54,6 +59,10 @@ Accounts are **invite-only**, created by an admin on `/staff`. Password reset is
 | `EMAIL_FROM` | e.g. `Merkhet <noreply@merkhetdrafting.com>` |
 | `EMAIL_CUSTOMER_ENABLED` | `true` sends client-facing mail. Anything else holds it |
 | `NEXT_PUBLIC_APP_URL` | Deep-link origin inside internal mail |
+
+Optional: `SUPABASE_ACCESS_TOKEN` — a personal access token, read only by
+`npm run email:supabase:push`. Account-wide, so leave it unset and paste the templates by hand
+if you would rather not keep one on disk.
 
 Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/env.ts`. Restart `npm run dev` after changing `.env`.
 
@@ -77,6 +86,12 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - **Plan schedule** (delegation): assignee + duration for the 5 delegated phases in one form; dates derived from durations in working days; planned hours optional. Raised on entry to Active, and available at any phase for backfill. Active → SD is gated on it in `move_project`
 - **Approval gates**: sign-offs recorded in the detail sheet at Review and Final review. Both gates take **Austin, Ryan, and a chosen third** (2026-08-21) — the third picked at record time from active staff or **The client**, whose sign-off staff record on their behalf. Supersedes WORKFLOW-2 §3; see [`GATE_PARTIES_APPLY.md`](./GATE_PARTIES_APPLY.md). Migrations **applied and verified 2026-08-21**. A forward move that *crosses* a gate is blocked until it is satisfied — which also blocks skipping one (DD → CD, CD → Permitting). **Reject** returns the project a phase for rework via `reject_gate`, clearing that gate's sign-offs and re-planning the remaining dates from today
 - Phase date fields are **read-only** — durations are the source (WORKFLOW-2 §3)
+- **Card avatar** (2026-08-22): the bottom-left circle is the current-phase assignee (PRD
+  §6.2). Pending and the Active holding column have `current_phase = null` by construction,
+  so those cards were anonymous until someone planned a schedule. They now fall back to
+  `projects.created_by`, rendered **outlined rather than solid** so a creator never reads as
+  an assignee. Migration `20260822100000_project_created_by.sql` — **not yet applied**. See
+  [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md)
 - New project: inline **+ New customer** (now with an Address field)
 - **Project address & contact** (2026-08-21): a project's address, contact, email and phone
   live on `projects`, and **null on a field means "same as the customer"**, resolved per
@@ -94,6 +109,10 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `lib/notifications.ts` is **still a stub**; no call site renders a template yet
 - Harnesses: `npm run email:preview` (renders to `out/emails/`), `npm run email:send`
   (Gmail SMTP — a test harness, not the send path)
+- **Supabase auth mail** (invite, password reset) is rendered through the same shell by
+  `lib/email/templates/auth-link.ts`. It is not sent from here — `npm run email:supabase`
+  compiles it, `npm run email:supabase:push` writes it into the project's auth config
+  (personal access token, dry-run by default). Rendered; **not yet pushed or sent**
 - Gmail send test on 2026-08-18 **delivered, landed in spam**. Auth passed; the cause is
   sender reputation, which only the real domain fixes. Detail in `SLICE_6_TEMPLATES.md`
 
@@ -144,6 +163,8 @@ npm run check         # check:schedule (28) + check:calendar (45)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
+npm run email:supabase # compile the two Supabase auth templates — no network
+npm run email:supabase:push # dry-run pushing them into Supabase; --yes writes
 npm run email:send    # list cases; --case <n> sends via Gmail SMTP (see .env.example)
 ```
 
