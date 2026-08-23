@@ -14,8 +14,11 @@ config({ path: ".env" });
 async function main() {
   const { retryFailed } = await import("../lib/email/send");
   const outcome = await retryFailed();
+  const redirected = outcome.redirected
+    ? `, ${outcome.redirected} redirected to owner`
+    : "";
   console.log(
-    `retried: ${outcome.sent} sent, ${outcome.failed} still failing`,
+    `retried: ${outcome.sent} sent${redirected}, ${outcome.failed} still failing`,
   );
 }
 

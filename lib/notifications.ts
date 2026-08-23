@@ -7,8 +7,10 @@
  * not surface as a failed phase move, and the outbox row is the durable record
  * either way.
  *
- * Customer mail is planned and recorded but not delivered unless
- * `EMAIL_CUSTOMER_ENABLED=true`; see `lib/email/send.ts`.
+ * Customer mail does not reach clients unless `EMAIL_CUSTOMER_ENABLED=true`.
+ * Until then it is delivered verbatim to the project's owner
+ * (`projects.created_by`) so the real message is read in a real inbox rather
+ * than pulled out of the outbox by hand; see `lib/email/send.ts`.
  */
 
 import { getProject, resolveAudiences } from "@/lib/db/repo";

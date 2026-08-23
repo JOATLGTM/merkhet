@@ -19,7 +19,20 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | [CARD_CREATOR_APPLY.md](./CARD_CREATOR_APPLY.md) | Board card avatar — assignee, falling back to `projects.created_by` |
+| [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
+
+## State as of 2026-08-23
+
+⚠️ **One migration is written and not applied** —
+`20260823100000_email_redirected.sql`. Until it runs, client mail writes no outbox row at
+all and fails silently into the server log.
+
+**Client email is no longer held in the dark.** With `EMAIL_CUSTOMER_ENABLED=false`, a client
+message is now delivered verbatim to the project's owner (`projects.created_by`) rather than
+recorded `held` and read out of the database by hand. Clients still receive nothing.
+`npm run check:email` says where each live project's client mail would land.
+[EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md)
 
 ## State as of 2026-08-22
 

@@ -1645,9 +1645,12 @@ export async function resolveAudiences(
   );
   const wanted = [
     ...new Set(
-      [delegateId, project.client_contact_id, ...subscriberIds].filter(
-        (id): id is string => Boolean(id),
-      ),
+      [
+        delegateId,
+        project.client_contact_id,
+        project.created_by,
+        ...subscriberIds,
+      ].filter((id): id is string => Boolean(id)),
     ),
   ];
 
@@ -1695,6 +1698,16 @@ export async function resolveAudiences(
     clientContact: project.client_contact_id
       ? (byId.get(project.client_contact_id) ?? null)
       : null,
+    /**
+     * `created_by` rather than `client_contact_id`: the latter is the field
+     * the routing table names, but nothing writes it — `createProject` never
+     * sets it and there is no UI for it — so it is null on every real project.
+     * The creator is set on every insert and backfilled (CARD_CREATOR_APPLY),
+     * which makes it the only owner the redirect can actually reach today.
+     * `byId` has already dropped deactivated users, so a departed owner
+     * resolves to null and the message is held instead.
+     */
+    owner: project.created_by ? (byId.get(project.created_by) ?? null) : null,
     customerContact: customerEmail
       ? { name: customerName ?? project.customer.name, email: customerEmail }
       : null,

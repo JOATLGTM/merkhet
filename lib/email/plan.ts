@@ -14,6 +14,10 @@
  * it: the customer is mailed on **every customer-visible phase** plus
  * completion, not only DD/CD/Permitting. `customerVisible` in `lib/phases.ts`
  * is the switch — Review and Final review are false and therefore silent.
+ *
+ * Client jobs also carry a `reviewTo` — the project owner — which `send.ts`
+ * delivers to while client mail is switched off. Routing names the stand-in;
+ * it does not decide whether one is used, which keeps this module pure.
  */
 import {
   renderGateRejected,
@@ -44,6 +48,12 @@ export type EmailJob = {
   audience: EmailAudience;
   /** Resolved recipients. Anyone without an address is dropped, not guessed. */
   to: EmailPerson[];
+  /**
+   * Where to deliver instead while the audience is not cleared for real
+   * delivery. Set on client jobs only; `send.ts` decides whether to use it.
+   * Routing stays pure — it names the fallback, it does not read the switch.
+   */
+  reviewTo?: EmailPerson[];
   email: RenderedEmail;
 };
 
@@ -55,6 +65,12 @@ export type Audiences = {
   clientContact: EmailPerson | null;
   /** The external client — `customers.contact_name` / `contact_email`. */
   customerContact: EmailPerson | null;
+  /**
+   * Whoever filed the project (`projects.created_by`). Not a routing party —
+   * they receive client mail only as the stand-in recipient while client
+   * delivery is switched off. See `send.ts`.
+   */
+  owner?: EmailPerson | null;
   /**
    * Standing baseline from `phase_subscribers`. Demoted by WORKFLOW-2 §4 to a
    * copy list underneath delegate resolution — never the routing model.
@@ -122,6 +138,7 @@ export function planPhaseEntry(
       template: "phase-entry-customer",
       audience: "customer",
       to: recipients(customerContact),
+      reviewTo: recipients(audiences.owner),
       email: renderPhaseEntryCustomer({
         project: input.project,
         phase: phase as CustomerPhase,
@@ -184,6 +201,7 @@ export function planProjectComplete(input: {
       template: "project-complete",
       audience: "customer",
       to: recipients(customerContact),
+      reviewTo: recipients(audiences.owner),
       email: renderProjectComplete({
         project,
         audience: "customer",

@@ -4,11 +4,34 @@ Transactional email for phase changes. Rendering lives here; `send.ts` is the
 only module that talks to a provider, and `lib/notifications.ts` is the call
 site layer that ties the two together.
 
-**Internal mail sends. Customer mail does not** — it is planned, rendered and
-written to `email_outbox` with status `held`, then not delivered, unless
+**Internal mail sends. Client mail does not reach clients** unless
 `EMAIL_CUSTOMER_ENABLED=true`. Phase changes reach real clients, so that switch
-is deliberate rather than default. Read the held rows to see exactly what would
-go out before flipping it.
+is deliberate rather than default.
+
+Off does not mean silent. A client message is still delivered — **to the
+project's owner, verbatim** — so the firm reads the real rendered mail in a
+real inbox. Owner is `projects.created_by`, the person who filed the card and
+the same person the card avatar falls back to.
+
+> `client_contact_id` is the field the routing table names for this, but
+> nothing writes it: `createProject` never sets it and there is no UI for it,
+> so it is null on every real project. `created_by` is set on every insert and
+> backfilled, which makes it the only owner a redirect can reach today.
+
+The redirected message is **unmodified** — same subject, same body, addressed
+to the client in the copy. Nothing marks it as a preview in the reader's view;
+the provenance is an `X-Merkhet-Redirected-From` header, and the client's real
+address is kept in `email_outbox.intended_to_addresses`. It follows that an
+owner who forwards one has forwarded a real client email, which is the trade
+made deliberately in exchange for seeing exactly what the client would see.
+
+What happens to a client job, in order:
+
+| Switch | Owner | Result |
+|---|---|---|
+| on | — | Delivered to the client. `pending` → `sent` |
+| off | reachable | Delivered to the owner, verbatim. `pending` → `redirected` |
+| off | missing or deactivated | Delivered nowhere. `held` |
 
 Outbox statuses:
 
@@ -17,9 +40,21 @@ Outbox statuses:
 | `pending` | Queued, provider not reached yet (usually a missing `RESEND_API_KEY`) |
 | `sent` | Accepted by the provider; `provider_id` holds its id |
 | `failed` | Provider rejected it; `error` says why. `npm run email:retry` re-attempts |
-| `held` | Deliberately withheld — customer mail with the switch off. Never swept by retry |
+| `redirected` | Client mail delivered to the owner instead. Terminal — it stays `redirected` rather than becoming `sent`, because calling it `sent` would claim the client was written to. A redirect is only marked this once it has actually gone out; before that it is an ordinary `pending` row carrying `intended_to_addresses` |
+| `held` | Nowhere to redirect to, so delivered nowhere. Never swept by retry |
+
+`to_addresses` is *only ever* the set the provider was actually handed — the
+owner on a redirect, **empty** on a held row. While the switch is off, a client
+address never appears in it at all; the client is recorded in
+`intended_to_addresses`, which nothing sends to. So no replay of that column,
+and no missed status check, can put a message in front of a client. Rows held
+before 2026-08-23 predate this and still carry the client in `to_addresses`.
+
+`npm run check:email` verifies the migration landed and reports, per live
+project, whether a client message would redirect or fall through to `held`.
 
 ```
+npm run check:email                        # who client mail would redirect to
 npm run email:preview                      # render every template to out/emails/
 npm run email:supabase                     # compile the two auth templates
 npm run email:supabase:push                # dry-run the push into Supabase
@@ -48,7 +83,9 @@ you look at and the message you send are the same message.
 ## Routing
 
 Internal mail fires on every column. Customer mail fires only on phases
-flagged `customerVisible` in `lib/phases.ts`.
+flagged `customerVisible` in `lib/phases.ts` — and while
+`EMAIL_CUSTOMER_ENABLED` is off, every **yes** in the customer column below
+lands in the project owner's inbox rather than the client's.
 
 | Event | Internal | Customer |
 |---|---|---|
@@ -218,7 +255,10 @@ state change  →  lib/notifications.ts  →  plan.ts   →  send.ts   →  Rese
    overrides customer, per `lib/contact.ts`), baseline from
    `phase_subscribers`. Leadership resolves to active admins — gate parties
    (`austin`/`ryan`/`chosen`) are approval roles, not accounts, so there is no
-   column naming them.
+   column naming them. Owner — the redirect target for client mail — from
+   `projects.created_by`. Deactivated users are dropped here, so a departed
+   owner resolves to null and the message is held rather than sent to a dead
+   address.
 2. **Outbox** — `public.email_outbox`, added by
    `supabase/migrations/20260821140000_email_outbox.sql`. The rendered html and
    text are stored, so a retry sends the message that was *planned* rather than

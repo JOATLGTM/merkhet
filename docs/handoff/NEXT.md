@@ -2,9 +2,49 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-22**
+**Last updated: 2026-08-23**
 
-## ✅ No unapplied migrations
+## ⚠️ One unapplied migration
+
+`20260823100000_email_redirected.sql` — adds the `redirected` value to `email_status` and
+`email_outbox.intended_to_addresses`. **Written, not run.** Paste it into the hosted Supabase
+SQL editor, then `npm run check:email`.
+
+Until it is applied every client-mail insert fails, and because `enqueueAndSend` swallows its
+errors that shows up as `[email] could not write outbox: …` in the server log and no mail —
+not as a failed phase move.
+
+## What happened on 2026-08-23
+
+### Client email goes to the owner instead of nowhere
+
+Slice 6 recorded client mail as `held` and delivered it nowhere, so reviewing one meant
+reading `text_body` out of Supabase by hand — which is to say nobody reviewed one. With
+`EMAIL_CUSTOMER_ENABLED=false`, a client message is now **delivered verbatim to the project's
+owner** (`projects.created_by`, the same person the card avatar falls back to). Clients still
+receive nothing until the switch is flipped.
+
+Unmodified means unmodified: no subject prefix, no banner. Provenance lives in an
+`X-Merkhet-Redirected-From` header and in `email_outbox.intended_to_addresses`. The trade —
+an owner could forward one without realising it is a real client email — was made
+deliberately, because an annotated preview is not the thing being checked.
+
+`held` survives for the one case with nowhere to go: no owner, or a deactivated one.
+`npm run check:email` fails loudly if any live project is in that state.
+Detail in [`EMAIL_REDIRECT_APPLY.md`](./EMAIL_REDIRECT_APPLY.md).
+
+**Not verified against a live send** — it compiles, lints and typechecks clean, but no
+message has been through Resend on this path.
+
+**Found along the way:** `projects.client_contact_id` is written by nothing — no
+`createProject` path, no UI, `null` in `demo-store`. The `clientContact` audience in the
+routing table has therefore been resolving to nobody on every real project since Slice 6.
+That affects the **Review**, **Final review** and **Marked complete** internal rows, which
+name the client contact as a recipient. They still reach leadership and subscribers, so
+nothing is silently unaddressed — but the routing table promises a recipient that does not
+exist. Worth deciding whether to build the field or drop it from the table.
+
+## ✅ No other unapplied migrations
 
 Every migration in `supabase/migrations/` is applied to hosted Supabase and was verified
 column-by-column on 2026-08-21, including the gate-parties pair this file previously flagged
