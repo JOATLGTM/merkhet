@@ -77,6 +77,12 @@ provider outage must not surface as a failed drag.
 
 ## Customer mail is off by default
 
+> **Superseded 2026-08-23 for the withheld case.** Client mail is still not delivered to
+> clients unless `EMAIL_CUSTOMER_ENABLED=true` — but instead of sitting `held` and unread, it
+> is now delivered verbatim to the project owner (`projects.created_by`). `held` remains only
+> when there is no reachable owner. [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md)
+
+
 `EMAIL_CUSTOMER_ENABLED=true` is required, in the environment, or customer messages are
 recorded as `held` and not delivered. Existing held rows are **history, not a queue** —
 enabling the switch does not send them, only new events.

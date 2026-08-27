@@ -80,6 +80,30 @@ surfaced, since those are actionable.
 An unlisted redirect **does not raise an error** — Supabase quietly falls back to Site URL.
 The symptom is a link landing on the wrong page, not a failure. Verified by probe, 2026-08-21.
 
+**Auth → link expiry** — Authentication → Sign In / Providers → Email → **Email OTP
+Expiration**, in seconds. GoTrue calls the field `mailer_otp_exp`; it governs the invite and
+the recovery link alike, and **86400 (24 hours) is the ceiling**, not just a suggested value.
+Supabase's security advisor lints anything above 3600 — that warning is expected at 24 hours,
+not a misconfiguration.
+
+There is no `config.toml` in this repo (see [The script](#the-script) and
+`scripts/push-supabase-templates.ts`), so this value exists **only** in the hosted project.
+Nothing in the tree reads it, and no check script reports it. To see it without the dashboard,
+GET the same endpoint the template push PATCHes:
+
+```
+GET https://api.supabase.com/v1/projects/{ref}/config/auth
+Authorization: Bearer $SUPABASE_ACCESS_TOKEN
+```
+
+That is a personal access token (`sbp_…`), not the service role key — same credential, same
+reasoning as the template push. It is in `.env.example` and **not** in `.env`, so as of
+2026-08-24 the live value cannot be read from this machine at all.
+
+Changing it makes one line of app copy false: `app/(auth)/forgot-password/page.tsx` tells the
+recipient the reset link "expires in an hour". Update it with the setting.
+
+
 **Auth → SMTP** — required. The built-in sender is capped at ~2 messages/hour and refuses any
 address outside the Supabase organisation's own team; the symptom of the first is
 `email rate limit exceeded`, of the second `Email address not authorized`. Both are surfaced
@@ -138,6 +162,75 @@ Only `{{ .ConfirmationURL }}` and `{{ .Email }}` are interpolated, and the link 
 unchanged, so the fragment flow above still applies exactly as described. The one thing to
 check after pasting: send yourself an invite and confirm the link still lands on
 `/accept-invite`, because a template paste is also an opportunity to lose a placeholder.
+
+## "Link expired" is three failures wearing one heading
+
+**2026-08-24.** Ryan Kolb reported repeatedly that his invite link "expires" before he can use
+it. Raising the expiry is the obvious response and is probably the wrong one — recorded here
+because the next person will reach for the same lever.
+
+`components/auth/set-password-form.tsx` renders the `expiredTitle` screen whenever
+`resolveStatus()` cannot produce a session. That is one heading over three distinct causes:
+
+| Cause | What the recipient did | Fixed by a longer expiry |
+|---|---|---|
+| The window really did lapse | Opened it late | **Yes** |
+| The token was already spent | Clicked twice, or something else fetched it first | No |
+| The fragment never arrived | Landed somewhere the tokens were stripped | No |
+
+**Not** on that list, and worth not re-adding: a PKCE verifier mismatch between the device
+that requested a reset and the device that opened it. `requestPasswordReset` uses a plain
+`@supabase/supabase-js` client specifically to avoid it — see
+[Password reset uses a plain client on purpose](#password-reset-uses-a-plain-client-on-purpose).
+
+The copy underneath hedges accordingly — *"This link has already been used or has run out"* —
+and `/login` says *"expired or was already used"*. So a report of "it expired" is the reader
+quoting the heading, not a diagnosis. **Do not treat it as one.**
+
+### The likeliest cause is a scanner burning the token
+
+Auth links are **single-use**, and `{{ .ConfirmationURL }}` is a plain GET on Supabase's
+`/auth/v1/verify`. Anything that fetches that URL consumes it. Microsoft 365 Defender
+SafeLinks prefetches links in inbound mail; Mimecast and Proofpoint do the same. The token is
+spent in transit and the human's first click lands on the expired screen — at any expiry
+setting.
+
+The template already prints the raw link as text under the button — the `fallback` block in
+`lib/email/templates/auth-link.ts` — precisely because gateways rewrite buttons. Telling the
+recipient to **copy that link rather than click the button** sidesteps link *rewriting*. It
+does not undo a prefetch that already happened.
+
+### Triage before changing anything
+
+Supabase → **Authentication → Users** → the person's row.
+
+- `confirmed_at` set, never signed in, no password ever chosen → **something consumed the
+  invite that was not them.** A scanner. Expiry is irrelevant.
+- No `confirmed_at`, invite sent hours ago → plausibly a real lapse. Raise the expiry.
+- Row absent entirely → the invite never sent. Check SMTP and the rate limit, not the link.
+
+Also confirm both `<site>/accept-invite` and `<site>/reset-password` are still in **Auth → URL
+Configuration → Redirect URLs**. An unlisted redirect fails silently to Site URL, as recorded
+above; `AuthFragmentRelay` (mounted globally in `app/layout.tsx`) is the belt for that, but it
+only fires while the fragment still carries `access_token`.
+
+### What was actually done for Ryan
+
+**2026-08-24 — a password reset was sent** rather than another invite. His auth row already
+exists, so `inviteUserByEmail` would have refused the address anyway (*"already has an
+account"*, see below); recovery is the working door into an account that exists but has never
+had a password set. The reset link carries the same single-use, same-prefetch exposure as the
+invite, so if this one also comes back as "expired", the cause is transit and not time —
+go to the triage above rather than sending a third link.
+
+Two options remain untaken, both named so they are not rediscovered:
+
+- **Set a password with the service role and hand it over out of band**, for him to change on
+  first sign-in. Ugly, immediate, no link involved.
+- **Move the invite to a typed `{{ .Token }}` code.** A scanner cannot consume six digits the
+  recipient types. This is the only structural answer to prefetch — and it is a build, not a
+  setting: there is no OTP-entry screen in the app.
+
 
 ## ⚠️ The database was wiped
 
@@ -231,8 +324,14 @@ it cannot do; it prints the SQL.
 
 ## Still open
 
-- `NEXT_PUBLIC_SITE_URL`, Supabase **Site URL**, and the Redirect URLs allowlist all still
-  point at `http://localhost:3000`. Invite and reset links therefore work only on the
-  developer's machine. **This blocks onboarding any staff member.**
+- ~~`NEXT_PUBLIC_SITE_URL` points at localhost~~ — **resolved 2026-08-24.** `.env` now reads
+  `https://merkhetdrafting.com`. The Supabase side is **not verified from this repo**: Site
+  URL and the Redirect URLs allowlist live in the dashboard, and a mismatch there fails
+  silently rather than erroring. Confirm `<site>/accept-invite` and `<site>/reset-password`
+  are both listed before blaming a link.
 - No re-invite path: an address that already has an auth row fails with "already has an
   account". Recovery is deleting the auth user in the dashboard, or a password reset.
+- **Link expiry is invisible from here.** `mailer_otp_exp` is dashboard-only and no check
+  script reports it — see [Supabase configuration](#supabase-configuration). Worth a
+  read-only `npm run check:auth` alongside `check:email`, which would also print Site URL and
+  the redirect allowlist. Needs `SUPABASE_ACCESS_TOKEN` in `.env`; not yet built.

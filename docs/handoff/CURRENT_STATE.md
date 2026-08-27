@@ -14,6 +14,12 @@
 >
 > **2026-08-22:** `projects.created_by` added and backfilled from the activity log, so board
 > cards in Pending and Active no longer read `—`.
+>
+> **2026-08-23:** Client mail with the switch off is **delivered to the project owner**
+> instead of sitting `held` and unread. Clients still receive nothing.
+> [`EMAIL_REDIRECT_APPLY.md`](./EMAIL_REDIRECT_APPLY.md). ⚠️ Also audited: no phase
+> subscribers and no phase assignees exist, so the three design phases notify nobody
+> internally, and Ryan Kolb (staff) receives nothing on any transition.
 > [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md).
 >
 > Every migration in the tree is applied and verified. Nothing is waiting on SQL.
@@ -57,7 +63,7 @@ Accounts are **invite-only**, created by an admin on `/staff`. Password reset is
 | `NEXT_PUBLIC_SITE_URL` | Origin auth emails link back to; must match Supabase **Site URL** |
 | `RESEND_API_KEY` | Transactional mail. Unset → messages queue as `pending`, never send |
 | `EMAIL_FROM` | e.g. `Merkhet <noreply@merkhetdrafting.com>` |
-| `EMAIL_CUSTOMER_ENABLED` | `true` sends client-facing mail. Anything else holds it |
+| `EMAIL_CUSTOMER_ENABLED` | `true` mails clients. Anything else redirects client mail to the project owner (`held` only if there is no owner) |
 | `NEXT_PUBLIC_APP_URL` | Deep-link origin inside internal mail |
 
 Optional: `SUPABASE_ACCESS_TOKEN` — a personal access token, read only by
@@ -102,12 +108,13 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
   `20260821100000_project_address_contact.sql` — **applied + verified**. See
   [`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md)
 
-### Email templates (2026-08-18, not wired)
+### Email templates (2026-08-18 — **wired since 2026-08-21**, see SLICE_6_APPLY)
 - `lib/email/` — four templates covering 11 events / 16 messages, each returning
   `{ subject, preview, html, text }`. Internal and client vocabularies split across two copy sets
 - Client mail fires on **customer-visible phases only** — driven by `customerVisible` in
   `lib/phases.ts`, so both approval gates and every rejection stay internal
-- `lib/notifications.ts` is **still a stub**; no call site renders a template yet
+- ~~`lib/notifications.ts` is still a stub~~ — **superseded.** All four call sites are live
+  (`moveProject`, `uploadContractAndActivate`, `rejectGateAction`, `markProjectComplete`)
 - Harnesses: `npm run email:preview` (renders to `out/emails/`), `npm run email:send`
   (Gmail SMTP — a test harness, not the send path)
 - **Supabase auth mail** (invite, password reset) is rendered through the same shell by
@@ -167,6 +174,7 @@ npm run check         # check:schedule (28) + check:calendar (45)
                       #  + check:workload (65) + check:contact (23)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 npm run check:creator # board-card avatar resolution against hosted Supabase — read-only
+npm run check:email   # where client mail would land per live project — read-only
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
 npm run email:supabase # compile the two Supabase auth templates — no network
@@ -192,7 +200,7 @@ Neither covers rendering.
 | 3 Intake expansion | **Reverted — on hold** |
 | 4 Delegation | Done — applied + verified |
 | 5 Approval gates | Done — applied + verified |
-| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites) |
+| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites). Client mail redirects to the project owner since 2026-08-23. ⚠️ Subscribers/delegates unpopulated — three phases reach nobody |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Team, This week column) |

@@ -29,10 +29,12 @@ type Row = Customer & { total_projects: number; active_projects: number };
 export function CustomersClient({ customers }: { customers: Row[] }) {
   const router = useRouter();
   // Read `?new=1` here rather than in the server page: awaiting searchParams
-  // there is runtime data that blocks the route's static shell.
-  const openNew = useSearchParams().get("new") === "1";
+  // there is runtime data that blocks the route's static shell. The dialog is
+  // driven straight off the URL — seeding useState from it would only be read
+  // on mount, and the header link is a client nav that re-renders this
+  // component rather than remounting it.
+  const open = useSearchParams().get("new") === "1";
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(openNew);
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
@@ -103,7 +105,6 @@ export function CustomersClient({ customers }: { customers: Row[] }) {
       <Dialog
         open={open}
         onOpenChange={(v) => {
-          setOpen(v);
           if (!v) router.replace("/customers");
         }}
       >
@@ -155,7 +156,10 @@ export function CustomersClient({ customers }: { customers: Row[] }) {
                     contact_email: contactEmail || null,
                     contact_phone: contactPhone || null,
                   });
-                  setOpen(false);
+                  setName("");
+                  setContactName("");
+                  setContactEmail("");
+                  setContactPhone("");
                   router.push(`/customers/${customer.id}`);
                   router.refresh();
                 });

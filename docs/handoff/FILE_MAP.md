@@ -34,6 +34,8 @@
 | Email templates | `lib/email/` (`README.md` there has the routing table) |
 | Email copy — every sentence | `lib/email/copy.ts` |
 | Email routing (pure, no DB) | `lib/email/plan.ts` |
+| Recipient resolution (DB) | `resolveAudiences` in `lib/db/repo.ts` — delegate, client contact, customer, **owner**, subscribers, leadership |
+| Phase subscribers | `phase_subscribers` table; `setPhaseSubscribers` in `lib/db/repo.ts`; UI in `components/board/subscriber-popover.tsx` + Settings |
 | Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
 | Outbox retry | `scripts/retry-emails.ts` (`npm run email:retry`) |
 | Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
@@ -44,6 +46,7 @@
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
 | Card creator live check | `scripts/check-creator.ts` (`npm run check:creator` — read-only) |
+| Client-mail redirect live check | `scripts/check-email-redirect.ts` (`npm run check:email` — read-only) |
 | Workload arithmetic check | `scripts/check-workload.ts` |
 | Contact fallback check | `scripts/check-contact.ts` |
 | Migrations | `supabase/migrations/*.sql` |

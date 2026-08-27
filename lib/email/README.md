@@ -89,16 +89,31 @@ lands in the project owner's inbox rather than the client's.
 
 | Event | Internal | Customer |
 |---|---|---|
-| → Pending | delegate list + subscribers | — |
-| → Active | leadership + subscribers | — |
+| → Pending | *nobody* | — |
+| → Active | leadership | — |
 | → Schematic design | delegate + subscribers | **yes** |
 | → Design development | delegate + subscribers | **yes** |
-| → Review | client contact + leadership | — *(approval gate)* |
+| → Review | delegate + client contact + leadership + subscribers | — *(approval gate)* |
 | → Construction documents | delegate + subscribers | **yes** |
-| → Final review | delegate + client contact + leadership | — *(approval gate)* |
-| → Permitting | delegate + leadership | **yes** |
-| Gate rejected | delegate of the phase returned to | — *(never)* |
-| Marked complete | client contact + leadership | **yes** |
+| → Final review | delegate + client contact + leadership + subscribers | — *(approval gate)* |
+| → Permitting | delegate + leadership + subscribers | **yes** |
+| Gate rejected | delegate + client contact + subscribers, of the phase returned to | — *(never)* |
+| Marked complete | client contact + leadership + subscribers | **yes** |
+
+Subscribers are appended to **every** internal message, not only the rows that
+used to name them. Leadership is copied only on Active, Permitting, the two
+gates and completion — `LEADERSHIP_COLUMNS ∪ isGate` — so an admin is not on
+the three design phases, and "admins get everything" is not true.
+
+**Pending and Active have no subscribers and no delegate, by construction.**
+Neither is a `design_phase`, so `resolveAudiences` is passed a null phase, which
+skips the `phase_subscribers` lookup and leaves the delegate null. Pending
+therefore resolves to nobody at all, and Active to leadership alone. This is
+structural — subscribing someone cannot change it.
+
+**A job with no recipients is dropped before the outbox insert** (counted
+`unaddressed`), so a column that resolves to nobody leaves no row and no trace
+beyond the return value. Silence there is not evidence the mail was sent.
 
 Three rules the code enforces rather than documents:
 
@@ -114,6 +129,34 @@ Three rules the code enforces rather than documents:
 This is wider than WORKFLOW-2 §4, which scoped client mail to DD, CD and
 Permitting. The `customerVisible` flag is the switch — narrowing back to the
 original three is an edit to `lib/phases.ts`, not to any template.
+
+### One event is not one email per person
+
+`plan.ts` emits one **job** per audience, and a job carries every recipient for
+that audience. Internal mail to four people is one job, one `email_outbox` row,
+one Resend call with four addresses, and one message each — with all four
+visible in the `To` header. It is not four sends, and the outbox row count is
+not the arrival count.
+
+`recipients()` dedupes by lowercased address, so someone who is both a
+subscriber and an admin on a leadership column still receives exactly one copy.
+
+Client mail is the exception in the other direction: it has exactly one
+recipient by design — the client, or while the switch is off, the owner. It
+never fans out to subscribers or leadership.
+
+### Phase subscribers
+
+A standing, **firm-wide** list per phase — `phase_subscribers`, primary key
+`(phase, user_id)`. There is no per-project subscription: subscribing to Design
+development means every project entering DD, for every customer.
+
+Managed by admins in two places, both writing through `setPhaseSubscribers`:
+the popover in each board column header (which shows a ⚠️ on any phase with
+zero subscribers), and Settings → **Phase subscribers**.
+
+Rows cascade on user delete. Only the six `design_phase` values can be
+subscribed to — see the Pending/Active note above.
 
 ## Auth mail — the two Supabase sends
 

@@ -22,17 +22,34 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
-## State as of 2026-08-23
+## State as of 2026-08-24
 
-⚠️ **One migration is written and not applied** —
-`20260823100000_email_redirected.sql`. Until it runs, client mail writes no outbox row at
-all and fails silently into the server log.
+⚠️ **Ryan Kolb still cannot get in.** Every link he opens shows "expired". A **password reset
+was sent 2026-08-24** in place of another invite — his auth row exists, so an invite is
+refused outright. Before raising the link expiry, read
+[ACCOUNTS_APPLY.md](./ACCOUNTS_APPLY.md#link-expired-is-three-failures-wearing-one-heading):
+that screen is the fallback for four different failures, auth links are single-use, and a mail
+scanner prefetching the URL spends the token before he clicks. Triage in Supabase →
+Authentication → Users first. The expiry itself is `mailer_otp_exp`, dashboard-only, ceiling
+86400 seconds — documented under [Supabase configuration](./ACCOUNTS_APPLY.md#supabase-configuration).
+
+## State as of 2026-08-23
 
 **Client email is no longer held in the dark.** With `EMAIL_CUSTOMER_ENABLED=false`, a client
 message is now delivered verbatim to the project's owner (`projects.created_by`) rather than
 recorded `held` and read out of the database by hand. Clients still receive nothing.
 `npm run check:email` says where each live project's client mail would land.
+Applied and verified live. [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md)
+
+⚠️ **Notification routing is correct but its data is empty.** No phase subscribers, no phase
+assignees, and Ryan Kolb is staff rather than admin — so **Schematic design, Design
+development and Construction documents currently notify nobody internally**, and Ryan
+receives nothing on any transition. Jobs with no recipients are dropped before the outbox
+insert, so this leaves no row and no error. Fix is data, not code: the subscriber popover in
+each board column header, and phase assignees. Matrix in
 [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md)
+
+✅ **Every migration in the tree is applied and verified.**
 
 ## State as of 2026-08-22
 

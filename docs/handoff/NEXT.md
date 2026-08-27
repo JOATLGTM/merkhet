@@ -2,17 +2,32 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-23**
+**Last updated: 2026-08-24**
 
-## ⚠️ One unapplied migration
+## 2026-08-24 — Ryan still has no access
 
-`20260823100000_email_redirected.sql` — adds the `redirected` value to `email_status` and
-`email_outbox.intended_to_addresses`. **Written, not run.** Paste it into the hosted Supabase
-SQL editor, then `npm run check:email`.
+He reports the link "expires" each time. **A password reset was sent on 2026-08-24** rather
+than a fourth invite: his auth row already exists, so `inviteUserByEmail` refuses the address
+outright. Waiting on him to open it.
 
-Until it is applied every client-mail insert fails, and because `enqueueAndSend` swallows its
-errors that shows up as `[email] could not write outbox: …` in the server log and no mail —
-not as a failed phase move.
+Before raising the expiry — the obvious next move — read
+[`ACCOUNTS_APPLY.md` → "Link expired" is three failures wearing one heading](./ACCOUNTS_APPLY.md#link-expired-is-three-failures-wearing-one-heading).
+The short version: the expired screen is the fallback for *any* unusable link, auth links are
+single-use, and a mail-security scanner that prefetches the URL spends the token before the
+recipient clicks. That failure looks identical at one hour and at twenty-four.
+
+**Triage first, in Supabase → Authentication → Users.** `confirmed_at` set but never signed in
+means something else consumed the link, and expiry is beside the point.
+
+If it *is* time: Authentication → Sign In / Providers → Email → **Email OTP Expiration**,
+seconds, ceiling 86400. Also update `app/(auth)/forgot-password/page.tsx`, which promises the
+recipient an hour.
+
+## ✅ No unapplied migrations
+
+`20260823100000_email_redirected.sql` was added and applied on 2026-08-23, verified by
+`npm run check:email` (column queryable, enum accepts `redirected`, every live project
+resolves to a reachable owner).
 
 ## What happened on 2026-08-23
 
@@ -40,11 +55,39 @@ message has been through Resend on this path.
 `createProject` path, no UI, `null` in `demo-store`. The `clientContact` audience in the
 routing table has therefore been resolving to nobody on every real project since Slice 6.
 That affects the **Review**, **Final review** and **Marked complete** internal rows, which
-name the client contact as a recipient. They still reach leadership and subscribers, so
-nothing is silently unaddressed — but the routing table promises a recipient that does not
-exist. Worth deciding whether to build the field or drop it from the table.
+name the client contact as a recipient. Worth deciding whether to build the field or drop it
+from the table.
 
-## ✅ No other unapplied migrations
+## ⚠️ Notification routing is correct; the data behind it is empty
+
+Audited against hosted Supabase 2026-08-23. Three users — Austin (admin), Chris (admin),
+**Ryan Kolb (staff)**. `phase_subscribers`: **zero rows**. Phases with an assignee: **zero**.
+
+**Schematic design, Design development and Construction documents notify nobody internally.**
+Delegate is null, subscribers are empty, and admins are not copied on those columns — so the
+internal job has no recipients and is dropped before the outbox insert. No row, no error, no
+mail. The client copy still reaches the owner, so the firm sees the *client's* message on
+those phases and no internal one.
+
+**Ryan receives nothing on any transition.** Staff, so not leadership; not a subscriber; not
+a delegate. Do not tell him he will see notifications until one of those changes.
+
+**Admins are not copied on everything** — only Active, Permitting, the two gates and
+completion. It reads as constant because they are currently the only recipients of anything.
+
+This is a data gap, not a code gap, and the UI for it already exists:
+
+- **Phase subscribers** — board column header popover (⚠️ on any phase with zero) or
+  Settings → Phase subscribers. Admin-only. Firm-wide per phase, **not** per project.
+- **Delegates** — the phase assignee on each project.
+
+Note Pending and Active can never have subscribers: neither is a `design_phase`, so the
+lookup is skipped. Pending resolves to nobody and Active to leadership alone, structurally.
+
+Full matrix and a worked fan-out example in
+[`EMAIL_REDIRECT_APPLY.md`](./EMAIL_REDIRECT_APPLY.md) § *Who actually receives mail today*.
+
+## ✅ Earlier migrations
 
 Every migration in `supabase/migrations/` is applied to hosted Supabase and was verified
 column-by-column on 2026-08-21, including the gate-parties pair this file previously flagged

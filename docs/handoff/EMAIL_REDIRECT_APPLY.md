@@ -118,6 +118,59 @@ would redirect to, and the outcome. Fails if any live project has no reachable o
 tallies the client mail already on record and, when held rows exist, prints the query to read
 them.
 
+## Who actually receives mail today
+
+Checked against hosted Supabase on 2026-08-23, while verifying the migration. The routing
+table is correct; the **data behind it is nearly empty**, and the result is not what the
+table implies.
+
+State: three users — Austin Stinemetz (admin), Chris Vo (admin), Ryan Kolb (**staff**).
+`phase_subscribers` has **zero rows**. **Zero** phases carry an assignee. `client_contact_id`
+is null on every project. All five live projects sit in Pending, filed by Austin.
+
+Which resolves to:
+
+| Move to | Internal reaches | Client copy |
+|---|---|---|
+| Pending | **nobody** | — |
+| Active | Austin, Chris | — |
+| Schematic design | **nobody** | Austin |
+| Design development | **nobody** | Austin |
+| Review | Austin, Chris | — |
+| Construction documents | **nobody** | Austin |
+| Final review | Austin, Chris | — |
+| Permitting | Austin, Chris | Austin |
+| Marked complete | Austin, Chris | Austin |
+
+Three consequences:
+
+1. **The three client-visible design phases notify nobody internally.** Delegate is null and
+   subscribers are empty, so the internal job has no recipients and is dropped before the
+   outbox insert. No row, no error, no mail. The client copy still reaches the owner, so the
+   firm sees the client's message and no internal one.
+2. **Ryan receives nothing, on any transition.** He is staff, so not leadership; not a
+   subscriber; not a delegate. Nothing routes to him.
+3. **Admins are not copied "constantly"** — only on Active, Permitting, the two gates and
+   completion. It reads as constant because they are currently the *only* recipients of
+   anything.
+
+The fix is data, not code: populate `phase_subscribers` and assign delegates. Both have admin
+UI already (board column popover, Settings → Phase subscribers, phase assignee).
+
+### Worked example — subscribers do not multiply the mail
+
+Ryan and Austin, both admins, both subscribed to Schematic design. A project enters SD:
+
+| | Ryan | Austin (owner) |
+|---|---|---|
+| Internal — SD entry | ✉️ | ✉️ |
+| Client copy — redirected | — | ✉️ |
+| **Inbox total** | **1** | **2** |
+
+**Three arrivals, two outbox rows.** The internal message is one job addressed to both, not
+one per person. Their admin role contributes nothing here — SD is not a leadership column —
+so the subscription is what delivers it. The client copy goes to the owner alone.
+
 ## What this does not do
 
 - **Existing `held` rows are history, not a queue.** They are not resent, not converted, and
@@ -129,6 +182,9 @@ them.
   That rough edge is unchanged and still noted in [SLICE_6_APPLY.md](./SLICE_6_APPLY.md); the
   redirect means it now lands on the owner rather than a client, which lowers the cost of it
   but does not fix it.
+- **It does not fan the client copy out to a review list.** One recipient, the owner, as
+  specified. If the firm wants every admin to see client mail, that is a fallback on
+  `reviewTo` in `plan.ts` — a small change, deliberately not made.
 
 ## Files
 
