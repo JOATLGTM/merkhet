@@ -7,6 +7,7 @@ import {
   CirclePause,
   ExternalLink,
   FileUp,
+  Receipt,
   Trash2,
   X,
 } from "lucide-react";
@@ -34,6 +35,8 @@ import {
   uploadContractAction,
 } from "@/app/actions/projects";
 import { DelegationDialog } from "@/components/projects/delegation-dialog";
+import { PhaseDates } from "@/components/projects/phase-dates";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PhaseRecipientsPicker } from "@/components/projects/phase-recipients-picker";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { Button } from "@/components/ui/button";
@@ -169,6 +172,9 @@ export function ProjectDetailSheet({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  // Off by default: dates are typed in now, and a rejection must not wipe
+  // them without being asked (PHASE_DATES_APPLY).
+  const [rejectReflow, setRejectReflow] = useState(false);
   /** Who to record the chosen third sign-off for. Reset once it is recorded. */
   const [chosenApprover, setChosenApprover] = useState("none");
   const [delegationOpen, setDelegationOpen] = useState(false);
@@ -356,6 +362,15 @@ export function ProjectDetailSheet({
                 Mark Complete
               </Button>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto rounded-none border-rule-strong px-2.5 py-1.5 text-[13px] font-normal text-ink"
+              onClick={() => router.push(`/bill?project=${project.id}`)}
+            >
+              <Receipt className="h-3.5 w-3.5 text-ink-mid" />
+              Hours
+            </Button>
             {/* Available at any phase, not just Active — the projects that
                 most need planning are the ones already past it. */}
             {!isPending && (
@@ -519,9 +534,22 @@ export function ProjectDetailSheet({
                   {project.name} returns to{" "}
                   {COLUMN_LABELS[GATE_REJECT_TARGET[gate]]} for rework. Any
                   sign-offs already recorded at {COLUMN_LABELS[gate]} are
-                  cleared, and the remaining dates are re-planned from today.
+                  cleared.
                 </DialogDescription>
               </DialogHeader>
+              <label className="flex items-start gap-2 text-[13px] text-ink">
+                <Checkbox
+                  checked={rejectReflow}
+                  onCheckedChange={(v) => setRejectReflow(Boolean(v))}
+                  className="mt-0.5"
+                />
+                <span>
+                  Re-plan the remaining dates from today, back to back.
+                  <span className="block text-[11px] text-ink-soft">
+                    Leave off to keep the dates as entered.
+                  </span>
+                </span>
+              </label>
               <DialogFooter className="gap-2 sm:justify-end">
                 <Button
                   type="button"
@@ -537,8 +565,9 @@ export function ProjectDetailSheet({
                   onClick={() => {
                     startTransition(async () => {
                       try {
-                        await rejectGateAction(project.id, gate);
+                        await rejectGateAction(project.id, gate, rejectReflow);
                         setRejectOpen(false);
+                        setRejectReflow(false);
                         toast.success(
                           `Back to ${COLUMN_LABELS[GATE_REJECT_TARGET[gate]]}`,
                         );
@@ -1192,25 +1221,36 @@ export function ProjectDetailSheet({
                         ))}
                       </SelectContent>
                     </Select>
-                    {/* Read-only: durations are the source of the schedule and
-                        dates are derived (WORKFLOW-2 §3). Editing happens in
-                        the Plan schedule dialog. */}
-                    <div
-                      className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
-                      title="Derived from durations — use Plan schedule to change"
-                    >
-                      {phase.planned_start ?? (
-                        <span className="text-ink-soft">—</span>
-                      )}
-                    </div>
-                    <div
-                      className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
-                      title="Derived from durations — use Plan schedule to change"
-                    >
-                      {phase.planned_end ?? (
-                        <span className="text-ink-soft">—</span>
-                      )}
-                    </div>
+                    {takesHours ? (
+                      // Dates are typed in since 2026-09-02 (PHASE_DATES_APPLY).
+                      // Keyed on the server values so a save resets the cells.
+                      <PhaseDates
+                        key={`${project.id}-${phase.phase}-${phase.planned_start ?? ""}-${phase.planned_end ?? ""}`}
+                        projectId={project.id}
+                        phase={phase}
+                      />
+                    ) : (
+                      // Review is the milestone on the end of Design
+                      // development; it moves when DD does, not by hand.
+                      <>
+                        <div
+                          className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
+                          title="Follows the end of Design development"
+                        >
+                          {phase.planned_start ?? (
+                            <span className="text-ink-soft">—</span>
+                          )}
+                        </div>
+                        <div
+                          className="flex h-9 items-center border border-rule bg-muted-fill px-2 font-mono text-[11px] text-ink-mid tabular-nums"
+                          title="Follows the end of Design development"
+                        >
+                          {phase.planned_end ?? (
+                            <span className="text-ink-soft">—</span>
+                          )}
+                        </div>
+                      </>
+                    )}
                     {takesHours ? (
                       // Suffixed rather than bare: a right-aligned number with
                       // no unit next to two dates reads as a third date.

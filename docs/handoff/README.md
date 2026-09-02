@@ -22,7 +22,21 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
 | [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md) | **Per-project notify lists replace phase subscribers** — SQL not yet applied |
 | [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md) | **`developer` role** — admin access, hidden everywhere, unremovable — SQL not yet applied |
+| [BILL_APPLY.md](./BILL_APPLY.md) | **Bill page** — planned hours per project, by person, CSV export. Read-only, no SQL |
+| [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md) | **Explicit phase dates** — typed in, not chained; rejection offers a reflow — SQL not yet applied |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
+
+## State as of 2026-09-02
+
+**Phase dates are entered, not derived.** Each delegated phase takes its own start and end,
+in Plan schedule and on the sheet's phase row, because the person holding it is usually on
+something else between phases — a 9/10 start no longer forces Schematic design onto
+9/10–9/16. `duration_days` is now the working-day count of the span, kept in step so the
+Active → SD gate, delegation-complete and the workload rate read exactly what they always
+did. **Fill back to back** in the dialog is the old chain as a one-click option. Review still
+lands on the end of Design development. Rejecting a gate **no longer re-dates anything by
+default**; the dialog offers a reflow checkbox. ⚠️ `20260902110000_phase_dates.sql` adds the
+two check constraints — **written, not applied**. [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md)
 
 ## State as of 2026-09-01
 
@@ -43,6 +57,17 @@ Not clicked in a browser. Compiles, typechecks, lints at baseline; `npm run chec
 calendar, `/staff` and every assignee or notify list, not leadership mail, and protected by a
 trigger from deletion, deactivation and demotion. ⚠️ Two more migrations, **written, not
 applied** — run the enum file first and alone. [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md)
+
+**A Bill page exists** (`/bill`, everyone): the planned hours already on each project's
+phases, grouped by project and by the person holding the phase, with a CSV export and an
+**Hours** button on the sheet that opens it filtered to that project. Read-only — hours are
+still set in Plan schedule — and **no SQL**. "Not planned" is never `0h` here either; totals
+say "At least" when any phase has no budget. `npm run check:billing` is in `npm run check`.
+[BILL_APPLY.md](./BILL_APPLY.md)
+
+**Three migrations are waiting from this day:** phase recipients, then the developer pair
+(enum file first and alone). Apply all before deploying — the board and `/staff` each read
+something new.
 
 ## State as of 2026-08-24
 
@@ -188,8 +213,9 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
 - Uncached Supabase reads must sit inside `<Suspense>` — and *inside* means in a child that
   suspends. An `await` in the default export resolves before the boundary is reached, so a
   `<Suspense>` further down does nothing. This bit four routes on Aug 14; see NEXT.md
-- Phase dates are **derived from durations**, never hand-entered (WORKFLOW-2 §3) — the
-  inputs are read-only on purpose; edit via Plan schedule
+- Phase dates are **typed in per phase** since 2026-09-02 — not chained from durations.
+  `duration_days` is derived from the span and kept in step (`PHASE_DATES_APPLY.md`). The
+  old chain survives as **Fill back to back** in the dialog. Review still follows DD's end
 - **Null means "same as the customer"** on the four `project_*` contact columns — there is
   deliberately no `uses_customer_contact` boolean, and the fallback is per field
   (`PROJECT_CONTACT_APPLY.md`). `projects.client_contact_id` is a different thing entirely:
@@ -213,4 +239,4 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
 - `npm run email:send` talks to **real Gmail**. Every recipient is overridden with
   `GMAIL_TEST_TO`, because two fixture addresses are on a live domain
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02

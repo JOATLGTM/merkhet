@@ -113,6 +113,68 @@ export function deriveSchedule({
   return out;
 }
 
+/**
+ * Working days in `[start, end]`, inclusive — the inverse of the chain above,
+ * so a phase dated by hand still carries a `duration_days` the Active → SD
+ * gate, `isDelegationComplete` and the workload rate can read. `0` when the
+ * span is empty or holds only weekend days.
+ */
+export function businessDaysBetween(start: string, end: string): number {
+  const a = parseISO(start);
+  const b = parseISO(end);
+  if (b < a) return 0;
+  let n = 0;
+  for (let d = a; d <= b; d = addBusinessDays(d, 1)) {
+    if (isWeekend(d)) {
+      // addBusinessDays never lands on a weekend, so only the first day can.
+      d = nextMonday(d);
+      if (d > b) break;
+    }
+    n += 1;
+  }
+  return n;
+}
+
+/**
+ * Last day of a span of `days` working days starting at `start`, weekend
+ * start pushed to Monday — one row of the chain, for typing a duration into
+ * a phase that already has a start.
+ */
+export function endOfSpan(start: string, days: number): string {
+  const first = businessDay(parseISO(start));
+  return isoDay(addBusinessDays(first, Math.max(1, Math.floor(days)) - 1));
+}
+
+/**
+ * Why a hand-entered pair is unusable, or null when it is fine. Undated (both
+ * null) is fine — a phase may simply not be scheduled yet. Half-dated is not:
+ * every consumer treats a row with one date as undated, so the second date
+ * would be silently ignored.
+ */
+export function phaseDateError(
+  start: string | null,
+  end: string | null,
+): string | null {
+  if (!start && !end) return null;
+  if (!start || !end) return "Set both dates, or neither.";
+  if (end < start) return "The end date is before the start.";
+  if (businessDaysBetween(start, end) < 1) {
+    return "The span has no working day in it.";
+  }
+  return null;
+}
+
+/**
+ * Review is a zero-width milestone on the end of Design development
+ * (WORKFLOW-2 §3). With explicit dates it is still not entered by hand: it
+ * follows DD wherever DD is put.
+ */
+export function reviewMilestone(
+  ddEnd: string | null,
+): PhaseSchedule | null {
+  return ddEnd ? { planned_start: ddEnd, planned_end: ddEnd } : null;
+}
+
 export function heldDaysLabel(since: string | null | undefined): string {
   if (!since) return "Paused";
   const days = Math.max(

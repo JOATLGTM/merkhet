@@ -130,8 +130,11 @@ async function approve(
 }
 
 /**
- * Mirrors lib/db/repo.ts rejectGate exactly: the RPC does the state change,
- * then the dates are recomputed here because deriveSchedule lives in TS.
+ * Mirrors lib/db/repo.ts rejectGate with `reflow = true`: the RPC does the
+ * state change, then the dates are recomputed here because deriveSchedule
+ * lives in TS. Since 2026-09-02 the app's default is *no* reflow — dates are
+ * explicit and a rejection leaves them alone unless asked (PHASE_DATES_APPLY);
+ * this script exercises the opt-in path.
  */
 async function rejectGate(projectId: string, phase: "review" | "final_review") {
   const { error } = await sb.rpc("reject_gate", {

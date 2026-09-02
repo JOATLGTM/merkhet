@@ -1,6 +1,12 @@
 import { format, parseISO, isWeekend } from "date-fns";
 
-import { deriveSchedule } from "../lib/dates";
+import {
+  businessDaysBetween,
+  deriveSchedule,
+  endOfSpan,
+  phaseDateError,
+  reviewMilestone,
+} from "../lib/dates";
 
 let failures = 0;
 const check = (label: string, got: unknown, want: unknown) => {
@@ -137,6 +143,37 @@ const secondPass = deriveSchedule({
 });
 check("second rejection re-floors to the new anchor", secondPass.construction_documents?.planned_start, "2026-09-14");
 check("second rejection leaves the earlier lock alone", secondPass.design_development, undefined);
+
+// --- explicit dates (2026-09-02) -----------------------------------------
+// businessDaysBetween is the inverse of the chain: the working-day count of
+// an inclusive span, so hand-entered dates still carry a duration.
+check("same weekday is one day", businessDaysBetween("2026-09-14", "2026-09-14"), 1);
+check("Mon–Fri is five", businessDaysBetween("2026-09-14", "2026-09-18"), 5);
+check("Mon–next Mon skips the weekend", businessDaysBetween("2026-09-14", "2026-09-21"), 6);
+check("Sat–Sun is nothing", businessDaysBetween("2026-09-12", "2026-09-13"), 0);
+check("Sat start counts from Monday", businessDaysBetween("2026-09-12", "2026-09-15"), 2);
+check("Fri–Mon is two", businessDaysBetween("2026-09-11", "2026-09-14"), 2);
+check("end before start is zero", businessDaysBetween("2026-09-18", "2026-09-14"), 0);
+
+// The two directions round-trip: chain a span, count it back.
+const chained = deriveSchedule({ anchor: "2026-09-14", durations: { schematic_design: 10 } });
+check(
+  "chain → count round-trips",
+  businessDaysBetween(chained.schematic_design!.planned_start, chained.schematic_design!.planned_end),
+  10,
+);
+check("endOfSpan matches the chain", endOfSpan("2026-09-14", 10), chained.schematic_design!.planned_end);
+check("endOfSpan from a Saturday starts Monday", endOfSpan("2026-09-12", 1), "2026-09-14");
+check("endOfSpan of one day is the day", endOfSpan("2026-09-14", 1), "2026-09-14");
+
+check("undated is fine", phaseDateError(null, null), null);
+check("half-dated is refused", phaseDateError("2026-09-14", null), "Set both dates, or neither.");
+check("reversed is refused", phaseDateError("2026-09-18", "2026-09-14"), "The end date is before the start.");
+check("weekend-only is refused", phaseDateError("2026-09-12", "2026-09-13"), "The span has no working day in it.");
+check("a real span is fine", phaseDateError("2026-09-20", "2026-09-26"), null);
+
+check("review follows DD's end", reviewMilestone("2026-10-02"), { planned_start: "2026-10-02", planned_end: "2026-10-02" });
+check("no DD end, no milestone", reviewMilestone(null), null);
 
 console.log(
   failures === 0 ? "\nAll schedule checks passed" : `\n${failures} FAILURES`,

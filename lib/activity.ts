@@ -43,6 +43,14 @@ export function formatActivity(
       const count = phases?.length ?? 0;
       return `${actor} planned the schedule across ${count} phases · ${when}`;
     }
+    case "phase.dates_changed": {
+      const phase = label(event.payload.phase);
+      const start = event.payload.to_start;
+      const end = event.payload.to_end;
+      return start && end
+        ? `${actor} dated ${phase} ${start} → ${end} · ${when}`
+        : `${actor} cleared the dates on ${phase} · ${when}`;
+    }
     case "phase.recipients_changed": {
       const ids = event.payload.user_ids as unknown[] | undefined;
       const count = ids?.length ?? 0;

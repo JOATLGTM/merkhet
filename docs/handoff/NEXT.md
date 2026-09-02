@@ -2,7 +2,7 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-09-01**
+**Last updated: 2026-09-02**
 
 ## 2026-09-01 — Phase recipients replace phase subscribers
 
@@ -18,8 +18,16 @@ Built, not applied, not clicked. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENT
 4. **Developer role, same day.** Run `20260901110000_developer_role_enum.sql` alone, then
    `20260901110100_developer_role.sql`. Sign in as Chris Vo; `/staff` should load and not
    list you. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
-5. Feature 2 from the same conversation is queued behind this: **explicit per-phase dates**
-   with a reflow offered on gate rejection. Not started.
+5. **Bill page, same day.** Run `20260902100000_drop_time_entries.sql` — it removes the
+   table from the abandoned first cut, which was applied by hand before the code was pulled.
+   Then open `/bill`, pick a project, expand a person, export the CSV, and click **Hours** on
+   a project sheet to confirm it lands filtered. [`BILL_APPLY.md`](./BILL_APPLY.md).
+6. **Explicit phase dates, 2026-09-02.** Run `20260902110000_phase_dates.sql` (two check
+   constraints, no data change). Then Plan schedule on a project: set Schematic design to
+   9/20–9/26 with the project starting 9/10 and confirm it saves as typed, Days reads 5, and
+   Review sits on the end of Design development. Edit a date on the sheet row and watch it
+   save on blur. Reject a gate with the reflow box off and confirm nothing moved.
+   [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
 
 The "Found along the way" note under 2026-08-23 about `client_contact_id` is resolved: the
 field was dropped rather than built.

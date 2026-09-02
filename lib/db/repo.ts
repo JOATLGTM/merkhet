@@ -23,7 +23,12 @@ import {
   isDesignPhase,
 } from "@/lib/types";
 import type { ApprovalParty, GatePhase } from "@/lib/types";
-import { deriveSchedule } from "@/lib/dates";
+import {
+  businessDaysBetween,
+  deriveSchedule,
+  phaseDateError,
+  reviewMilestone,
+} from "@/lib/dates";
 import { resolveContactField } from "@/lib/contact";
 import type { Audiences } from "@/lib/email/plan";
 import type { WorkloadAssignment } from "@/lib/workload";
@@ -937,19 +942,78 @@ export async function updatePhaseAssignee(
   return (await getProject(projectId))!;
 }
 
+/**
+ * Sets one phase's dates by hand. Dates are the source of the schedule since
+ * 2026-09-02 (PHASE_DATES_APPLY); `duration_days` is kept in step as the
+ * working-day count so the Active → SD gate, `isDelegationComplete` and the
+ * workload rate keep reading a number.
+ *
+ * Review cannot be dated directly — it is the milestone on the end of Design
+ * development, and follows DD whenever DD moves.
+ */
 export async function updatePhaseDates(
   projectId: string,
   phase: DesignPhase,
   planned_start: string | null,
   planned_end: string | null,
+  actorId: string,
 ): Promise<ProjectWithRelations> {
+  if (phase === "review") {
+    throw new Error(
+      "Review sits on the end of Design development — move that instead.",
+    );
+  }
+  const problem = phaseDateError(planned_start, planned_end);
+  if (problem) throw new Error(problem);
+
   const supabase = await db();
+  const { data: before, error: beforeError } = await supabase
+    .from("project_phases")
+    .select("planned_start, planned_end")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .single();
+  throwOn(beforeError, "Phase not found");
+
+  const patch: Record<string, unknown> = { planned_start, planned_end };
+  if (planned_start && planned_end) {
+    patch.duration_days = businessDaysBetween(planned_start, planned_end);
+  }
   const { error } = await supabase
     .from("project_phases")
-    .update({ planned_start, planned_end })
+    .update(patch)
     .eq("project_id", projectId)
     .eq("phase", phase);
   throwOn(error, "Failed to update phase dates");
+
+  if (phase === "design_development") {
+    const milestone = reviewMilestone(planned_end);
+    const { error: reviewError } = await supabase
+      .from("project_phases")
+      .update({
+        planned_start: milestone?.planned_start ?? null,
+        planned_end: milestone?.planned_end ?? null,
+      })
+      .eq("project_id", projectId)
+      .eq("phase", "review")
+      .eq("status", "not_started");
+    throwOn(reviewError, "Dates saved, but the Review milestone did not follow");
+  }
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "phase.dates_changed",
+    payload: {
+      phase,
+      from_start: before?.planned_start ?? null,
+      from_end: before?.planned_end ?? null,
+      to_start: planned_start,
+      to_end: planned_end,
+    },
+  });
+  throwOn(activityError, "Failed to log date change");
+
   return (await getProject(projectId))!;
 }
 
@@ -1006,6 +1070,13 @@ export async function updatePhaseHours(
 export type DelegationEntry = {
   phase: DesignPhase;
   assignee_id: string;
+  /**
+   * Both required. Dates are the schedule; `duration_days` is derived from
+   * them on save (PHASE_DATES_APPLY), so the value the client sends is
+   * ignored in favour of the working-day count.
+   */
+  planned_start: string;
+  planned_end: string;
   duration_days: number;
   /** Optional by design — see `SLICE_4_SCOPE.md` "Optionality". */
   planned_hours: number | null;
@@ -1077,12 +1148,13 @@ export async function setPhaseRecipients(
 }
 
 /**
- * Slice 4 — assigns person + duration to all five delegated phases at once and
- * derives the schedule from the durations.
+ * Slice 4 — assigns a person and dates to all five delegated phases at once.
  *
- * Phases that have already been worked (anything not `not_started`) keep their
- * dates; only the remainder is re-dated. That makes this safe to re-run as a
- * re-plan, which is what Slice 5's rejection loops will need.
+ * Since 2026-09-02 the dates come in explicitly rather than being chained from
+ * durations (PHASE_DATES_APPLY): phases are not back to back, because the
+ * person holding one is usually on something else in between. The dialog
+ * still offers the chain as a one-click fill; this function no longer runs
+ * it. `duration_days` is written as the working-day count of each span.
  *
  * Writes are sequential — supabase-js has no client-side transaction. A
  * partial write leaves the project *incompletely* delegated, which the
@@ -1100,9 +1172,11 @@ export async function saveDelegation(
     const entry = byPhase.get(phase);
     if (!entry) throw new Error(`Missing delegation for ${phase}`);
     if (!entry.assignee_id) throw new Error(`Assign someone to ${phase}`);
-    if (!Number.isFinite(entry.duration_days) || entry.duration_days < 1) {
-      throw new Error(`Set a duration of at least one day for ${phase}`);
+    if (!entry.planned_start || !entry.planned_end) {
+      throw new Error(`Set start and end dates for ${phase}`);
     }
+    const problem = phaseDateError(entry.planned_start, entry.planned_end);
+    if (problem) throw new Error(`${phase}: ${problem}`);
     if (
       entry.planned_hours != null &&
       (!Number.isFinite(entry.planned_hours) || entry.planned_hours < 0)
@@ -1115,43 +1189,37 @@ export async function saveDelegation(
   const supabase = await db();
   const { data: existing, error: existingError } = await supabase
     .from("project_phases")
-    .select("phase, status, planned_end")
+    .select("phase, status")
     .eq("project_id", projectId);
   throwOn(existingError, "Failed to read phases");
-
-  // Anything already worked is locked: keep its dates, resume the chain after.
-  const locked: Partial<Record<DesignPhase, string | null>> = {};
-  for (const row of existing ?? []) {
-    if (row.status !== "not_started") {
-      locked[row.phase as DesignPhase] =
-        (row.planned_end as string | null) ?? null;
-    }
-  }
-
-  const schedule = deriveSchedule({
-    anchor: anchorDate,
-    durations: Object.fromEntries(
-      entries.map((e) => [e.phase, e.duration_days]),
-    ),
-    locked,
-  });
+  const reviewStarted = (existing ?? []).some(
+    (row) => row.phase === "review" && row.status !== "not_started",
+  );
 
   for (const phase of DESIGN_PHASES) {
     const entry = byPhase.get(phase);
-    const dates = schedule[phase];
-    if (!entry && !dates) continue;
-
-    // Delegation assigns every phase, including locked ones — it records who
-    // owns the work. Only the dates are withheld from locked phases.
     const patch: Record<string, unknown> = {};
+
     if (entry) {
       patch.assignee_id = entry.assignee_id;
-      patch.duration_days = entry.duration_days;
       patch.planned_hours = entry.planned_hours;
-    }
-    if (dates) {
-      patch.planned_start = dates.planned_start;
-      patch.planned_end = dates.planned_end;
+      patch.planned_start = entry.planned_start;
+      patch.planned_end = entry.planned_end;
+      patch.duration_days = businessDaysBetween(
+        entry.planned_start,
+        entry.planned_end,
+      );
+    } else if (phase === "review") {
+      // The milestone follows DD. A Review already reached keeps its date —
+      // that is history, not a plan.
+      if (reviewStarted) continue;
+      const milestone = reviewMilestone(
+        byPhase.get("design_development")?.planned_end ?? null,
+      );
+      patch.planned_start = milestone?.planned_start ?? null;
+      patch.planned_end = milestone?.planned_end ?? null;
+    } else {
+      continue;
     }
 
     const { error } = await supabase
@@ -1186,7 +1254,9 @@ export async function saveDelegation(
       phases: entries.map((e) => ({
         phase: e.phase,
         assignee_id: e.assignee_id,
-        duration_days: e.duration_days,
+        planned_start: e.planned_start,
+        planned_end: e.planned_end,
+        duration_days: businessDaysBetween(e.planned_start, e.planned_end),
         planned_hours: e.planned_hours,
         notify_ids: uniqueIds(e.notify_ids),
       })),
@@ -1291,10 +1361,18 @@ export async function clearApproval(
  * it re-date would hand it a fresh future window *and* push the rework out
  * behind it.
  */
+/**
+ * Rejects a gate. `reflow` re-dates every not-started phase back to back from
+ * today, the way rejection always did; without it the hand-entered dates are
+ * left alone (PHASE_DATES_APPLY — a rejection must not silently wipe a plan
+ * somebody typed in). The sheet offers the choice; `scripts/check-gates.ts`
+ * mirrors the reflow path.
+ */
 export async function rejectGate(
   projectId: string,
   phase: GatePhase,
   actorId: string,
+  reflow = false,
 ): Promise<ProjectWithRelations> {
   const supabase = await db();
   const { error } = await supabase.rpc("reject_gate", {
@@ -1305,6 +1383,7 @@ export async function rejectGate(
   throwOn(error, "Failed to reject");
 
   const project = (await getProject(projectId))!;
+  if (!reflow) return project;
 
   const locked: Partial<Record<DesignPhase, string | null>> = {};
   const durations: Partial<Record<DesignPhase, number | null>> = {};

@@ -166,12 +166,13 @@ export async function updatePhaseDatesAction(
   planned_start: string | null,
   planned_end: string | null,
 ) {
-  await requireUser();
+  const user = await requireUser();
   const project = await updatePhaseDates(
     projectId,
     phase,
     planned_start,
     planned_end,
+    user.id,
   );
   revalidateAll();
   return project;
@@ -245,9 +246,14 @@ export async function clearApprovalAction(
   return project;
 }
 
-export async function rejectGateAction(projectId: string, phase: GatePhase) {
+export async function rejectGateAction(
+  projectId: string,
+  phase: GatePhase,
+  /** Re-date the not-started phases from today. Off keeps the entered dates. */
+  reflow = false,
+) {
   const user = await requireUser();
-  const project = await rejectGate(projectId, phase, user.id);
+  const project = await rejectGate(projectId, phase, user.id, reflow);
 
   await notifyGateRejected({
     projectId: project.id,

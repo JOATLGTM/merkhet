@@ -7,6 +7,7 @@ import {
   Columns3,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
   UserCog,
   Users,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const links = [
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/consultants", label: "Consultants", icon: Briefcase },
   { href: "/completed", label: "Completed projects", icon: Archive },
+  { href: "/bill", label: "Bill", icon: Receipt },
   { href: "/staff", label: "Staff", icon: UserCog, adminOnly: true },
 ];
 

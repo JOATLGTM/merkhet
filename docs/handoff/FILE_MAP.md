@@ -12,6 +12,7 @@
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
 | Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team) |
+| Bill | `app/(app)/bill/page.tsx` → `components/billing/bill-client.tsx` — planned hours by project and person, read-only, CSV |
 | Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
@@ -39,10 +40,12 @@
 | Phase recipients (per project) | `project_phase_recipients` table → `ProjectPhase.notify_ids`; `setPhaseRecipients` + `saveDelegation` in `lib/db/repo.ts`; UI `components/projects/phase-recipients-picker.tsx` |
 | Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
 | Outbox retry | `scripts/retry-emails.ts` (`npm run email:retry`) |
-| Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
+| Dates / urgency / `deriveSchedule` / `businessDaysBetween` / `phaseDateError` | `lib/dates.ts` (checks: `npm run check:schedule`) — the chain is a fill helper since 2026-09-02; dates are entered |
+| Sheet phase-row date cells | `components/projects/phase-dates.tsx` — saves on blur via `updatePhaseDatesAction` |
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Per-staff weekly load (pure) | `lib/workload.ts` (checks: `npm run check:workload`) |
 | Project vs customer address/contact (pure) | `lib/contact.ts` (checks: `npm run check:contact`) |
+| Bill roll-ups + CSV (pure) | `lib/billing.ts` (checks: `npm run check:billing`) — reads `planned_hours` off hydrated projects, no table of its own |
 | Activity copy | `lib/activity.ts` |
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |

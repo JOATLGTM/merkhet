@@ -162,7 +162,33 @@ Rules this leaves behind:
 - Three SVGs means three gradient ids — `merkhet-path-ramp-${kind}`. Duplicate ids would cross-wire the `url(#…)` strokes.
 - Layers are `-inset-6` so the float never exposes a bare strip at the clipped edge.
 
+## Phase dates are entered, not derived (Sep 2, 2026) — supersedes the chain below and WORKFLOW-2 §3
+
+**Each phase has its own start and end, typed in.** The firm's phases are not back to back:
+the person holding Schematic design is on other work between it and Design development, so
+a project starting 9/10 must be able to carry SD on 9/20–9/26. The chain (`deriveSchedule`)
+survives as the **Fill back to back** button and as the rejection reflow; it is no longer the
+write path.
+
+- **`duration_days` stays, derived.** It is the working-day count of the span
+  (`businessDaysBetween`), written on every save, so the `move_project` gate,
+  `isDelegationComplete` and `weeklyRate` did not change. Typing a number into Days moves
+  the end date; moving a date recounts Days.
+- **Half-dated is refused, undated is fine.** Every consumer treats one date as none, so the
+  form and `phaseDateError` reject a lone date rather than let the other vanish. Two check
+  constraints (`20260902110000_phase_dates.sql`) say the same in SQL.
+- **Review is still not typed in.** It is the milestone on the end of Design development
+  and follows DD on every save and every sheet edit. A Review already reached keeps its date.
+- **Rejection does not re-date by default.** The reject dialog offers *Re-plan the remaining
+  dates from today*, off. `check:gates` exercises the on path.
+- **Worked phases are editable.** Locking was a property of the chain; with explicit dates,
+  moving an in-progress end date is an ordinary correction. The fill still skips them.
+
 ## Scheduling and hours (Slice 4 / Slice 11, Aug 14, 2026)
+
+> **Dates: superseded 2026-09-02** — see the section above. Durations remain working days
+> and remain the unit the SQL gate reads.
+
 
 Settled in `SLICE_4_SCOPE.md`. Reversing any of these is a product decision, not a
 refactor — check before changing.
@@ -344,6 +370,22 @@ deactivate or demote it, and the app's actions refuse first with a sentence.
   were converted; a new literal comparison silently locks the developer out.
 - **Invisibility has a cost that is accepted:** the developer's own actions render as
   "Someone" in activity, and a project they file shows `—` on its card. `DEVELOPER_ROLE_APPLY.md`.
+
+## Bill reads planned hours; it does not keep a timesheet (Sep 1, 2026)
+
+**The hours the firm bills from are the ones already on the project** —
+`project_phases.planned_hours`, per assignee. The Bill page regroups them by project and
+person and exports CSV. It has no table, no form and no write path. A first cut with a
+`time_entries` timesheet was built and removed the same day: the ask was easier *access* to
+the hours on a project, not another place to enter them. Do not reintroduce a log.
+
+- **Read-only, one editor.** Hours change in Plan schedule or on the sheet's phase row. A
+  second editor for the same column is a second place for it to be wrong.
+- **"Not planned" is never `0h`** here either (rule below). Totals count only budgeted phases,
+  carry an `unplanned` count, and the headline reads **At least** when any is missing. The CSV
+  exports an empty cell, not `0`.
+- **Arithmetic is headless** (`lib/billing.ts`, `check:billing`). Sums round once to one
+  decimal; ties sort by id so nothing reorders between renders.
 
 ## What planned hours are for (Slice 9, Aug 21, 2026)
 

@@ -1,6 +1,6 @@
 # Current state
 
-**Last updated: 2026-09-01**
+**Last updated: 2026-09-02**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). Three things changed on the evening of
 > **2026-08-21** and invalidate parts of what is written below:
@@ -28,6 +28,12 @@
 > deploying. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md). Same day: a
 > `developer` role (admin access, invisible, unremovable) for Chris Vo — two more
 > migrations, also not applied. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
+> And a read-only **Bill** page — planned hours per project, by person, CSV — no SQL.
+> [`BILL_APPLY.md`](./BILL_APPLY.md).
+>
+> **2026-09-02:** Phase dates are **typed in**, not chained from durations; rejection offers
+> a reflow instead of forcing one. One more migration, not applied.
+> [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
 >
 > Every earlier migration in the tree is applied and verified.
 
@@ -141,6 +147,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
 - Staff (`/staff`, admin): Team (with **weekly workload**). The Phase subscribers tab was removed 2026-09-01
+- Bill (`/bill`, everyone): planned hours per project grouped by the person holding each phase, filters, CSV export. Read-only — 2026-09-01
 
 ### Workload (2026-08-21, Slice 9)
 - A **This week** column on the Team table already on `/staff`, so it inherits the page's
@@ -173,6 +180,8 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260823100000_email_redirected.sql` — applied + verified (`EMAIL_REDIRECT_APPLY.md`)
 - `20260901100000_phase_recipients.sql` — ⚠️ **WRITTEN, NOT APPLIED** (`PHASE_RECIPIENTS_APPLY.md`)
 - `20260901110000_developer_role_enum.sql` + `20260901110100_developer_role.sql` — ⚠️ **WRITTEN, NOT APPLIED**, enum file first and alone (`DEVELOPER_ROLE_APPLY.md`)
+- `20260902100000_drop_time_entries.sql` — ⚠️ **WRITTEN, NOT APPLIED**. Removes a table from a deleted migration that was run by hand on 2026-09-01 (`BILL_APPLY.md`)
+- `20260902110000_phase_dates.sql` — ⚠️ **WRITTEN, NOT APPLIED**. Check constraints for hand-entered dates (`PHASE_DATES_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
 `SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,
@@ -182,8 +191,8 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 ## Checks
 
 ```bash
-npm run check         # check:schedule (28) + check:calendar (45)
-                      #  + check:workload (65) + check:contact (23)
+npm run check         # check:schedule (27) + check:calendar (31)
+                      #  + check:workload (65) + check:contact (23) + check:billing (44)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 npm run check:creator # board-card avatar resolution against hosted Supabase — read-only
 npm run check:email   # where client mail would land per live project — read-only
@@ -195,9 +204,10 @@ npm run email:supabase:push # dry-run pushing them into Supabase; --yes writes
 npm run email:send    # list cases; --case <n> sends via Gmail SMTP (see .env.example)
 ```
 
-No test runner. `npm run check` covers the four pure modules — `deriveSchedule`
-(`lib/dates.ts`), calendar geometry (`lib/calendar.ts`), weekly load (`lib/workload.ts`) and
-the project/customer contact fallback (`lib/contact.ts`) — and touches no database.
+No test runner. `npm run check` covers the five pure modules — `deriveSchedule`
+(`lib/dates.ts`), calendar geometry (`lib/calendar.ts`), weekly load (`lib/workload.ts`),
+the project/customer contact fallback (`lib/contact.ts`) and the Bill roll-ups
+(`lib/billing.ts`) — and touches no database.
 `check:gates` exercises the workflow gates and the rework loop against the **live** database
 on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
 Neither covers rendering.

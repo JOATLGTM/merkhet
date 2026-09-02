@@ -126,7 +126,9 @@ five phases at once:
 **Review is not delegated** — it is a pure gate (see below).
 
 Completing delegation generates the project's calendar entries. Durations are the source
-of the schedule; dates are derived, never hand-entered. `project_phases.planned_start` and
+of the schedule; dates are derived, never hand-entered. **Superseded 2026-09-02: dates are
+typed in per phase and durations are derived from them — `PHASE_DATES_APPLY.md`.**
+`project_phases.planned_start` and
 `planned_end` already exist and can carry them.
 
 ### SD
