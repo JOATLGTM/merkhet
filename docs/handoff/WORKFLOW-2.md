@@ -77,6 +77,12 @@ sequence — not a phase, not a column. Existing behavior and seed coverage (`MK
 
 ## 3. Phase definitions
 
+> **Read with three later decisions in hand.** Gate sign-offs are **Austin · Ryan · chosen**
+> at *both* gates (`GATE_PARTIES_APPLY.md`, 2026-08-21) — the client-contact / client lists
+> below are the original spec, not the code. Phase **dates are typed in per phase** and
+> durations are derived from them (`PHASE_DATES_APPLY.md`, 2026-09-02). Delegation (Slice 4)
+> was built 2026-08-14.
+
 ### Intake
 
 Not a board state. Two forms captured before a project appears on the board.
@@ -197,6 +203,10 @@ Archived. Leaves the active board. Remains readable and searchable.
 
 ## 4. Notification rules
 
+> **Client mail is not deferred.** It ships on every customer-visible phase since 2026-08-21
+> (DECISIONS.md, *Email routing*). `phase_subscribers` was dropped 2026-09-01 for a
+> per-project notify list (`PHASE_RECIPIENTS_APPLY.md`). The table below is the original spec.
+
 Fire **on phase entry**, addressed to the incoming phase's delegate plus any additional
 recipients below.
 
@@ -275,7 +285,7 @@ remain as display/legacy until Phase 2 timesheets. Unblocks Slice 1B.
 signal pointed at — a **day-resolution gantt with a staff-grouped mode**, both halves, not
 day zoom alone. Austin wanted the daily granularity; Ryan wanted grouping by staff member
 to see individual workload. Unblocks Slice 10. Note that manual phase-date entry still
-conflicts with §3, and Slice 4 (Delegation) is skipped, so the `assignee_id` the staff
+conflicts with §3, and Slice 4 (Delegation) is skipped **(stale — built 2026-08-14)**, so the `assignee_id` the staff
 grouping reads from is hand-entered.
 
 **Hours tracking.** **Partly resolved (2026-08-14):** the client asked for hours per project
@@ -293,7 +303,7 @@ transitions. Whether non-gated skips (e.g. SD→CD on a small project) remain le
 Austin's call, not an implementation detail. Until answered: **enforce gates, leave
 non-gated skips alone.**
 
-**Staff tab.** Ryan requested it before the staff-grouped gantt was discussed. May be
+**Staff tab.** *(Built 2026-08-21 as a This-week column on the Team table — DECISIONS.md.)* Ryan requested it before the staff-grouped gantt was discussed. May be
 redundant, or may still be wanted as a per-person detail page. Unconfirmed.
 
 **Review entry notification.** No notification defined for a project _entering_ Review.

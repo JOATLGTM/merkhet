@@ -17,7 +17,7 @@ survives as a **Fill back to back** button in the dialog and as an opt-in reflow
 rejection. Review is still not typed in: it is the milestone on the end of Design development
 and follows DD wherever DD goes. Rejecting a gate no longer re-dates anything unless asked.
 
-## SQL — NOT YET APPLIED
+## SQL — UNCONFIRMED (constraints are invisible through PostgREST; run it if in doubt)
 
 `supabase/migrations/20260902110000_phase_dates.sql`. Two check constraints on
 `project_phases`, no data change:

@@ -25,7 +25,7 @@ Also settled on the same decision:
   mail — the firm's reply address does now, as it already did whenever the field was null), and
   from the table.
 
-## SQL — NOT YET APPLIED
+## SQL — APPLIED (confirmed 2026-09-02 by `npm run check:recipients`)
 
 `supabase/migrations/20260901100000_phase_recipients.sql`. Run in the hosted Supabase SQL
 editor, same as prior slices. In order:
@@ -58,7 +58,7 @@ with no assignee and no recipients, because that mail is still dropped silently 
 outbox insert (`lib/email/send.ts`).
 
 Also worth a look after applying: `npm run email:preview` still renders all 16 fixture
-messages, and `npm run check` (the four pure modules) still passes. Both were green on
+messages, and `npm run check` (the five pure modules) still passes. Both were green on
 2026-09-01 before the SQL was run.
 
 ## Routing after this change

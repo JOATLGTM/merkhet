@@ -18,7 +18,7 @@ to delete, deactivate or demote from the app.
 | Can be deleted, deactivated or demoted | yes | **no — trigger** |
 | Can be handed out from `/staff` | yes | **no — migration only** |
 
-## SQL — NOT YET APPLIED
+## SQL — APPLIED (confirmed 2026-09-02: the `developer` row is live)
 
 Two files, **in order, each on its own** (enum values cannot be used in the transaction
 that adds them — same split as `gate_parties` and `workflow_1b`):
@@ -76,5 +76,5 @@ board's assignee filter and the calendar's staff view do not name you either.
 
 ## Not verified in a browser
 
-Typechecks and builds clean. The migration has not been run, so nobody has signed in as a
-`developer` yet — the verify steps above are the first test.
+Typechecks and builds clean. The migration is applied (the row reads `developer` as of
+2026-09-02), but nobody has yet signed in and walked the verify steps above.

@@ -475,6 +475,9 @@ Week maths and the rate derivation live in `lib/workload.ts`, React-free, covere
 
 # Slice 10 — Calendar
 
+> **Superseded 2026-08-14.** Built — day resolution and staff grouping — and marked Done in the
+> table above. `SLICE_10_APPLY.md`. The block below is the pre-build note.
+
 **Blocked on Austin.** Do not build ahead of the spec.
 
 Current signal: day-level resolution, groupable by staff member. Direction, not requirements.

@@ -26,7 +26,7 @@ forbidden at Final review, they are now available at both and required at neithe
 wants the client's approval mandatory again, that is a change to `GATE_PARTIES` in
 `lib/types.ts` *and* to the two `unnest(array[…])` lists in `move_project`, not a UI tweak.
 
-## SQL — NOT YET APPLIED. Two files, in order.
+## SQL — APPLIED 2026-08-21 (verified). Two files, in order.
 
 ```
 supabase/migrations/20260821120000_gate_parties_enum.sql   -- run FIRST, alone
@@ -47,7 +47,7 @@ File 1 adds `'ryan'` and `'chosen'` to `approval_party`. File 2 adds
 parties they were.
 
 `20260821100000_project_address_contact.sql` **is applied** (verified 2026-08-21). These two
-are the only outstanding SQL in the tree.
+were the only outstanding SQL in the tree when this was written (2026-08-21).
 
 ## Existing approval rows
 

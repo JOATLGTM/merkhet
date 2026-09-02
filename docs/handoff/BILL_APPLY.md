@@ -10,8 +10,8 @@ wrong reading and was removed before it was committed. The firm bills from the h
 are already on the project, and wanted them easier to *see*, not another place to type them.
 
 **Its migration had already been run** against hosted Supabase on 2026-09-01, so
-`20260902100000_drop_time_entries.sql` takes the empty table back out. Run it; nothing
-depends on the table either way. It also explains the gap in the migration sequence.
+`20260902100000_drop_time_entries.sql` took the empty table back out (applied — the table
+is absent as of 2026-09-02). It also explains the gap in the migration sequence.
 
 ## What the page shows
 

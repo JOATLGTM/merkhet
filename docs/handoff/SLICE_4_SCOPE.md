@@ -4,8 +4,9 @@ Un-skips the slice dropped on 2026-08-12 as "not needed for current client direc
 The direction changed: Slice 10 (staff-grouped daily calendar) and Slice 11 (planned hours)
 both read per-phase delegation data, and only 22% of it exists.
 
-Supersedes the two-paragraph sketch at `CHANGES-2.md:303`. Authority remains
-`WORKFLOW-2.md` §3.
+Supersedes the two-paragraph sketch in `CHANGES-2.md` (Slice 4 section, now bannered).
+Authority was `WORKFLOW-2.md` §3 until 2026-09-02; dates are now typed in per phase —
+`PHASE_DATES_APPLY.md`.
 
 ## What it is
 

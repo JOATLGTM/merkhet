@@ -88,7 +88,7 @@ After that it is a terminal status, not a queue state. A redirected row that Res
 the client has been written to when they have not. `select * from email_outbox where status =
 'redirected'` is the honest answer to "what have we shown ourselves so far".
 
-## SQL — NOT YET APPLIED
+## SQL — APPLIED 2026-08-23 (verified by `npm run check:email`)
 
 `supabase/migrations/20260823100000_email_redirected.sql`. Run in the hosted Supabase SQL
 editor, same as prior slices.

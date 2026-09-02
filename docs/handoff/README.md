@@ -20,61 +20,52 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | [CARD_CREATOR_APPLY.md](./CARD_CREATOR_APPLY.md) | Board card avatar — assignee, falling back to `projects.created_by` |
 | [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
-| [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md) | **Per-project notify lists replace phase subscribers** — SQL not yet applied |
-| [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md) | **`developer` role** — admin access, hidden everywhere, unremovable — SQL not yet applied |
+| [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md) | **Per-project notify lists replace phase subscribers** — applied |
+| [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md) | **`developer` role** — admin access, hidden everywhere, unremovable — applied |
 | [BILL_APPLY.md](./BILL_APPLY.md) | **Bill page** — planned hours per project, by person. Read-only, no SQL |
-| [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md) | **Explicit phase dates** — typed in, not chained; rejection offers a reflow — SQL not yet applied |
+| [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md) | **Explicit phase dates** — typed in, not chained; rejection offers a reflow — constraints unconfirmed |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
 ## State as of 2026-09-02
 
+Five things landed on 2026-09-01/02, all committed and pushed. Hosted Supabase was probed
+read-only on 2026-09-02: recipients, developer role and the timesheet drop are **applied**;
+the phase-dates constraints **cannot be confirmed from here** (run the file; it is idempotent).
+Nothing has been clicked in a browser yet — [NEXT.md](./NEXT.md) lists the checks in the
+order that proves the most.
+
 **Phase dates are entered, not derived.** Each delegated phase takes its own start and end,
 in Plan schedule and on the sheet's phase row, because the person holding it is usually on
 something else between phases — a 9/10 start no longer forces Schematic design onto
-9/10–9/16. `duration_days` is now the working-day count of the span, kept in step so the
-Active → SD gate, delegation-complete and the workload rate read exactly what they always
-did. **Fill back to back** in the dialog is the old chain as a one-click option. Review still
-lands on the end of Design development. Rejecting a gate **no longer re-dates anything by
-default**; the dialog offers a reflow checkbox. ⚠️ `20260902110000_phase_dates.sql` adds the
-two check constraints — **written, not applied**. [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md)
+9/10–9/16. `duration_days` is the working-day count of the span, kept in step, so the
+Active → SD gate, delegation-complete and the workload rate read what they always did.
+**Fill back to back** is the old chain as a button. Review still lands on the end of Design
+development. Rejecting a gate no longer re-dates by default; the dialog offers a reflow.
+[PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md)
 
 **Production error toasts were React #441.** Every server action that threw lost its message
 in prod; the Pending → Active drag without a contract showed the code instead of "Upload an
 LOI or contract…". Actions now return `{ ok, error }` through `attempt()` and the client
-`unwrap`s or `report`s them (`lib/action-result.ts`). No SQL. Recorded in DECISIONS.md.
+`unwrap`s or `report`s them (`lib/action-result.ts`). Recorded in DECISIONS.md.
 
-**Delete project** now asks for the word `DELETE` instead of the project number.
+**Phase subscribers are gone; recipients are chosen per project.** Who is copied when a
+phase starts is set in Plan schedule and on the sheet's phase row, next to the assignee
+(`project_phase_recipients`). The `/staff` tab and the board column popover were removed.
+`projects.client_contact_id` — never written — was dropped. Admins are still auto-copied on
+Active, Permitting, both gates and completion. Applied; `npm run check:recipients` passes.
+[PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md)
 
-## State as of 2026-09-01
-
-**Phase subscribers are gone; recipients are chosen per project.** The firm-wide list on
-`/staff` and the board column popover were removed. Who is copied when a phase starts is now
-set in **Plan schedule** (and on each phase row of the sheet), next to the assignee, and
-stored in `project_phase_recipients`. `projects.client_contact_id` — never written, named
-in three recipient rows — was dropped from routing and from the table. Admins are still
-auto-copied on Active, Permitting, both gates and completion; Pending and Active take no
-per-project list. ⚠️ **Migration `20260901100000_phase_recipients.sql` is written, not
-applied. Apply it before deploying** — the board reads the new table on every load.
-Verify with `npm run check:recipients`. [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md)
-
-Not clicked in a browser. Compiles, typechecks, lints at baseline; `npm run check` and
-`npm run email:preview` pass.
-
-**A `developer` role exists** for Chris Vo's account: admin access, absent from the board,
-calendar, `/staff` and every assignee or notify list, not leadership mail, and protected by a
-trigger from deletion, deactivation and demotion. ⚠️ Two more migrations, **written, not
-applied** — run the enum file first and alone. [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md)
+**A `developer` role exists** for Chris Vo: admin access, absent from the board, calendar,
+`/staff` and every assignee or notify list, not leadership mail, protected by a trigger from
+deletion, deactivation and demotion. Applied. Ryan Kolb is now `admin`.
+[DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md)
 
 **A Bill page exists** (`/bill`, everyone): the planned hours already on each project's
-phases, grouped by project and by the person holding the phase, with an
-**Hours** button on the sheet that opens it filtered to that project. Read-only — hours are
-still set in Plan schedule — and **no SQL**. "Not planned" is never `0h` here either; totals
-say "At least" when any phase has no budget. `npm run check:billing` is in `npm run check`.
-[BILL_APPLY.md](./BILL_APPLY.md)
+phases, grouped by project and by the person holding the phase, with an **Hours** button on
+the sheet that opens it filtered. Read-only, no export, no SQL. "Not planned" is never `0h`;
+totals read "At least" when a phase has no budget. [BILL_APPLY.md](./BILL_APPLY.md)
 
-**Three migrations are waiting from this day:** phase recipients, then the developer pair
-(enum file first and alone). Apply all before deploying — the board and `/staff` each read
-something new.
+**Delete project** asks for the word `DELETE` instead of the project number.
 
 ## State as of 2026-08-24
 
@@ -82,7 +73,7 @@ something new.
 was sent 2026-08-24** in place of another invite — his auth row exists, so an invite is
 refused outright. Before raising the link expiry, read
 [ACCOUNTS_APPLY.md](./ACCOUNTS_APPLY.md#link-expired-is-three-failures-wearing-one-heading):
-that screen is the fallback for four different failures, auth links are single-use, and a mail
+that screen is the fallback for three different failures, auth links are single-use, and a mail
 scanner prefetching the URL spends the token before he clicks. Triage in Supabase →
 Authentication → Users first. The expiry itself is `mailer_otp_exp`, dashboard-only, ceiling
 86400 seconds — documented under [Supabase configuration](./ACCOUNTS_APPLY.md#supabase-configuration).
@@ -120,6 +111,9 @@ creator, outlined rather than solid. Applied and verified live (`npm run check:c
 projects, because the server refuses that anyway. Not yet clicked in a browser.
 
 ## State as of 2026-08-21 (evening)
+
+> **Partly superseded.** The `localhost` URLs below were repointed at `merkhetdrafting.com`
+> in `28b6015` the same night; the 2026-08-24 entry covers where onboarding stands.
 
 ⚠️ **The hosted database was wiped of demo data.** The firm is entering real records. One
 account survives — `christopher.vo.h@gmail.com`, promoted staff → admin. The
@@ -185,7 +179,7 @@ The **template half of Slice 6** was built on 2026-08-18: `lib/email/`, four tem
 11 events, 16 messages, two harnesses. **No SQL and nothing wired into the app** —
 `lib/notifications.ts` is still a stub. A Gmail send test delivered and landed in spam;
 authentication passed, so the cause is sender reputation, not the templates.
-See [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md). Not committed.
+See [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md). Committed 2026-08-21 as `2bb77bc`.
 
 ## State as of 2026-08-14
 
@@ -194,7 +188,7 @@ day resolution + staff grouping) and **5** (approval gates + rework loops). All 
 migrations are **applied and verified against hosted Supabase**; Slice 10 needed no SQL. The
 calendar and the approvals UI have both had a visual pass.
 
-**Committed as `f8d0526`** (local only, not pushed). File list in [NEXT.md](./NEXT.md).
+**Committed as `f8d0526`** (pushed). File list in [NEXT.md](./NEXT.md).
 
 Slice 5 also fixed a **pre-existing `move_project` bug** that had been shipping — an unordered
 phase loop could leave two rows `in_progress` at once and trip
@@ -206,7 +200,7 @@ templates only; the provider, outbox and call sites followed on 2026-08-21.
 
 **Product requirements (authoritative for non-workflow):** [`../PRD.md`](../PRD.md)  
 **System design reference:** [`../SYSTEM_DESIGN_REFERENCE.md`](../SYSTEM_DESIGN_REFERENCE.md) — general reference, **not** Merkhet architecture.  
-**Prior Cursor chat:** [Merkhet MVP build](4683eef9-6229-44ff-957a-96f80cda6207) (agent transcript id)
+**Prior Cursor chat:** "Merkhet MVP build", agent transcript `4683eef9-6229-44ff-957a-96f80cda6207` — not a file in this tree
 
 ## Traps that have already cost time
 

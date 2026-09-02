@@ -2,40 +2,25 @@
 
 **Last updated: 2026-09-02**
 
-> **Resuming?** Start with [`NEXT.md`](./NEXT.md). Three things changed on the evening of
-> **2026-08-21** and invalidate parts of what is written below:
+> **Resuming?** Start with [`NEXT.md`](./NEXT.md). The short version of what has changed
+> since the sections below were first written:
 >
-> 1. **The database was wiped of demo data** and the seed logins deleted. One admin account
->    survives. [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md).
-> 2. **Accounts are invite-only** and password reset exists. Invites had been silently
->    broken — every account the old code created was unreachable.
-> 3. **Slice 6 sends.** Notifications are wired end to end and delivering to both audiences.
->    [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+> - **2026-08-21:** demo data wiped, seed logins deleted, accounts invite-only with password
+>   reset, notifications sending end to end. [`ACCOUNTS_APPLY.md`](./ACCOUNTS_APPLY.md),
+>   [`SLICE_6_APPLY.md`](./SLICE_6_APPLY.md).
+> - **2026-08-22/23:** `projects.created_by` backfilled so cards never read `—`; client mail
+>   with the switch off goes to the project owner. [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md),
+>   [`EMAIL_REDIRECT_APPLY.md`](./EMAIL_REDIRECT_APPLY.md).
+> - **2026-09-01:** phase subscribers replaced by per-project notify lists; `client_contact_id`
+>   dropped; `developer` role for Chris Vo; read-only Bill page. All applied except as noted
+>   in the migrations list. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md),
+>   [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md), [`BILL_APPLY.md`](./BILL_APPLY.md).
+> - **2026-09-02:** phase dates typed in per phase, rejection offers a reflow; server actions
+>   return results instead of throwing (React #441 in prod); Delete project asks for `DELETE`.
+>   [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
 >
-> **2026-08-22:** `projects.created_by` added and backfilled from the activity log, so board
-> cards in Pending and Active no longer read `—`.
->
-> **2026-08-23:** Client mail with the switch off is **delivered to the project owner**
-> instead of sitting `held` and unread. Clients still receive nothing.
-> [`EMAIL_REDIRECT_APPLY.md`](./EMAIL_REDIRECT_APPLY.md). ⚠️ Also audited: no phase
-> subscribers and no phase assignees exist, so the three design phases notify nobody
-> internally, and Ryan Kolb (staff) receives nothing on any transition.
-> [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md).
->
-> **2026-09-01:** Phase subscribers removed; per-project notify lists chosen in Plan
-> schedule replace them. `projects.client_contact_id` dropped.
-> ⚠️ `20260901100000_phase_recipients.sql` is **written, not applied** — apply before
-> deploying. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md). Same day: a
-> `developer` role (admin access, invisible, unremovable) for Chris Vo — two more
-> migrations, also not applied. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
-> And a read-only **Bill** page — planned hours per project, by person — no SQL.
-> [`BILL_APPLY.md`](./BILL_APPLY.md).
->
-> **2026-09-02:** Phase dates are **typed in**, not chained from durations; rejection offers
-> a reflow instead of forcing one. One more migration, not applied.
-> [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
->
-> Every earlier migration in the tree is applied and verified.
+> Live data on 2026-09-02: three users (Austin admin, Ryan admin, Chris developer), 20
+> projects — 15 Pending, 5 Active with a phase running.
 
 ## Product
 
@@ -178,14 +163,16 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260821140000_email_outbox.sql` + `20260821150000_email_status_held.sql` — applied + verified (`SLICE_6_APPLY.md`)
 - `20260822100000_project_created_by.sql` — applied + verified (`CARD_CREATOR_APPLY.md`)
 - `20260823100000_email_redirected.sql` — applied + verified (`EMAIL_REDIRECT_APPLY.md`)
-- `20260901100000_phase_recipients.sql` — ⚠️ **WRITTEN, NOT APPLIED** (`PHASE_RECIPIENTS_APPLY.md`)
-- `20260901110000_developer_role_enum.sql` + `20260901110100_developer_role.sql` — ⚠️ **WRITTEN, NOT APPLIED**, enum file first and alone (`DEVELOPER_ROLE_APPLY.md`)
-- `20260902100000_drop_time_entries.sql` — ⚠️ **WRITTEN, NOT APPLIED**. Removes a table from a deleted migration that was run by hand on 2026-09-01 (`BILL_APPLY.md`)
-- `20260902110000_phase_dates.sql` — ⚠️ **WRITTEN, NOT APPLIED**. Check constraints for hand-entered dates (`PHASE_DATES_APPLY.md`)
+- `20260901100000_phase_recipients.sql` — applied + verified 2026-09-02 by `npm run check:recipients` (`PHASE_RECIPIENTS_APPLY.md`)
+- `20260901110000_developer_role_enum.sql` + `20260901110100_developer_role.sql` — applied; the `developer` row is live (`DEVELOPER_ROLE_APPLY.md`)
+- `20260902100000_drop_time_entries.sql` — applied; `time_entries` is absent. Undoes a deleted migration that had been run by hand (`BILL_APPLY.md`)
+- `20260902110000_phase_dates.sql` — ⚠️ **unconfirmed**: two check constraints, invisible through PostgREST. Idempotent — run it if in doubt (`PHASE_DATES_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
-`SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,
-`SLICE_11_APPLY.md`.
+`SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_6_APPLY.md`, `SLICE_7_APPLY.md`,
+`SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`, `SLICE_11_APPLY.md`, then the named ones —
+`ACCOUNTS`, `PROJECT_CONTACT`, `GATE_PARTIES`, `CARD_CREATOR`, `EMAIL_REDIRECT`,
+`PHASE_RECIPIENTS`, `DEVELOPER_ROLE`, `BILL`, `PHASE_DATES`.
 Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 
 ## Checks
@@ -193,7 +180,7 @@ Slice 4 is spec'd separately in `SLICE_4_SCOPE.md`.
 ```bash
 npm run check         # check:schedule (27) + check:calendar (31)
                       #  + check:workload (65) + check:contact (23) + check:billing (44)
-npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
+npm run check:gates   # 28 assertions against hosted Supabase — writes, then cleans up
 npm run check:creator # board-card avatar resolution against hosted Supabase — read-only
 npm run check:email   # where client mail would land per live project — read-only
 npm run check:recipients # notify lists + who each phase would reach — read-only
@@ -212,7 +199,7 @@ the project/customer contact fallback (`lib/contact.ts`) and the Bill roll-ups
 on one throwaway project it creates and deletes; it is kept out of `check` for that reason.
 Neither covers rendering.
 
-## Slice status (2026-08-21)
+## Slice status (2026-09-02)
 
 | Slice | State |
 |---|---|
@@ -223,12 +210,16 @@ Neither covers rendering.
 | 3 Intake expansion | **Reverted — on hold** |
 | 4 Delegation | Done — applied + verified |
 | 5 Approval gates | Done — applied + verified |
-| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites). Client mail redirects to the project owner since 2026-08-23. Per-project notify lists since 2026-09-01 (SQL pending). ⚠️ Delegates unpopulated — three phases reach nobody until someone is assigned or listed |
+| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites). Client mail redirects to the project owner since 2026-08-23. Per-project notify lists since 2026-09-01 (applied). ⚠️ A design phase with no assignee and no list still reaches nobody — `check:recipients` names them |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Team, This week column) |
 | 10 Calendar redesign | Done — visual check passed |
 | 11 Planned hours per phase | Done — applied + verified |
+| — Explicit phase dates | **Done — 2026-09-02**, constraints unconfirmed (`PHASE_DATES_APPLY.md`) |
+| — Phase recipients | Done — applied + verified 2026-09-02 |
+| — Developer role | Done — applied |
+| — Bill page | Done — no SQL |
 
 ## Seed sample
 

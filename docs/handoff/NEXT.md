@@ -4,33 +4,39 @@ Not committed as a formal backlog — use as a resume checklist.
 
 **Last updated: 2026-09-02**
 
-## 2026-09-01 — Phase recipients replace phase subscribers
+## Resume state — 2026-09-02
 
-Built, not applied, not clicked. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md).
+Everything from 2026-09-01/02 is **committed and pushed** (`c77ff58` … `05229f4`). Applied to
+hosted Supabase, confirmed read-only on 2026-09-02: `project_phase_recipients` exists,
+`phase_subscribers` and `projects.client_contact_id` are gone (`npm run check:recipients`),
+Chris Vo's row is `developer`, Ryan Kolb is now `admin`, and `time_entries` is absent.
 
-1. **Run `supabase/migrations/20260901100000_phase_recipients.sql`** in the hosted SQL editor
-   *before* deploying — every project load now selects from `project_phase_recipients`.
-   It also drops `phase_subscribers` (empty in production) and `projects.client_contact_id`.
-2. `npm run check:recipients` — confirms the swap and prints who each live project's phases
-   would reach.
-3. Open a project → **Plan schedule** → tick someone under a phase → save. Then the same on a
-   phase row of the sheet. First browser test of the picker.
-4. **Developer role, same day.** Run `20260901110000_developer_role_enum.sql` alone, then
-   `20260901110100_developer_role.sql`. Sign in as Chris Vo; `/staff` should load and not
-   list you. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
-5. **Bill page, same day.** Run `20260902100000_drop_time_entries.sql` — it removes the
-   table from the abandoned first cut, which was applied by hand before the code was pulled.
-   Then open `/bill`, pick a project, expand a person, and click **Hours** on
-   a project sheet to confirm it lands filtered. [`BILL_APPLY.md`](./BILL_APPLY.md).
-6. **Explicit phase dates, 2026-09-02.** Run `20260902110000_phase_dates.sql` (two check
-   constraints, no data change). Then Plan schedule on a project: set Schematic design to
-   9/20–9/26 with the project starting 9/10 and confirm it saves as typed, Days reads 5, and
-   Review sits on the end of Design development. Edit a date on the sheet row and watch it
-   save on blur. Reject a gate with the reflow box off and confirm nothing moved.
-   [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
-7. **Error messages in prod.** After deploying, drag a Pending card to Active with no contract:
-   the toast should read "Upload an LOI or contract to move this project out of Pending",
-   not React #441. That one check proves the whole `attempt`/`unwrap` change.
+**Not confirmable from here:** whether `20260902110000_phase_dates.sql` (two check
+constraints) has been run. Constraints are invisible through PostgREST. If unsure, run it —
+it is idempotent and changes no data.
+
+Nothing built this week has been clicked in a browser. In order of what proves the most:
+
+1. **Prod error text.** Drag a Pending card to Active with no contract. The toast must read
+   "Upload an LOI or contract to move this project out of Pending", not React #441. That one
+   check proves the `attempt`/`unwrap` change across every action (DECISIONS.md).
+2. **Explicit dates.** Plan schedule on a project starting 9/10: set Schematic design to
+   9/20–9/26, confirm it saves as typed, Days reads 5, Review sits on the end of Design
+   development. Edit a date on the sheet row, tab out, watch it save. Reject a gate with the
+   reflow box off; nothing should move. [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md)
+3. **Notify lists.** Same dialog: tick someone under a phase, save, then change it on the
+   sheet row. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md)
+4. **Developer role.** Signed in as Chris Vo, `/staff` loads and does not list you; the board
+   filter and calendar staff view do not name you. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md)
+5. **Bill.** Open `/bill`, pick a project, expand a person, then **Hours** on a sheet lands
+   filtered. [`BILL_APPLY.md`](./BILL_APPLY.md)
+6. **Delete project** asks for the word `DELETE`.
+
+**Still open from before:** the three design phases mail nobody internally on any project
+where the phase has no assignee and no notify list (`check:recipients` lists them);
+`app/(auth)/forgot-password/page.tsx` still promises a one-hour link; `lib/email/tokens.ts`
+still carries the fixture address and phone; `scripts/check-gates.ts` still signs in as the
+deleted seed account and cannot run until it is repointed.
 
 The "Found along the way" note under 2026-08-23 about `client_contact_id` is resolved: the
 field was dropped rather than built.
@@ -280,12 +286,12 @@ template change fixes. Full write-up in [`SLICE_6_TEMPLATES.md`](./SLICE_6_TEMPL
 Copy is deliberately held as-is pending a conversation with the client. It lives in one file
 (`lib/email/copy.ts`) so that conversation stays out of the code.
 
-Not committed.
+Committed 2026-08-21 as `2bb77bc`, on `origin/main`.
 
 ## Read this first if you are resuming
 
 Four slices were built on 2026-08-14 (11, 4, 10, 5) and all of it is **committed as
-`f8d0526`** (not pushed). All three migrations from that day are **applied to hosted Supabase
+`f8d0526`** (pushed; on `origin/main`). All three migrations from that day are **applied to hosted Supabase
 and verified**; Slice 10 needed no SQL. See "What landed in f8d0526" below for the file list.
 
 Slice 5 also fixed a **pre-existing `move_project` bug** that had been shipping: an unordered
@@ -413,7 +419,7 @@ See [`CHANGES-2.md`](./CHANGES-2.md) status table.
 ## Checks
 
 ```bash
-npm run check            # all three of the below — pure arithmetic, no database
+npm run check            # all five of the below — pure arithmetic, no database
 npm run check:schedule   # deriveSchedule — 28 assertions
 npm run check:calendar   # calendar geometry — 45 assertions
 npm run check:workload   # week bounds + weekly rate + grouping — 65 assertions
@@ -431,7 +437,7 @@ anything looks. Run it after touching `lib/dates.ts`, `lib/calendar.ts`, `lib/wo
 
 `check:gates` is separate on purpose: it signs in as `chris@merkhet.studio` and **writes to
 hosted Supabase**. ⚠️ **That account was deleted in the 2026-08-21 wipe, so the script fails
-until it is repointed at a live one.** It also, creating one throwaway project and deleting it in a `finally`. It touches no
+until it is repointed at a live one.** It writes, creating one throwaway project and deleting it in a `finally`. It touches no
 existing project but burns a `project_number_seq` value per run. Run it after touching
 `move_project`, `reject_gate`, or the approval functions in `lib/db/repo.ts`.
 

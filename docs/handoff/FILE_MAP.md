@@ -88,4 +88,4 @@
 
 - `next.config.ts` — Cache Components
 - `components.json` — shadcn + KokonutUI
-- `.env.example` — `NEXT_PUBLIC_SUPABASE_MERKET_*`, `SUPABASE_SERVICE_MERKET_ROLE_KEY`
+- `.env.example` — Supabase (`NEXT_PUBLIC_SUPABASE_MERKET_*`, `SUPABASE_SERVICE_MERKET_ROLE_KEY`, optional `SUPABASE_ACCESS_TOKEN`), site (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`), mail (`RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_CUSTOMER_ENABLED`), and the four `GMAIL_TEST_*` harness vars
