@@ -120,6 +120,11 @@ them.
 
 ## Who actually receives mail today
 
+> **Partly superseded 2026-09-01.** `phase_subscribers` and `client_contact_id` no longer
+> exist; the per-project notify list in Plan schedule replaced the former
+> (`PHASE_RECIPIENTS_APPLY.md`). The assignee gap and the leadership rows below still hold.
+> `npm run check:recipients` prints the current matrix.
+
 Checked against hosted Supabase on 2026-08-23, while verifying the migration. The routing
 table is correct; the **data behind it is nearly empty**, and the result is not what the
 table implies.

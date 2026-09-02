@@ -43,6 +43,14 @@ export function formatActivity(
       const count = phases?.length ?? 0;
       return `${actor} planned the schedule across ${count} phases · ${when}`;
     }
+    case "phase.recipients_changed": {
+      const ids = event.payload.user_ids as unknown[] | undefined;
+      const count = ids?.length ?? 0;
+      const phase = label(event.payload.phase);
+      return count === 0
+        ? `${actor} cleared the notify list on ${phase} · ${when}`
+        : `${actor} set ${count} ${count === 1 ? "person" : "people"} to notify on ${phase} · ${when}`;
+    }
     case "phase.hours_changed": {
       const to = event.payload.to_hours;
       const phase = label(event.payload.phase);

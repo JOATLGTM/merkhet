@@ -9,7 +9,6 @@ import {
   deleteUserAction,
   inviteUserAction,
   setActiveAction,
-  setSubscribersAction,
   updateRoleAction,
 } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
@@ -45,27 +44,20 @@ import {
   WorkloadSummary,
   WorkloadToggle,
 } from "@/components/settings/staff-workload";
-import { cn } from "@/lib/utils";
 import type { Week, WorkloadPerson } from "@/lib/workload";
 import {
-  DESIGN_PHASES,
-  COLUMN_LABELS,
   initials,
-  type DesignPhase,
-  type PhaseSubscriber,
   type User,
   type UserRole,
 } from "@/lib/types";
 
 export function SettingsClient({
   users,
-  subscribers,
   workload,
   week,
   currentUserId,
 }: {
   users: User[];
-  subscribers: PhaseSubscriber[];
   workload: WorkloadPerson[];
   week: Week;
   /** Whose session this is — the one row that cannot offer a delete button. */
@@ -73,7 +65,6 @@ export function SettingsClient({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [tab, setTab] = useState<"team" | "subscribers">("team");
   // Several people can be open at once — comparing two rows is the point.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const workloadBy = new Map(workload.map((person) => [person.userId, person]));
@@ -97,37 +88,10 @@ export function SettingsClient({
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="border-b border-rule bg-surface px-5 py-3">
         <h1 className="page-title">Staff</h1>
-        <div className="mt-3 flex gap-4">
-          <button
-            type="button"
-            onClick={() => setTab("team")}
-            className={cn(
-              "pb-2 text-[13px]",
-              tab === "team"
-                ? "border-b-2 border-phase-5 font-medium text-ink"
-                : "text-ink-mid hover:text-ink",
-            )}
-          >
-            Team
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("subscribers")}
-            className={cn(
-              "pb-2 text-[13px]",
-              tab === "subscribers"
-                ? "border-b-2 border-phase-5 font-medium text-ink"
-                : "text-ink-mid hover:text-ink",
-            )}
-          >
-            Phase subscribers
-          </button>
-        </div>
       </header>
 
       <div className="flex-1 overflow-auto bg-paper px-5 py-5">
-        {tab === "team" ? (
-          <>
+        <>
             <WorkloadSummary people={workload} week={week} />
 
             <Table>
@@ -292,50 +256,6 @@ export function SettingsClient({
               </Button>
             </div>
           </>
-        ) : (
-          <div className="space-y-4">
-            {DESIGN_PHASES.map((phase) => {
-              const selected = new Set(
-                subscribers
-                  .filter((s) => s.phase === phase)
-                  .map((s) => s.user_id),
-              );
-              return (
-                <div key={phase} className="border border-rule bg-surface p-4">
-                  <h3 className="label-caps text-ink">
-                    {COLUMN_LABELS[phase]}
-                  </h3>
-                  <div className="mt-3 flex flex-wrap gap-4">
-                    {users
-                      .filter((u) => u.is_active)
-                      .map((user) => (
-                        <label
-                          key={user.id}
-                          className="flex items-center gap-2 text-[13px] text-ink"
-                        >
-                          <Checkbox
-                            checked={selected.has(user.id)}
-                            onCheckedChange={(checked) => {
-                              const next = new Set(selected);
-                              if (checked) next.add(user.id);
-                              else next.delete(user.id);
-                              startTransition(async () => {
-                                await setSubscribersAction(phase as DesignPhase, [
-                                  ...next,
-                                ]);
-                                router.refresh();
-                              });
-                            }}
-                          />
-                          {user.name}
-                        </label>
-                      ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       <Dialog

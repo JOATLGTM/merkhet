@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PhaseRecipientsPicker } from "@/components/projects/phase-recipients-picker";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,8 @@ type Row = {
   assignee_id: string;
   duration_days: string;
   planned_hours: string;
+  /** Who else is copied when the phase starts — see `project_phase_recipients`. */
+  notify_ids: string[];
 };
 
 /** Permitting is jurisdiction-dependent — WORKFLOW-2 §3 forbids a default. */
@@ -67,6 +70,7 @@ export function DelegationDialog({
           existing?.duration_days != null ? String(existing.duration_days) : "",
         planned_hours:
           existing?.planned_hours != null ? String(existing.planned_hours) : "",
+        notify_ids: existing?.notify_ids ?? [],
       };
     }
     return rows;
@@ -135,6 +139,11 @@ export function DelegationDialog({
             planned_hours: rows[phase].planned_hours
               ? Number(rows[phase].planned_hours)
               : null,
+            // The assignee is notified as the delegate; listing them twice
+            // would only be deduped downstream, so drop it here.
+            notify_ids: rows[phase].notify_ids.filter(
+              (id) => id !== rows[phase].assignee_id,
+            ),
           })),
           anchor,
         );
@@ -159,9 +168,10 @@ export function DelegationDialog({
         <DialogHeader>
           <DialogTitle>Plan {project.name}</DialogTitle>
           <DialogDescription>
-            Assign a person and a duration to each phase. Dates are calculated
-            from the durations — you don&apos;t enter them. Planned hours are
-            optional; leave them blank if you don&apos;t know yet.
+            Assign a person and a duration to each phase, and choose who else
+            should hear when it starts. Dates are calculated from the
+            durations — you don&apos;t enter them. Planned hours are optional;
+            leave them blank if you don&apos;t know yet.
           </DialogDescription>
         </DialogHeader>
 
@@ -277,6 +287,14 @@ export function DelegationDialog({
                     {DURATION_HINT[phase]}
                   </p>
                 )}
+                <PhaseRecipientsPicker
+                  className="mt-1"
+                  users={users}
+                  selected={row.notify_ids}
+                  assigneeId={row.assignee_id || null}
+                  phaseLabel={COLUMN_LABELS[phase]}
+                  onChange={(next) => setRow(phase, { notify_ids: next })}
+                />
               </div>
             );
           })}

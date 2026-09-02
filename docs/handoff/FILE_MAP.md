@@ -11,7 +11,7 @@
 | Consultants | `app/(app)/consultants/page.tsx` → `components/consultants/consultants-client.tsx` |
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
-| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team + Phase subscribers) |
+| Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team) |
 | Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
@@ -27,15 +27,16 @@
 | Demo seed source only | `lib/db/demo-store.ts` + `scripts/seed-demo.ts` |
 | Supabase clients | `lib/supabase/{client,server,admin}.ts` |
 | Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
-| Session | `lib/auth/session.ts` |
+| Session | `lib/auth/session.ts` — `requireAdmin` admits `admin` and `developer` via `isAdmin()` |
+| Roles | `UserRole`, `ASSIGNABLE_ROLES`, `isAdmin` in `lib/types.ts`; `developer` is hidden by `listUsers` and locked by the `users_protect_developer` trigger |
 | Notification call sites | `lib/notifications.ts` — resolves recipients, plans, enqueues. Never throws |
 | Email send path + outbox | `lib/email/send.ts` — the only module that talks to a provider |
 | Recipient resolution | `resolveAudiences` in `lib/db/repo.ts` |
 | Email templates | `lib/email/` (`README.md` there has the routing table) |
 | Email copy — every sentence | `lib/email/copy.ts` |
 | Email routing (pure, no DB) | `lib/email/plan.ts` |
-| Recipient resolution (DB) | `resolveAudiences` in `lib/db/repo.ts` — delegate, client contact, customer, **owner**, subscribers, leadership |
-| Phase subscribers | `phase_subscribers` table; `setPhaseSubscribers` in `lib/db/repo.ts`; UI in `components/board/subscriber-popover.tsx` + Settings |
+| Recipient resolution (DB) | `resolveAudiences` in `lib/db/repo.ts` — delegate, customer, **owner**, phase recipients, leadership |
+| Phase recipients (per project) | `project_phase_recipients` table → `ProjectPhase.notify_ids`; `setPhaseRecipients` + `saveDelegation` in `lib/db/repo.ts`; UI `components/projects/phase-recipients-picker.tsx` |
 | Email fixtures / harnesses | `scripts/email-fixtures.ts`, `preview-emails.ts`, `send-test-email.ts` |
 | Outbox retry | `scripts/retry-emails.ts` (`npm run email:retry`) |
 | Dates / urgency / `deriveSchedule` | `lib/dates.ts` (checks: `npm run check:schedule`) |
@@ -47,6 +48,7 @@
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
 | Card creator live check | `scripts/check-creator.ts` (`npm run check:creator` — read-only) |
 | Client-mail redirect live check | `scripts/check-email-redirect.ts` (`npm run check:email` — read-only) |
+| Phase recipients live check | `scripts/check-recipients.ts` (`npm run check:recipients` — read-only) |
 | Workload arithmetic check | `scripts/check-workload.ts` |
 | Contact fallback check | `scripts/check-contact.ts` |
 | Migrations | `supabase/migrations/*.sql` |
@@ -64,7 +66,7 @@
 | Project address & contact block | `components/projects/project-contact-fields.tsx` (in the sheet's Details section) |
 | Delegation / Plan schedule dialog | `components/projects/delegation-dialog.tsx` |
 | Workload column + drill-down (Slice 9) | `components/settings/staff-workload.tsx` — rendered into the Team table |
-| Phase subscribers popover | `components/board/subscriber-popover.tsx` |
+| Phase "also notify" picker | `components/projects/phase-recipients-picker.tsx` — in the delegation dialog and on each sheet phase row |
 | shadcn/Base UI primitives | `components/ui/*` — **Base UI**, not Radix |
 | Command palette | `components/command/command-palette.tsx` |
 | Motion provider | `components/providers/motion-provider.tsx` |

@@ -16,6 +16,7 @@
     "check:gates": "tsx scripts/check-gates.ts",
     "check:creator": "tsx scripts/check-creator.ts",
     "check:email": "tsx scripts/check-email-redirect.ts",
+    "check:recipients": "tsx scripts/check-recipients.ts",
     "email:preview": "tsx scripts/preview-emails.ts",
     "email:supabase": "tsx scripts/render-supabase-templates.ts",
     "email:supabase:push": "tsx scripts/push-supabase-templates.ts",

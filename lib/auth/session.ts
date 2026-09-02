@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getUserById } from "@/lib/db/repo";
-import type { User } from "@/lib/types";
+import { isAdmin, type User } from "@/lib/types";
 
 /**
  * `cache()` is request-scoped memoization, not a data cache — it dedupes the
@@ -32,7 +32,7 @@ export async function requireUser(): Promise<User> {
 
 export async function requireAdmin(): Promise<User> {
   const user = await requireUser();
-  if (user.role !== "admin") {
+  if (!isAdmin(user)) {
     throw new Error("FORBIDDEN");
   }
   return user;

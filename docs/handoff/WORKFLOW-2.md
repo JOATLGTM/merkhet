@@ -218,6 +218,9 @@ The rows stay in this table on purpose. Build the recipient resolver with a plac
 client to slot in, so Phase 2 is wiring rather than rediscovery. Keep the send path
 structured so a review-before-send step can be added with a single change.
 
+> **2026-09-01:** `phase_subscribers` was dropped. The "standing baseline" below is now a
+> per-project, per-phase notify list chosen in Plan schedule — `PHASE_RECIPIENTS_APPLY.md`.
+
 **Recipient resolution follows per-project delegates**, not a global per-column subscriber
 list. The existing `phase_subscribers` table is demoted to a standing baseline underneath
 delegate resolution — not deleted, but no longer _the_ routing model. The Settings tab and

@@ -1,6 +1,6 @@
 # Current state
 
-**Last updated: 2026-08-22**
+**Last updated: 2026-09-01**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). Three things changed on the evening of
 > **2026-08-21** and invalidate parts of what is written below:
@@ -22,7 +22,14 @@
 > internally, and Ryan Kolb (staff) receives nothing on any transition.
 > [`CARD_CREATOR_APPLY.md`](./CARD_CREATOR_APPLY.md).
 >
-> Every migration in the tree is applied and verified. Nothing is waiting on SQL.
+> **2026-09-01:** Phase subscribers removed; per-project notify lists chosen in Plan
+> schedule replace them. `projects.client_contact_id` dropped.
+> ⚠️ `20260901100000_phase_recipients.sql` is **written, not applied** — apply before
+> deploying. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md). Same day: a
+> `developer` role (admin access, invisible, unremovable) for Chris Vo — two more
+> migrations, also not applied. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
+>
+> Every earlier migration in the tree is applied and verified.
 
 ## Product
 
@@ -133,7 +140,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
   disables **Yes** rather than letting the click fail into a toast
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
-- Staff (`/staff`, admin): Team (with **weekly workload**) + Phase subscribers
+- Staff (`/staff`, admin): Team (with **weekly workload**). The Phase subscribers tab was removed 2026-09-01
 
 ### Workload (2026-08-21, Slice 9)
 - A **This week** column on the Team table already on `/staff`, so it inherits the page's
@@ -160,7 +167,12 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - `20260814120000_delegation_gate.sql`
 - `20260814160000_approval_gates.sql` — also fixes a pre-existing `move_project` bug, see `SLICE_5_APPLY.md` §3a
 - `20260821100000_project_address_contact.sql` — **applied + verified** (`PROJECT_CONTACT_APPLY.md`)
-- `20260821120000_gate_parties_enum.sql` + `20260821120100_gate_parties.sql` — **WRITTEN, NOT APPLIED**, run the enum file first and alone (`GATE_PARTIES_APPLY.md`)
+- `20260821120000_gate_parties_enum.sql` + `20260821120100_gate_parties.sql` — applied + verified 2026-08-21 (`GATE_PARTIES_APPLY.md`)
+- `20260821140000_email_outbox.sql` + `20260821150000_email_status_held.sql` — applied + verified (`SLICE_6_APPLY.md`)
+- `20260822100000_project_created_by.sql` — applied + verified (`CARD_CREATOR_APPLY.md`)
+- `20260823100000_email_redirected.sql` — applied + verified (`EMAIL_REDIRECT_APPLY.md`)
+- `20260901100000_phase_recipients.sql` — ⚠️ **WRITTEN, NOT APPLIED** (`PHASE_RECIPIENTS_APPLY.md`)
+- `20260901110000_developer_role_enum.sql` + `20260901110100_developer_role.sql` — ⚠️ **WRITTEN, NOT APPLIED**, enum file first and alone (`DEVELOPER_ROLE_APPLY.md`)
 
 See apply notes: `SLICE_1A_APPLY.md`, `SLICE_1B_APPLY.md`, `SLICE_2_APPLY.md`,
 `SLICE_4_APPLY.md`, `SLICE_5_APPLY.md`, `SLICE_8_APPLY.md`, `SLICE_10_APPLY.md`,
@@ -175,6 +187,7 @@ npm run check         # check:schedule (28) + check:calendar (45)
 npm run check:gates   # 50 assertions against hosted Supabase — writes, then cleans up
 npm run check:creator # board-card avatar resolution against hosted Supabase — read-only
 npm run check:email   # where client mail would land per live project — read-only
+npm run check:recipients # notify lists + who each phase would reach — read-only
 
 npm run email:preview # render all 16 messages to out/emails/ — no network
 npm run email:supabase # compile the two Supabase auth templates — no network
@@ -200,7 +213,7 @@ Neither covers rendering.
 | 3 Intake expansion | **Reverted — on hold** |
 | 4 Delegation | Done — applied + verified |
 | 5 Approval gates | Done — applied + verified |
-| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites). Client mail redirects to the project owner since 2026-08-23. ⚠️ Subscribers/delegates unpopulated — three phases reach nobody |
+| 6 Notifications | **Done — sending 2026-08-21** (outbox + Resend + all call sites). Client mail redirects to the project owner since 2026-08-23. Per-project notify lists since 2026-09-01 (SQL pending). ⚠️ Delegates unpopulated — three phases reach nobody until someone is assigned or listed |
 | 7 Consultants | Done |
 | 8 Permitting exit + archive | Done |
 | 9 Staff workload view | **Done — 2026-08-21** (`/staff` → Team, This week column) |

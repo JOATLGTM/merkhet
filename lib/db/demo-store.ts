@@ -4,7 +4,6 @@ import {
   type Customer,
   type DesignPhase,
   type PhaseStatus,
-  type PhaseSubscriber,
   type Project,
   type ProjectPhase,
   type ProjectStatus,
@@ -56,6 +55,7 @@ function seedPhases(
       entered_at,
       completed_at,
       sort_order: index + 1,
+      notify_ids: [],
     };
   });
 }
@@ -235,7 +235,6 @@ function makeProject(
     | "client_desired_completion"
     | "project_budget"
     | "design_budget"
-    | "client_contact_id"
         | "archived_at"
     | "contract_path"
     | "contract_filename"
@@ -252,8 +251,7 @@ function makeProject(
         | "client_desired_completion"
         | "project_budget"
         | "design_budget"
-        | "client_contact_id"
-                | "archived_at"
+                    | "archived_at"
         | "contract_path"
         | "contract_filename"
         | "contract_uploaded_at"
@@ -274,7 +272,6 @@ function makeProject(
     client_desired_completion: null,
     project_budget: null,
     design_budget: null,
-    client_contact_id: null,
     archived_at: null,
     contract_path: null,
     contract_filename: null,
@@ -815,46 +812,12 @@ const activity: ActivityLog[] = [
   },
 ];
 
-const subscribers: PhaseSubscriber[] = [
-  {
-    phase: "schematic_design",
-    user_id: danaId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-  {
-    phase: "schematic_design",
-    user_id: marcusId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-  {
-    phase: "design_development",
-    user_id: danaId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-  {
-    phase: "construction_documents",
-    user_id: inesId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-  {
-    phase: "review",
-    user_id: chrisId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-  {
-    phase: "permitting",
-    user_id: marcusId,
-    created_at: "2026-01-01T12:00:00.000Z",
-  },
-];
-
 export type DemoStore = {
   users: User[];
   customers: Customer[];
   projects: Project[];
   phases: ProjectPhase[];
   activity: ActivityLog[];
-  subscribers: PhaseSubscriber[];
   projectSeq: number;
 };
 
@@ -869,7 +832,6 @@ function createStore(): DemoStore {
     projects: structuredClone(projects),
     phases: structuredClone(phases),
     activity: structuredClone(activity),
-    subscribers: structuredClone(subscribers),
     projectSeq,
   };
 }
@@ -899,6 +861,7 @@ export function seedPhasesForProject(projectId: string): ProjectPhase[] {
     id: crypto.randomUUID(),
     project_id: projectId,
     phase,
+    notify_ids: [],
     assignee_id: null,
     status: "not_started" as const,
     planned_start: null,

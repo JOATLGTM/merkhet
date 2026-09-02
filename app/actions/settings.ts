@@ -7,25 +7,30 @@ import {
   deleteUser,
   getUserById,
   inviteUser,
-  setPhaseSubscribers,
   setUserActive,
   updateUserRole,
 } from "@/lib/db/repo";
-import type { DesignPhase, UserRole } from "@/lib/types";
+import { ASSIGNABLE_ROLES, type UserRole } from "@/lib/types";
 
-export async function setSubscribersAction(
-  phase: DesignPhase,
-  userIds: string[],
-) {
-  await requireAdmin();
-  const rows = await setPhaseSubscribers(phase, userIds);
-  revalidatePath("/");
-  revalidatePath("/staff");
-  return rows;
+/**
+ * The developer account is set by migration and protected by a trigger
+ * (DEVELOPER_ROLE_APPLY). These actions refuse before reaching it so the
+ * failure is a sentence rather than a Postgres error surfaced as "unexpected".
+ */
+const assignable = (role: UserRole) =>
+  (ASSIGNABLE_ROLES as readonly string[]).includes(role);
+
+async function refuseDeveloper(userId: string) {
+  const target = await getUserById(userId);
+  if (target?.role === "developer") {
+    throw new Error("The developer account cannot be changed.");
+  }
 }
 
 export async function updateRoleAction(userId: string, role: UserRole) {
   await requireAdmin();
+  if (!assignable(role)) throw new Error("That role cannot be assigned.");
+  await refuseDeveloper(userId);
   const user = await updateUserRole(userId, role);
   revalidatePath("/staff");
   return user;
@@ -33,6 +38,7 @@ export async function updateRoleAction(userId: string, role: UserRole) {
 
 export async function setActiveAction(userId: string, isActive: boolean) {
   await requireAdmin();
+  await refuseDeveloper(userId);
   const user = await setUserActive(userId, isActive);
   revalidatePath("/staff");
   revalidatePath("/");
@@ -53,6 +59,9 @@ export async function inviteUserAction(input: {
   role: UserRole;
 }): Promise<InviteResult> {
   await requireAdmin();
+  if (!assignable(input.role)) {
+    return { ok: false, error: "That role cannot be assigned." };
+  }
   try {
     await inviteUser(input);
   } catch (error) {
@@ -95,6 +104,9 @@ export async function deleteUserAction(
   const target = await getUserById(userId);
   if (!target) {
     return { ok: false, error: "That account no longer exists." };
+  }
+  if (target.role === "developer") {
+    return { ok: false, error: "The developer account cannot be deleted." };
   }
 
   try {

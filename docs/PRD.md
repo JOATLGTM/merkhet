@@ -276,6 +276,11 @@ create table phase_subscribers (
 
 **On `on_hold_since` (new in 1.1).** Set when the flag goes true, nulled when false, enforced by the check constraint. Supports the §4.3 rule and the "how long has this been stuck" question that §1.1 identifies as the core problem.
 
+> **Superseded 2026-09-01:** `phase_subscribers` was dropped for a per-project, per-phase
+> notify list (`project_phase_recipients`) chosen in Plan schedule. The column-header
+> subscriber control (§6.2) and the Settings subscribers table (§7) no longer exist.
+> See `docs/handoff/PHASE_RECIPIENTS_APPLY.md`.
+
 `phase_subscribers` is the standing routing table: anyone subscribed to a phase is notified whenever a project enters it, on every project. A phase may have zero, one, or several subscribers.
 
 This is distinct from `project_phases.assignee_id`, which records who owns that phase _on that specific project_. See §8.3 for how the two combine.

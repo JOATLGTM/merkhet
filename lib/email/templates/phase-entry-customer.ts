@@ -21,7 +21,6 @@
 import {
   button,
   callout,
-  divider,
   esc,
   eyebrow,
   heading,
@@ -29,7 +28,6 @@ import {
   projectHeader,
   row,
   shell,
-  spacer,
 } from "@/lib/email/layout";
 import { CUSTOMER_COPY, type CustomerPhase } from "@/lib/email/copy";
 import {
@@ -42,22 +40,15 @@ import {
   textFooter,
   textLines,
   TEXT_RULE,
-  type EmailPerson,
   type EmailProject,
   type RenderedEmail,
 } from "@/lib/email/render";
-import { COLOR, FIRM, FONT } from "@/lib/email/tokens";
+import { COLOR, FIRM } from "@/lib/email/tokens";
 import type { DesignPhase } from "@/lib/types";
 
 export type PhaseEntryCustomerInput = {
   project: EmailProject;
   phase: CustomerPhase;
-  /**
-   * The internal staff member who owns the client relationship — the person
-   * signing the message. Not the phase delegate: the client hears from one
-   * voice regardless of who is doing the drawing.
-   */
-  clientContact: EmailPerson | null;
 };
 
 /** Guards the one mistake that matters here: mailing a client about a gate. */
@@ -72,25 +63,13 @@ export function assertCustomerVisible(phase: DesignPhase): asserts phase is Cust
 export function renderPhaseEntryCustomer(
   input: PhaseEntryCustomerInput,
 ): RenderedEmail {
-  const { project, phase, clientContact } = input;
+  const { project, phase } = input;
   assertCustomerVisible(phase);
 
   const copy = CUSTOMER_COPY[phase];
   const subject = copy.subject.replace("{project}", project.name);
   const preview = copy.lead;
 
-  const signature = clientContact
-    ? `
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="font-family:${FONT.sans};font-size:14px;line-height:21px;color:${COLOR.ink};">
-              <div style="font-weight:600;">${esc(clientContact.name)}</div>
-              <div style="color:${COLOR.inkMid};">${esc(FIRM.name)}</div>
-              ${clientContact.email ? `<div style="margin-top:4px;"><a href="mailto:${esc(clientContact.email)}" style="color:${COLOR.phase5};text-decoration:none;">${esc(clientContact.email)}</a></div>` : ""}
-            </td>
-          </tr>
-        </table>`
-    : "";
 
   const body = [
     row(
@@ -116,10 +95,10 @@ export function renderPhaseEntryCustomer(
         )
       : "",
     row(
-      button("Reply to your project team", `mailto:${clientContact?.email ?? FIRM.replyTo}`),
+      button("Reply to your project team", `mailto:${FIRM.replyTo}`),
       "24px 32px 0 32px",
     ),
-    signature ? row(`${divider()}${spacer(18)}${signature}`, "0 32px 26px 32px") : row("", "0 32px 26px 32px"),
+    row("", "0 32px 26px 32px"),
   ].join("");
 
   const html = shell({
@@ -141,14 +120,6 @@ export function renderPhaseEntryCustomer(
     "",
     customerTrackText(phase),
     copy.fromYou ? `\nWHAT HAPPENS NEXT\n${copy.fromYou}` : null,
-    clientContact
-      ? textLines(
-          "",
-          clientContact.name,
-          FIRM.name,
-          clientContact.email ?? FIRM.replyTo,
-        )
-      : null,
     textFooter("customer"),
   );
 

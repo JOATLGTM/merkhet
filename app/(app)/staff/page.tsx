@@ -4,13 +4,13 @@ import { SettingsClient } from "@/components/settings/settings-client";
 import { getSessionUser } from "@/lib/auth/session";
 import {
   listInProgressAssignments,
-  listPhaseSubscribers,
   listUsers,
 } from "@/lib/db/repo";
+import { isAdmin } from "@/lib/types";
 import { buildWorkload, weekOf } from "@/lib/workload";
 
 /**
- * Reads the session cookie to gate on `role === 'admin'`, so the segment
+ * Reads the session cookie to gate on `isAdmin(user)`, so the segment
  * cannot produce a static shell. Admin-only and rarely navigated, so
  * blocking is the right trade here rather than a private-cached shell.
  */
@@ -19,7 +19,7 @@ export const instant = false;
 export default async function StaffPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "admin") {
+  if (!isAdmin(user)) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="border border-rule bg-surface px-8 py-6 text-center">
@@ -35,9 +35,8 @@ export default async function StaffPage() {
     );
   }
 
-  const [users, subscribers, assignments] = await Promise.all([
+  const [users, assignments] = await Promise.all([
     listUsers(false),
-    listPhaseSubscribers(),
     listInProgressAssignments(),
   ]);
 
@@ -52,7 +51,6 @@ export default async function StaffPage() {
   return (
     <SettingsClient
       users={users}
-      subscribers={subscribers}
       workload={workload}
       week={week}
       currentUserId={user.id}

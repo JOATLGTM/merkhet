@@ -9,7 +9,6 @@ import type {
   ProjectPhase,
   ProjectWithRelations,
   ActivityLog,
-  PhaseSubscriber,
   ProjectApproval,
   User,
   UserRole,
@@ -85,7 +84,6 @@ function mapProject(row: Record<string, unknown>): Project {
       (row.client_desired_completion as string | null) ?? null,
     project_budget: asNumber(row.project_budget),
     design_budget: asNumber(row.design_budget),
-    client_contact_id: (row.client_contact_id as string | null) ?? null,
     project_address: (row.project_address as string | null) ?? null,
     project_contact_name: (row.project_contact_name as string | null) ?? null,
     project_contact_email: (row.project_contact_email as string | null) ?? null,
@@ -101,7 +99,10 @@ function mapProject(row: Record<string, unknown>): Project {
   };
 }
 
-function mapPhase(row: Record<string, unknown>): ProjectPhase {
+function mapPhase(
+  row: Record<string, unknown>,
+  notifyIds: string[] = [],
+): ProjectPhase {
   return {
     id: String(row.id),
     project_id: String(row.project_id),
@@ -115,7 +116,22 @@ function mapPhase(row: Record<string, unknown>): ProjectPhase {
     entered_at: (row.entered_at as string | null) ?? null,
     completed_at: (row.completed_at as string | null) ?? null,
     sort_order: Number(row.sort_order),
+    notify_ids: notifyIds,
   };
+}
+
+/** `project_phase_recipients` rows grouped by `${project_id}:${phase}`. */
+function groupRecipients(
+  rows: Record<string, unknown>[] | null,
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const row of rows ?? []) {
+    const key = `${String(row.project_id)}:${String(row.phase)}`;
+    const list = out.get(key) ?? [];
+    list.push(String(row.user_id));
+    out.set(key, list);
+  }
+  return out;
 }
 
 function mapApproval(row: Record<string, unknown>): ProjectApproval {
@@ -164,9 +180,19 @@ function throwOn(
   if (error) throw new Error(error.message || fallback);
 }
 
+/**
+ * The roster the firm sees. Never includes a `developer`: that account is
+ * admin access without presence, so it is absent from the board, the
+ * calendar, /staff and every assignee or notify list built from this. It
+ * still signs in — `getUserById` is the session lookup and does not filter.
+ */
 export const listUsers = cache(async (activeOnly = true): Promise<User[]> => {
   const supabase = await db();
-  let query = supabase.from("users").select("*").order("name");
+  let query = supabase
+    .from("users")
+    .select("*")
+    .neq("role", "developer")
+    .order("name");
   if (activeOnly) query = query.eq("is_active", true);
   const { data, error } = await query;
   throwOn(error, "Failed to list users");
@@ -314,6 +340,7 @@ async function hydrateProject(
     { data: activity, error: aErr },
     { data: joins, error: jErr },
     { data: approvals, error: apErr },
+    { data: recipients, error: rErr },
   ] = await Promise.all([
     supabase
       .from("customers")
@@ -335,12 +362,18 @@ async function hydrateProject(
       .select("consultant_id")
       .eq("project_id", project.id),
     supabase.from("project_approvals").select("*").eq("project_id", project.id),
+    supabase
+      .from("project_phase_recipients")
+      .select("project_id, phase, user_id")
+      .eq("project_id", project.id),
   ]);
   throwOn(cErr, "Missing customer");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
   throwOn(jErr, "Failed to load project consultants");
   throwOn(apErr, "Failed to load approvals");
+  throwOn(rErr, "Failed to load phase recipients");
+  const recipientsByPhase = groupRecipients(recipients);
 
   const consultantIds = (joins ?? []).map((j) => String(j.consultant_id));
   let consultants: Consultant[] = [];
@@ -357,7 +390,12 @@ async function hydrateProject(
   return {
     ...project,
     customer: mapCustomer(customer),
-    phases: (phases ?? []).map((row) => mapPhase(row)),
+    phases: (phases ?? []).map((row) =>
+      mapPhase(
+        row,
+        recipientsByPhase.get(`${String(row.project_id)}:${String(row.phase)}`),
+      ),
+    ),
     activity: (activity ?? []).map((row) => mapActivity(row)),
     consultants,
     approvals: (approvals ?? []).map((row) => mapApproval(row)),
@@ -404,6 +442,7 @@ async function hydrateProjectList(
     { data: activity, error: aErr },
     { data: joins, error: jErr },
     { data: approvals, error: apErr },
+    { data: recipients, error: rErr },
   ] = await Promise.all([
     supabase.from("customers").select("*").in("id", customerIds),
     supabase
@@ -421,12 +460,18 @@ async function hydrateProjectList(
       .select("project_id, consultant_id")
       .in("project_id", ids),
     supabase.from("project_approvals").select("*").in("project_id", ids),
+    supabase
+      .from("project_phase_recipients")
+      .select("project_id, phase, user_id")
+      .in("project_id", ids),
   ]);
   throwOn(cErr, "Failed to load customers");
   throwOn(pErr, "Failed to load phases");
   throwOn(aErr, "Failed to load activity");
   throwOn(jErr, "Failed to load project consultants");
   throwOn(apErr, "Failed to load approvals");
+  throwOn(rErr, "Failed to load phase recipients");
+  const recipientsByPhase = groupRecipients(recipients);
 
   const consultantIds = [
     ...new Set((joins ?? []).map((j) => String(j.consultant_id))),
@@ -449,7 +494,12 @@ async function hydrateProjectList(
   const phasesByProject = new Map<string, ProjectPhase[]>();
   for (const row of phases ?? []) {
     const list = phasesByProject.get(row.project_id) ?? [];
-    list.push(mapPhase(row));
+    list.push(
+      mapPhase(
+        row,
+        recipientsByPhase.get(`${String(row.project_id)}:${String(row.phase)}`),
+      ),
+    );
     phasesByProject.set(row.project_id, list);
   }
   const activityByProject = new Map<string, ActivityLog[]>();
@@ -959,7 +1009,72 @@ export type DelegationEntry = {
   duration_days: number;
   /** Optional by design — see `SLICE_4_SCOPE.md` "Optionality". */
   planned_hours: number | null;
+  /**
+   * Staff copied on this project's internal mail for the phase, on top of the
+   * assignee. Optional; empty means the assignee (and leadership, where the
+   * routing table copies them) hear about it and nobody else.
+   */
+  notify_ids: string[];
 };
+
+/** Distinct, non-empty ids in first-seen order. */
+function uniqueIds(ids: string[] | null | undefined): string[] {
+  return [...new Set((ids ?? []).filter((id) => Boolean(id)))];
+}
+
+/**
+ * Replaces the recipient list for one phase of one project. Delete-then-insert
+ * rather than a diff — the list is short and the primary key makes a
+ * duplicate insert an error rather than a silent no-op.
+ */
+async function writePhaseRecipients(
+  supabase: Db,
+  projectId: string,
+  phase: DesignPhase,
+  userIds: string[],
+) {
+  const { error: delError } = await supabase
+    .from("project_phase_recipients")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("phase", phase);
+  throwOn(delError, `Failed to clear recipients for ${phase}`);
+
+  if (userIds.length) {
+    const { error } = await supabase
+      .from("project_phase_recipients")
+      .insert(userIds.map((user_id) => ({ project_id: projectId, phase, user_id })));
+    throwOn(error, `Failed to save recipients for ${phase}`);
+  }
+}
+
+/**
+ * Sets who is copied when this project enters `phase`, independently of the
+ * schedule — the sheet edits it in place, the same way it edits the assignee.
+ */
+export async function setPhaseRecipients(
+  projectId: string,
+  phase: DesignPhase,
+  userIds: string[],
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  if (!DELEGATED_PHASES.includes(phase)) {
+    throw new Error(`${phase} has no recipients — it is a gate, not work.`);
+  }
+  const ids = uniqueIds(userIds);
+  const supabase = await db();
+  await writePhaseRecipients(supabase, projectId, phase, ids);
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: projectId,
+    actor_id: actorId,
+    event_type: "phase.recipients_changed",
+    payload: { phase, user_ids: ids },
+  });
+  throwOn(activityError, "Failed to log recipient change");
+
+  return (await getProject(projectId))!;
+}
 
 /**
  * Slice 4 — assigns person + duration to all five delegated phases at once and
@@ -1045,6 +1160,15 @@ export async function saveDelegation(
       .eq("project_id", projectId)
       .eq("phase", phase);
     throwOn(error, `Failed to save delegation for ${phase}`);
+
+    if (entry) {
+      await writePhaseRecipients(
+        supabase,
+        projectId,
+        phase,
+        uniqueIds(entry.notify_ids),
+      );
+    }
   }
 
   const { error: projectError } = await supabase
@@ -1064,6 +1188,7 @@ export async function saveDelegation(
         assignee_id: e.assignee_id,
         duration_days: e.duration_days,
         planned_hours: e.planned_hours,
+        notify_ids: uniqueIds(e.notify_ids),
       })),
     },
   });
@@ -1268,21 +1393,6 @@ export const listInProgressAssignments = cache(
   },
 );
 
-export const listPhaseSubscribers = cache(
-  async (): Promise<PhaseSubscriber[]> => {
-    const supabase = await db();
-    const { data, error } = await supabase
-      .from("phase_subscribers")
-      .select("*");
-    throwOn(error, "Failed to list subscribers");
-    return (data ?? []).map((row) => ({
-      phase: row.phase as DesignPhase,
-      user_id: String(row.user_id),
-      created_at: String(row.created_at),
-    }));
-  },
-);
-
 export const listConsultants = cache(async (): Promise<Consultant[]> => {
   const supabase = await db();
   const { data, error } = await supabase
@@ -1402,29 +1512,6 @@ export async function detachConsultantFromProject(
   return (await getProject(projectId))!;
 }
 
-export async function setPhaseSubscribers(
-  phase: DesignPhase,
-  userIds: string[],
-) {
-  const supabase = await db();
-  const { error: delError } = await supabase
-    .from("phase_subscribers")
-    .delete()
-    .eq("phase", phase);
-  throwOn(delError, "Failed to clear subscribers");
-
-  if (userIds.length) {
-    const { error } = await supabase
-      .from("phase_subscribers")
-      .insert(userIds.map((user_id) => ({ phase, user_id })));
-    throwOn(error, "Failed to set subscribers");
-  }
-
-  return listPhaseSubscribers().then((rows) =>
-    rows.filter((s) => s.phase === phase),
-  );
-}
-
 export async function updateUserRole(id: string, role: UserRole) {
   const supabase = await db();
   const { data, error } = await supabase
@@ -1447,14 +1534,8 @@ export async function setUserActive(id: string, isActive: boolean) {
     .single();
   throwOn(error, "Failed to update user active flag");
 
-  if (!isActive) {
-    const { error: subError } = await supabase
-      .from("phase_subscribers")
-      .delete()
-      .eq("user_id", id);
-    throwOn(subError, "Failed to clear subscriptions");
-  }
-
+  // `project_phase_recipients` rows are kept: deactivation is reversible, and
+  // `resolveAudiences` drops inactive people at send time anyway.
   return mapUser(data);
 }
 
@@ -1469,7 +1550,7 @@ export async function setUserActive(id: string, isActive: boolean) {
  *
  * What survives: `project_phases.assignee_id` and `activity_log.actor_id` are
  * `on delete set null`, so the work and the history stay and lose their name.
- * `phase_subscribers` rows cascade away.
+ * `project_phase_recipients` rows cascade away.
  */
 export async function deleteUser(id: string) {
   const { createServiceClient } = await import("@/lib/supabase/admin");
@@ -1633,24 +1714,17 @@ export async function resolveAudiences(
     ? (project.phases.find((p) => p.phase === phase)?.assignee_id ?? null)
     : null;
 
-  const { data: subscriberRows } = phase
-    ? await supabase
-        .from("phase_subscribers")
-        .select("user_id")
-        .eq("phase", phase)
-    : { data: [] };
+  // Per-project list chosen in Plan schedule. Pending and Active pass a null
+  // phase and therefore resolve to nobody here — by design, not by omission.
+  const recipientIds = phase
+    ? (project.phases.find((p) => p.phase === phase)?.notify_ids ?? [])
+    : [];
 
-  const subscriberIds = (subscriberRows ?? []).map((r) =>
-    String(r.user_id as string),
-  );
   const wanted = [
     ...new Set(
-      [
-        delegateId,
-        project.client_contact_id,
-        project.created_by,
-        ...subscriberIds,
-      ].filter((id): id is string => Boolean(id)),
+      [delegateId, project.created_by, ...recipientIds].filter(
+        (id): id is string => Boolean(id),
+      ),
     ),
   ];
 
@@ -1695,23 +1769,17 @@ export async function resolveAudiences(
 
   return {
     delegate: delegateId ? (byId.get(delegateId) ?? null) : null,
-    clientContact: project.client_contact_id
-      ? (byId.get(project.client_contact_id) ?? null)
-      : null,
     /**
-     * `created_by` rather than `client_contact_id`: the latter is the field
-     * the routing table names, but nothing writes it — `createProject` never
-     * sets it and there is no UI for it — so it is null on every real project.
      * The creator is set on every insert and backfilled (CARD_CREATOR_APPLY),
-     * which makes it the only owner the redirect can actually reach today.
-     * `byId` has already dropped deactivated users, so a departed owner
-     * resolves to null and the message is held instead.
+     * which makes it the owner the client-mail redirect reaches. `byId` has
+     * already dropped deactivated users, so a departed owner resolves to null
+     * and the message is held instead.
      */
     owner: project.created_by ? (byId.get(project.created_by) ?? null) : null,
     customerContact: customerEmail
       ? { name: customerName ?? project.customer.name, email: customerEmail }
       : null,
-    subscribers: subscriberIds
+    phaseRecipients: recipientIds
       .map((id) => byId.get(id))
       .filter((p): p is { name: string; email: string } => Boolean(p)),
     leadership: (adminRows ?? []).map((row) => ({

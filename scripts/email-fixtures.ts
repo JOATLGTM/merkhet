@@ -35,9 +35,8 @@ export const customer: EmailPerson = { name: "Luis Ortega", email: "luis.ortega@
 
 export const audiences = (delegate: EmailPerson | null): Audiences => ({
   delegate,
-  clientContact: chris,
   customerContact: customer,
-  subscribers: [ines],
+  phaseRecipients: [ines],
   leadership: [chris, marcus],
 });
 

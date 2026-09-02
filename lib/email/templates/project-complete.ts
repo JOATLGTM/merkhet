@@ -10,7 +10,6 @@
 import {
   button,
   callout,
-  divider,
   esc,
   eyebrow,
   heading,
@@ -30,11 +29,10 @@ import {
   textLines,
   TEXT_RULE,
   type EmailAudience,
-  type EmailPerson,
   type EmailProject,
   type RenderedEmail,
 } from "@/lib/email/render";
-import { COLOR, FIRM, FONT, projectUrl } from "@/lib/email/tokens";
+import { COLOR, FIRM, projectUrl } from "@/lib/email/tokens";
 
 export type ProjectCompleteInput = {
   project: EmailProject;
@@ -43,8 +41,6 @@ export type ProjectCompleteInput = {
   completedBy?: string;
   /** Date it was archived. */
   completedOn: string | null;
-  /** Signs the customer variant. */
-  clientContact: EmailPerson | null;
 };
 
 export function renderProjectComplete(input: ProjectCompleteInput): RenderedEmail {
@@ -118,23 +114,11 @@ function internalVariant(input: ProjectCompleteInput): RenderedEmail {
 /* ---------------------------------------------------------------- customer -- */
 
 function customerVariant(input: ProjectCompleteInput): RenderedEmail {
-  const { project, clientContact } = input;
+  const { project } = input;
   const copy = CUSTOMER_COMPLETE_COPY;
   const subject = copy.subject.replace("{project}", project.name);
   const preview = copy.lead;
 
-  const signature = clientContact
-    ? `
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="font-family:${FONT.sans};font-size:14px;line-height:21px;color:${COLOR.ink};">
-              <div style="font-weight:600;">${esc(clientContact.name)}</div>
-              <div style="color:${COLOR.inkMid};">${esc(FIRM.name)}</div>
-              ${clientContact.email ? `<div style="margin-top:4px;"><a href="mailto:${esc(clientContact.email)}" style="color:${COLOR.phase5};text-decoration:none;">${esc(clientContact.email)}</a></div>` : ""}
-            </td>
-          </tr>
-        </table>`
-    : "";
 
   const body = [
     row(`${eyebrow("Project complete", COLOR.phase5)}${heading(copy.headline)}`, "22px 32px 0 32px"),
@@ -146,12 +130,10 @@ function customerVariant(input: ProjectCompleteInput): RenderedEmail {
       ? row(callout({ accent: COLOR.phase5, title: "Thank you", body: esc(copy.fromYou) }))
       : "",
     row(
-      button("Reply to your project team", `mailto:${clientContact?.email ?? FIRM.replyTo}`),
+      button("Reply to your project team", `mailto:${FIRM.replyTo}`),
       "24px 32px 0 32px",
     ),
-    signature
-      ? row(`${divider()}${spacer(18)}${signature}`, "0 32px 26px 32px")
-      : row("", "0 32px 26px 32px"),
+    row("", "0 32px 26px 32px"),
   ].join("");
 
   return {
@@ -175,9 +157,6 @@ function customerVariant(input: ProjectCompleteInput): RenderedEmail {
       "",
       customerTrackText(null, true),
       copy.fromYou ? `\n${copy.fromYou}` : null,
-      clientContact
-        ? textLines("", clientContact.name, FIRM.name, clientContact.email ?? FIRM.replyTo)
-        : null,
       textFooter("customer"),
     ),
   };

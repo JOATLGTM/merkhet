@@ -111,21 +111,7 @@ async function main() {
   }
 
   console.log("Clearing prior demo rows…");
-  // project_phases has no created_at — clear via project cascade after activity/subscribers.
-  for (const phase of [
-    "schematic_design",
-    "design_development",
-    "review",
-    "construction_documents",
-    "final_review",
-    "permitting",
-  ] as const) {
-    const { error } = await admin
-      .from("phase_subscribers")
-      .delete()
-      .eq("phase", phase);
-    if (error) throw error;
-  }
+  // project_phases and project_phase_recipients clear via the project cascade.
   {
     const { error } = await admin
       .from("activity_log")
@@ -190,9 +176,6 @@ async function main() {
       client_desired_completion: project.client_desired_completion,
       project_budget: project.project_budget,
       design_budget: project.design_budget,
-      client_contact_id: project.client_contact_id
-        ? userMap.get(project.client_contact_id) ?? null
-        : null,
       hours_per_week: project.hours_per_week,
       project_address: project.project_address,
       project_contact_name: project.project_contact_name,
@@ -249,18 +232,6 @@ async function main() {
           created_at: a.created_at,
         };
       }),
-    );
-    if (error) throw error;
-  }
-
-  console.log("Inserting phase subscribers…");
-  if (seed.subscribers.length) {
-    const { error } = await admin.from("phase_subscribers").insert(
-      seed.subscribers.map((s) => ({
-        phase: s.phase,
-        user_id: userMap.get(s.user_id)!,
-        created_at: s.created_at,
-      })),
     );
     if (error) throw error;
   }

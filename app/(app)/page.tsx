@@ -7,7 +7,6 @@ import { getSessionUser } from "@/lib/auth/session";
 import {
   listConsultants,
   listCustomers,
-  listPhaseSubscribers,
   listProjects,
   listUsers,
 } from "@/lib/db/repo";
@@ -26,14 +25,12 @@ async function BoardLoaded() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [projects, users, customers, subscribers, consultants] =
-    await Promise.all([
-      listProjects(),
-      listUsers(),
-      listCustomers(),
-      listPhaseSubscribers(),
-      listConsultants(),
-    ]);
+  const [projects, users, customers, consultants] = await Promise.all([
+    listProjects(),
+    listUsers(),
+    listCustomers(),
+    listConsultants(),
+  ]);
 
   return (
     <>
@@ -41,9 +38,7 @@ async function BoardLoaded() {
         projects={projects}
         users={users}
         customers={customers}
-        subscribers={subscribers}
         consultants={consultants}
-        currentUser={user}
       />
       <CommandPalette projects={projects} customers={customers} />
     </>

@@ -20,7 +20,29 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
 | [CARD_CREATOR_APPLY.md](./CARD_CREATOR_APPLY.md) | Board card avatar — assignee, falling back to `projects.created_by` |
 | [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
+| [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md) | **Per-project notify lists replace phase subscribers** — SQL not yet applied |
+| [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md) | **`developer` role** — admin access, hidden everywhere, unremovable — SQL not yet applied |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
+
+## State as of 2026-09-01
+
+**Phase subscribers are gone; recipients are chosen per project.** The firm-wide list on
+`/staff` and the board column popover were removed. Who is copied when a phase starts is now
+set in **Plan schedule** (and on each phase row of the sheet), next to the assignee, and
+stored in `project_phase_recipients`. `projects.client_contact_id` — never written, named
+in three recipient rows — was dropped from routing and from the table. Admins are still
+auto-copied on Active, Permitting, both gates and completion; Pending and Active take no
+per-project list. ⚠️ **Migration `20260901100000_phase_recipients.sql` is written, not
+applied. Apply it before deploying** — the board reads the new table on every load.
+Verify with `npm run check:recipients`. [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md)
+
+Not clicked in a browser. Compiles, typechecks, lints at baseline; `npm run check` and
+`npm run email:preview` pass.
+
+**A `developer` role exists** for Chris Vo's account: admin access, absent from the board,
+calendar, `/staff` and every assignee or notify list, not leadership mail, and protected by a
+trigger from deletion, deactivation and demotion. ⚠️ Two more migrations, **written, not
+applied** — run the enum file first and alone. [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md)
 
 ## State as of 2026-08-24
 
@@ -40,6 +62,9 @@ message is now delivered verbatim to the project's owner (`projects.created_by`)
 recorded `held` and read out of the database by hand. Clients still receive nothing.
 `npm run check:email` says where each live project's client mail would land.
 Applied and verified live. [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md)
+
+> **Partly superseded 2026-09-01** — phase subscribers no longer exist; the per-project
+> notify list in Plan schedule is the replacement. The assignee gap below still stands.
 
 ⚠️ **Notification routing is correct but its data is empty.** No phase subscribers, no phase
 assignees, and Ryan Kolb is staff rather than admin — so **Schematic design, Design
@@ -188,4 +213,4 @@ Each is written up in [DECISIONS.md](./DECISIONS.md). Read them before touching 
 - `npm run email:send` talks to **real Gmail**. Every recipient is overridden with
   `GMAIL_TEST_TO`, because two fixture addresses are on a live domain
 
-Last updated: 2026-08-21
+Last updated: 2026-09-01

@@ -15,6 +15,7 @@ import {
   recordApproval,
   rejectGate,
   saveDelegation,
+  setPhaseRecipients,
   toggleHold,
   updatePhaseAssignee,
   updatePhaseDates,
@@ -188,6 +189,17 @@ export async function updatePhaseHoursAction(
     plannedHours,
     user.id,
   );
+  revalidateAll();
+  return project;
+}
+
+export async function setPhaseRecipientsAction(
+  projectId: string,
+  phase: DesignPhase,
+  userIds: string[],
+) {
+  const user = await requireUser();
+  const project = await setPhaseRecipients(projectId, phase, userIds, user.id);
   revalidateAll();
   return project;
 }

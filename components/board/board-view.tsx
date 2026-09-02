@@ -18,13 +18,12 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { AlertTriangle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { moveProjectAction } from "@/app/actions/projects";
-import { SubscriberPopover } from "@/components/board/subscriber-popover";
 import { NewProjectDialog } from "@/components/projects/new-project-dialog";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
@@ -51,7 +50,6 @@ import {
   type BoardColumn,
   type Consultant,
   type Customer,
-  type PhaseSubscriber,
   type ProjectWithRelations,
   type User,
 } from "@/lib/types";
@@ -60,9 +58,7 @@ type BoardViewProps = {
   projects: ProjectWithRelations[];
   users: User[];
   customers: Customer[];
-  subscribers: PhaseSubscriber[];
   consultants: Consultant[];
-  currentUser: User;
 };
 
 /**
@@ -96,9 +92,6 @@ function Column({
   column,
   items,
   usersById,
-  subscribers,
-  users,
-  currentUser,
   collapsed,
   onToggle,
   onOpen,
@@ -106,16 +99,11 @@ function Column({
   column: BoardColumn;
   items: ProjectWithRelations[];
   usersById: Map<string, User>;
-  subscribers: PhaseSubscriber[];
-  users: User[];
-  currentUser: User;
   collapsed: boolean;
   onToggle: () => void;
   onOpen: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column });
-  const phaseSubs = subscribers.filter((s) => s.phase === column);
-  const phase = isDesignPhase(column);
 
   if (collapsed) {
     return (
@@ -164,21 +152,6 @@ function Column({
         <span className="num font-mono text-[11px] text-ink-soft">
           {items.length}
         </span>
-        {phase && (
-          <div className="ml-1 flex items-center gap-1">
-            {phaseSubs.length === 0 && (
-              <span title="No subscribers">
-                <AlertTriangle className="h-3.5 w-3.5 text-warn" />
-              </span>
-            )}
-            <SubscriberPopover
-              phase={column}
-              subscribers={phaseSubs}
-              users={users}
-              canEdit={currentUser.role === "admin"}
-            />
-          </div>
-        )}
       </header>
       <div
         ref={setNodeRef}
@@ -228,9 +201,7 @@ export function BoardView({
   projects,
   users,
   customers,
-  subscribers,
   consultants,
-  currentUser,
 }: BoardViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -423,9 +394,6 @@ export function BoardView({
               column={column}
               items={byColumn[column]}
               usersById={usersById}
-              subscribers={subscribers}
-              users={users}
-              currentUser={currentUser}
               collapsed={Boolean(collapsed[column])}
               onToggle={() =>
                 setCollapsed((prev) => ({

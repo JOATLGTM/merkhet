@@ -61,8 +61,6 @@ export type EmailJob = {
 export type Audiences = {
   /** Delegate on the phase being entered, when it has one. */
   delegate: EmailPerson | null;
-  /** Internal staff member who owns the client relationship. */
-  clientContact: EmailPerson | null;
   /** The external client — `customers.contact_name` / `contact_email`. */
   customerContact: EmailPerson | null;
   /**
@@ -72,11 +70,13 @@ export type Audiences = {
    */
   owner?: EmailPerson | null;
   /**
-   * Standing baseline from `phase_subscribers`. Demoted by WORKFLOW-2 §4 to a
-   * copy list underneath delegate resolution — never the routing model.
+   * Staff chosen per project in Plan schedule to be copied on this phase,
+   * alongside the delegate (`project_phase_recipients`). Never the routing
+   * model — a copy list underneath delegate resolution. Empty for Pending and
+   * Active, which have no phase row to hang a list on.
    */
-  subscribers?: EmailPerson[];
-  /** Copied on Active, Permitting and completion. In practice Ryan and Austin. */
+  phaseRecipients?: EmailPerson[];
+  /** Copied on Active, Permitting, the two gates and completion. Active admins. */
   leadership?: EmailPerson[];
 };
 
@@ -107,8 +107,8 @@ export function planPhaseEntry(
   input: Omit<PhaseEntryInternalInput, "delegate"> & { audiences: Audiences },
 ): EmailJob[] {
   const { audiences, ...rest } = input;
-  const { delegate, clientContact, customerContact } = audiences;
-  const subscribers = audiences.subscribers ?? [];
+  const { delegate, customerContact } = audiences;
+  const phaseRecipients = audiences.phaseRecipients ?? [];
   const leadership = audiences.leadership ?? [];
   const column = input.column;
   const phase = isPhase(column) ? column : null;
@@ -116,13 +116,12 @@ export function planPhaseEntry(
 
   const jobs: EmailJob[] = [];
 
-  /* Internal — the delegate first, then the standing copy list. Gates have no
-     delegate, so the client contact and leadership carry them instead. */
+  /* Internal — the delegate first, then the project's copy list for the
+     phase. Review has no delegate and no list, so leadership carries it. */
   const internalTo = recipients(
     delegate,
-    ...(isGate ? [clientContact] : []),
     ...(LEADERSHIP_COLUMNS.has(column) || isGate ? leadership : []),
-    ...subscribers,
+    ...phaseRecipients,
   );
 
   jobs.push({
@@ -142,7 +141,6 @@ export function planPhaseEntry(
       email: renderPhaseEntryCustomer({
         project: input.project,
         phase: phase as CustomerPhase,
-        clientContact,
       }),
     });
   }
@@ -155,13 +153,13 @@ export function planGateRejected(
   input: Omit<GateRejectedInput, "delegate"> & { audiences: Audiences },
 ): EmailJob[] {
   const { audiences, ...rest } = input;
-  const { delegate, clientContact } = audiences;
+  const { delegate } = audiences;
 
   return [
     {
       template: "gate-rejected",
       audience: "internal",
-      to: recipients(delegate, clientContact, ...(audiences.subscribers ?? [])),
+      to: recipients(delegate, ...(audiences.phaseRecipients ?? [])),
       email: renderGateRejected({ ...rest, delegate }),
     },
   ];
@@ -175,23 +173,21 @@ export function planProjectComplete(input: {
   audiences: Audiences;
 }): EmailJob[] {
   const { project, completedBy, completedOn, audiences } = input;
-  const { clientContact, customerContact } = audiences;
+  const { customerContact } = audiences;
 
   const jobs: EmailJob[] = [
     {
       template: "project-complete",
       audience: "internal",
       to: recipients(
-        clientContact,
         ...(audiences.leadership ?? []),
-        ...(audiences.subscribers ?? []),
+        ...(audiences.phaseRecipients ?? []),
       ),
       email: renderProjectComplete({
         project,
         audience: "internal",
         completedBy,
         completedOn,
-        clientContact,
       }),
     },
   ];
@@ -206,7 +202,6 @@ export function planProjectComplete(input: {
         project,
         audience: "customer",
         completedOn,
-        clientContact,
       }),
     });
   }

@@ -66,7 +66,7 @@ const TABLES: Array<{ name: string; filter: "id" | "created_at" }> = [
   { name: "project_consultants", filter: "created_at" },
   { name: "activity_log", filter: "id" },
   { name: "project_phases", filter: "id" },
-  { name: "phase_subscribers", filter: "created_at" },
+  { name: "project_phase_recipients", filter: "created_at" },
   { name: "projects", filter: "id" },
   { name: "customers", filter: "id" },
   { name: "consultants", filter: "id" },

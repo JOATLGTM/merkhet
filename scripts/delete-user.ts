@@ -13,7 +13,7 @@
  *
  * Deleting the auth row cascades to `public.users`, and from there:
  * `project_phases.assignee_id` and `activity_log.actor_id` go null (history is
- * kept, attribution is lost), `phase_subscribers` rows are deleted. The report
+ * kept, attribution is lost), `project_phase_recipients` rows are deleted. The report
  * counts all three before touching anything.
  *
  * Like `reset-data.ts`, deliberately not wired into `npm run`.
@@ -133,8 +133,8 @@ async function main() {
     )}  → set null`,
   );
   console.log(
-    `    phase_subscribers.user_id   ${await countRows(
-      "phase_subscribers",
+    `    project_phase_recipients.user_id   ${await countRows(
+      "project_phase_recipients",
       "user_id",
       id,
     )}  → deleted`,

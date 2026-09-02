@@ -41,7 +41,7 @@
 - `.label-caps`, `.page-title` utilities in `app/globals.css`
 - Nav: 208px → 56px collapsed; teal “M”; active = white + 2px inset left `--phase-5`
 - Nav items: Board, Calendar, Customers, Consultants, Completed projects, Staff (admin)
-- **Staff (`/staff`)** keeps its two tabs, Team and Phase subscribers. Slice 9's workload is a **This week** column on the Team table (built 2026-08-21), expanding per person on click — a column on the roster rather than a surface of its own, so it inherits the admin gate for free and asks its question where the person is already named
+- **Staff (`/staff`)** is the Team table (the Phase subscribers tab was removed 2026-09-01 — see *Phase recipients* below). Slice 9's workload is a **This week** column on the Team table (built 2026-08-21), expanding per person on click — a column on the roster rather than a surface of its own, so it inherits the admin gate for free and asks its question where the person is already named
 - Board columns ~264px; phase columns get 2px top accent in phase color
 - Calendar: week columns with `border-r` grid lines per row; bars overlaid; today = `--redline`
 - Customer detail (the one scrolling page, rather than a flex-fill view): sections sit at a common `5` inset and close with `mb-8` so the last row doesn't run into the bottom of the scroll area. The Projects list is a **bordered** box, so it uses `mx-5`, not `px-5` — padding would move the content inward and leave the border flush to the edge
@@ -297,8 +297,8 @@ Three rules the code enforces rather than documents. Do not "fix" any of them:
   none should be added — a client reads "rejected" as failure where the firm means an ordinary
   correction.
 - **Client mail links nowhere.** Clients have no login (WORKFLOW-2 §1), so any link dead-ends
-  at `/login`. The reply address is the only CTA, and the **client contact** signs it, not the
-  phase delegate.
+  at `/login`. The reply address is the only CTA, and the **firm** signs it, not the phase
+  delegate (the client-contact signature went with `client_contact_id`, 2026-09-01).
 
 **`EmailProject` is a narrow whitelist, not `ProjectWithRelations`.** Budgets and internal
 notes are unreachable from a template on purpose. Do not widen it to "make it easier".
@@ -308,6 +308,42 @@ notes are unreachable from a template on purpose. Do not widen it to "make it ea
 
 **Copy lives in `lib/email/copy.ts`, all of it.** Templates hold no sentences. That is what
 lets the client copy conversation happen without a code change.
+
+## Phase recipients, per project (Sep 1, 2026) — supersedes WORKFLOW-2 §4 and PRD §6.2 on subscribers
+
+**Who is copied when a phase starts is chosen per project, where the phase is delegated.**
+`phase_subscribers` (firm-wide, one list per phase, zero rows in production) was dropped for
+`project_phase_recipients (project_id, phase, user_id)`, edited in Plan schedule and on the
+sheet's phase rows. The board column popover and the Staff tab are gone with it.
+
+Settled at the same time, and not to be re-opened by accident:
+
+- **Pending and Active take no per-project list.** No phase row, nothing to hang it on.
+  Active still copies leadership; Pending still reaches nobody.
+- **Leadership (active admins) stays auto-copied** on Active, Permitting, both gates and
+  completion. Unchanged from Slice 6.
+- **`projects.client_contact_id` is gone**, not built. It was named on Review, Final review
+  and Marked complete and never written. Client mail is signed by the firm.
+- **The assignee is always notified and is hidden from the picker.** The list is *in
+  addition to* the delegate, never a substitute.
+- **Inline, not a popover.** The picker expands in place because it also renders inside the
+  modal delegation dialog, where a portalled popup is the interaction most likely to misbehave
+  unverified. Nobody has clicked it yet (`PHASE_RECIPIENTS_APPLY.md`).
+
+## Developer role (Sep 1, 2026)
+
+**One account is admin-with-no-presence.** `developer` passes every admin gate through
+`isAdmin()` and is excluded from `listUsers`, which is the only roster the UI draws from —
+so the board, calendar, `/staff`, and every delegate and notify list never show it. It is not
+leadership for mail. A `before update or delete` trigger on `users` refuses to delete,
+deactivate or demote it, and the app's actions refuse first with a sentence.
+
+- **Assigned by migration only.** `ASSIGNABLE_ROLES` is `admin | staff`; the invite and role
+  actions reject `developer` as an input. Do not add it to the role select.
+- **Role checks go through `isAdmin(user)`**, never `role === "admin"`. The three that existed
+  were converted; a new literal comparison silently locks the developer out.
+- **Invisibility has a cost that is accepted:** the developer's own actions render as
+  "Someone" in activity, and a project they file shows `—` on its card. `DEVELOPER_ROLE_APPLY.md`.
 
 ## What planned hours are for (Slice 9, Aug 21, 2026)
 

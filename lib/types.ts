@@ -1,4 +1,18 @@
-export type UserRole = "admin" | "staff";
+/**
+ * `developer` is admin access with no presence: excluded from every roster
+ * the firm sees (`listUsers`), from leadership mail, and protected from
+ * deletion, deactivation and demotion by a trigger (DEVELOPER_ROLE_APPLY).
+ * It is assigned by migration only — never offered in the invite or role UI.
+ */
+export type UserRole = "admin" | "staff" | "developer";
+
+/** Roles an admin can hand out from /staff. */
+export const ASSIGNABLE_ROLES = ["admin", "staff"] as const satisfies readonly UserRole[];
+
+/** Admin-gated surfaces open to both admins and the developer. */
+export function isAdmin(user: { role: UserRole } | null | undefined): boolean {
+  return user?.role === "admin" || user?.role === "developer";
+}
 
 /** `backlog` retained for DB compatibility; creation uses `pending`. */
 export type ProjectStatus = "backlog" | "pending" | "active" | "completed";
@@ -84,8 +98,6 @@ export type Project = {
   client_desired_completion: string | null;
   project_budget: number | null;
   design_budget: number | null;
-  /** Internal staff member who owns the relationship — *not* a phone number. */
-  client_contact_id: string | null;
   /**
    * Project-level address and contact. **Null means "same as the customer"**,
    * resolved per field — see `lib/contact.ts`.
@@ -123,6 +135,12 @@ export type ProjectPhase = {
   entered_at: string | null;
   completed_at: string | null;
   sort_order: number;
+  /**
+   * Staff copied on internal mail when the project enters this phase, on top
+   * of the assignee. Chosen per project in Plan schedule; backed by
+   * `project_phase_recipients`. Empty on Review, which has no delegate either.
+   */
+  notify_ids: string[];
 };
 
 export type ActivityLog = {
@@ -131,12 +149,6 @@ export type ActivityLog = {
   actor_id: string | null;
   event_type: string;
   payload: Record<string, unknown>;
-  created_at: string;
-};
-
-export type PhaseSubscriber = {
-  phase: DesignPhase;
-  user_id: string;
   created_at: string;
 };
 

@@ -13,10 +13,9 @@ project's owner, verbatim** — so the firm reads the real rendered mail in a
 real inbox. Owner is `projects.created_by`, the person who filed the card and
 the same person the card avatar falls back to.
 
-> `client_contact_id` is the field the routing table names for this, but
-> nothing writes it: `createProject` never sets it and there is no UI for it,
-> so it is null on every real project. `created_by` is set on every insert and
-> backfilled, which makes it the only owner a redirect can reach today.
+> `projects.client_contact_id` used to be named for this and was dropped on
+> 2026-09-01 — nothing ever wrote it. `created_by` is set on every insert and
+> backfilled, which makes it the owner a redirect reaches.
 
 The redirected message is **unmodified** — same subject, same body, addressed
 to the client in the copy. Nothing marks it as a preview in the reader's view;
@@ -91,23 +90,26 @@ lands in the project owner's inbox rather than the client's.
 |---|---|---|
 | → Pending | *nobody* | — |
 | → Active | leadership | — |
-| → Schematic design | delegate + subscribers | **yes** |
-| → Design development | delegate + subscribers | **yes** |
-| → Review | delegate + client contact + leadership + subscribers | — *(approval gate)* |
-| → Construction documents | delegate + subscribers | **yes** |
-| → Final review | delegate + client contact + leadership + subscribers | — *(approval gate)* |
-| → Permitting | delegate + leadership + subscribers | **yes** |
-| Gate rejected | delegate + client contact + subscribers, of the phase returned to | — *(never)* |
-| Marked complete | client contact + leadership + subscribers | **yes** |
+| → Schematic design | delegate + phase recipients | **yes** |
+| → Design development | delegate + phase recipients | **yes** |
+| → Review | leadership | — *(approval gate)* |
+| → Construction documents | delegate + phase recipients | **yes** |
+| → Final review | delegate + leadership + phase recipients | — *(approval gate)* |
+| → Permitting | delegate + leadership + phase recipients | **yes** |
+| Gate rejected | delegate + phase recipients, of the phase returned to | — *(never)* |
+| Marked complete | leadership + phase recipients of the current phase | **yes** |
 
-Subscribers are appended to **every** internal message, not only the rows that
-used to name them. Leadership is copied only on Active, Permitting, the two
-gates and completion — `LEADERSHIP_COLUMNS ∪ isGate` — so an admin is not on
-the three design phases, and "admins get everything" is not true.
+**Phase recipients** are the people chosen *per project, per phase* in Plan
+schedule (or on the sheet's phase row) — `project_phase_recipients`. They
+replaced the firm-wide `phase_subscribers` list on 2026-09-01. They are
+appended to every internal message about that phase. Leadership is copied only
+on Active, Permitting, the two gates and completion — `LEADERSHIP_COLUMNS ∪
+isGate` — so an admin is not on the three design phases, and "admins get
+everything" is not true.
 
-**Pending and Active have no subscribers and no delegate, by construction.**
+**Pending and Active have no recipients and no delegate, by construction.**
 Neither is a `design_phase`, so `resolveAudiences` is passed a null phase, which
-skips the `phase_subscribers` lookup and leaves the delegate null. Pending
+leaves the recipient list empty and the delegate null. Pending
 therefore resolves to nobody at all, and Active to leadership alone. This is
 structural — subscribing someone cannot change it.
 
@@ -138,25 +140,25 @@ one Resend call with four addresses, and one message each — with all four
 visible in the `To` header. It is not four sends, and the outbox row count is
 not the arrival count.
 
-`recipients()` dedupes by lowercased address, so someone who is both a
-subscriber and an admin on a leadership column still receives exactly one copy.
+`recipients()` dedupes by lowercased address, so someone who is both on the
+notify list and an admin on a leadership column still receives exactly one copy.
 
 Client mail is the exception in the other direction: it has exactly one
 recipient by design — the client, or while the switch is off, the owner. It
-never fans out to subscribers or leadership.
+never fans out to phase recipients or leadership.
 
-### Phase subscribers
+### Phase recipients
 
-A standing, **firm-wide** list per phase — `phase_subscribers`, primary key
-`(phase, user_id)`. There is no per-project subscription: subscribing to Design
-development means every project entering DD, for every customer.
+A **per-project, per-phase** list — `project_phase_recipients`, primary key
+`(project_id, phase, user_id)`. Chosen where the phase is delegated: the Plan
+schedule dialog saves it with the assignee and duration, and the phase row on
+the project sheet edits it in place (`setPhaseRecipientsAction`). Hydrated onto
+`ProjectPhase.notify_ids`, so `resolveAudiences` needs no extra query.
 
-Managed by admins in two places, both writing through `setPhaseSubscribers`:
-the popover in each board column header (which shows a ⚠️ on any phase with
-zero subscribers), and Settings → **Phase subscribers**.
-
-Rows cascade on user delete. Only the six `design_phase` values can be
-subscribed to — see the Pending/Active note above.
+Replaced the firm-wide `phase_subscribers` list on 2026-09-01
+(`docs/handoff/PHASE_RECIPIENTS_APPLY.md`). Rows cascade on project and user
+delete. Only the five delegated phases take a list — Review has no delegate and
+no list, and Pending/Active have no phase row at all.
 
 ## Auth mail — the two Supabase sends
 
@@ -293,10 +295,10 @@ state change  →  lib/notifications.ts  →  plan.ts   →  send.ts   →  Rese
 ```
 
 1. **Recipient resolution** — `resolveAudiences` in `lib/db/repo.ts`. Delegate
-   from `project_phases.assignee_id`, client contact from
-   `projects.client_contact_id`, customer via `resolveContactField` (project
-   overrides customer, per `lib/contact.ts`), baseline from
-   `phase_subscribers`. Leadership resolves to active admins — gate parties
+   from `project_phases.assignee_id`, phase recipients from
+   `project_phase_recipients` (hydrated onto `ProjectPhase.notify_ids`),
+   customer via `resolveContactField` (project overrides customer, per
+   `lib/contact.ts`). Leadership resolves to active admins — gate parties
    (`austin`/`ryan`/`chosen`) are approval roles, not accounts, so there is no
    column naming them. Owner — the redirect target for client mail — from
    `projects.created_by`. Deactivated users are dropped here, so a departed

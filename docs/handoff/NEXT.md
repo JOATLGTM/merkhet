@@ -2,7 +2,28 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-08-24**
+**Last updated: 2026-09-01**
+
+## 2026-09-01 — Phase recipients replace phase subscribers
+
+Built, not applied, not clicked. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md).
+
+1. **Run `supabase/migrations/20260901100000_phase_recipients.sql`** in the hosted SQL editor
+   *before* deploying — every project load now selects from `project_phase_recipients`.
+   It also drops `phase_subscribers` (empty in production) and `projects.client_contact_id`.
+2. `npm run check:recipients` — confirms the swap and prints who each live project's phases
+   would reach.
+3. Open a project → **Plan schedule** → tick someone under a phase → save. Then the same on a
+   phase row of the sheet. First browser test of the picker.
+4. **Developer role, same day.** Run `20260901110000_developer_role_enum.sql` alone, then
+   `20260901110100_developer_role.sql`. Sign in as Chris Vo; `/staff` should load and not
+   list you. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
+5. Feature 2 from the same conversation is queued behind this: **explicit per-phase dates**
+   with a reflow offered on gate rejection. Not started.
+
+The "Found along the way" note under 2026-08-23 about `client_contact_id` is resolved: the
+field was dropped rather than built.
+
 
 ## 2026-08-24 — Ryan still has no access
 
@@ -77,8 +98,8 @@ completion. It reads as constant because they are currently the only recipients 
 
 This is a data gap, not a code gap, and the UI for it already exists:
 
-- **Phase subscribers** — board column header popover (⚠️ on any phase with zero) or
-  Settings → Phase subscribers. Admin-only. Firm-wide per phase, **not** per project.
+- ~~**Phase subscribers** — board column header popover or Settings → Phase subscribers.~~
+  **Gone 2026-09-01.** The replacement is the per-project notify list in Plan schedule.
 - **Delegates** — the phase assignee on each project.
 
 Note Pending and Active can never have subscribers: neither is a `design_phase`, so the

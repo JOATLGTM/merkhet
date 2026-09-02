@@ -18,7 +18,7 @@ import { signOut } from "@/app/actions/auth";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { initials, type User } from "@/lib/types";
+import { initials, isAdmin, type User } from "@/lib/types";
 
 type NavRailProps = {
   user: User;
@@ -70,7 +70,7 @@ export function NavRail({ user }: NavRailProps) {
 
       <ul className="flex-1 space-y-0.5 p-2">
         {links.map((link) => {
-          if (link.adminOnly && user.role !== "admin") return null;
+          if (link.adminOnly && !isAdmin(user)) return null;
           const active =
             link.href === "/"
               ? pathname === "/"

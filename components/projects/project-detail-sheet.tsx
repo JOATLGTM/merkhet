@@ -26,6 +26,7 @@ import {
   markProjectCompleteAction,
   recordApprovalAction,
   rejectGateAction,
+  setPhaseRecipientsAction,
   toggleHoldAction,
   updateAssigneeAction,
   updatePhaseHoursAction,
@@ -33,6 +34,7 @@ import {
   uploadContractAction,
 } from "@/app/actions/projects";
 import { DelegationDialog } from "@/components/projects/delegation-dialog";
+import { PhaseRecipientsPicker } from "@/components/projects/phase-recipients-picker";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { Button } from "@/components/ui/button";
 import {
@@ -1275,6 +1277,34 @@ export function ProjectDetailSheet({
                       </div>
                     )}
                   </div>
+                  {takesHours && (
+                    // Who else hears about this phase starting, on this
+                    // project. Saved in place like the assignee above.
+                    <PhaseRecipientsPicker
+                      className="mt-1.5 pl-3.5"
+                      users={users}
+                      selected={phase.notify_ids}
+                      assigneeId={phase.assignee_id}
+                      phaseLabel={COLUMN_LABELS[phase.phase]}
+                      onChange={(next) => {
+                        startTransition(async () => {
+                          try {
+                            await setPhaseRecipientsAction(
+                              project.id,
+                              phase.phase as DesignPhase,
+                              next,
+                            );
+                          } catch (err) {
+                            toast.error(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not save who to notify.",
+                            );
+                          }
+                        });
+                      }}
+                    />
+                  )}
                 </div>
                 );
               })}
