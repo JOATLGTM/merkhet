@@ -530,7 +530,7 @@ Confirmation is graded by what is actually at stake, not applied uniformly:
 |---|---|
 | Mark project complete | No/Yes modal — reversible, it is an archive |
 | Delete customer | No/Yes modal, plus a server-side refusal if they have projects |
-| Delete project | Type the project number — takes phases, sign-offs, activity and contract with it |
+| Delete project | Type `DELETE` (capitals; was the project number until 2026-09-02) — takes phases, sign-offs, activity and contract with it |
 | Delete staff user | Trash icon → confirm dialog (`ACCOUNTS_APPLY.md`) |
 
 **Type-to-confirm is reserved for deletes that destroy history.** A project carries its

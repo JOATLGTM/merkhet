@@ -473,12 +473,14 @@ export function ProjectDetailSheet({
                 htmlFor="delete-confirm"
                 className="label-caps block text-ink-soft"
               >
-                Type {project.project_number} to confirm
+                Type DELETE to confirm
               </label>
               <Input
                 id="delete-confirm"
                 value={deleteConfirm}
+                placeholder="DELETE"
                 autoComplete="off"
+                autoCapitalize="characters"
                 spellCheck={false}
                 className="rounded-none font-mono"
                 onChange={(e) => setDeleteConfirm(e.target.value)}
@@ -495,12 +497,10 @@ export function ProjectDetailSheet({
               </Button>
               <Button
                 type="button"
-                // Case-insensitive: the number is displayed uppercase and
-                // retyping it is a speed bump, not a spelling test.
-                disabled={
-                  deleteConfirm.trim().toUpperCase() !==
-                  project.project_number.toUpperCase()
-                }
+                // The word, in capitals, as the label shows it. Replaced
+                // retyping the project number (2026-09-02): one fixed word is
+                // the same speed bump without the copy-and-paste.
+                disabled={deleteConfirm.trim() !== "DELETE"}
                 className="rounded-none bg-redline text-white hover:opacity-90"
                 onClick={() => {
                   startTransition(async () => {
