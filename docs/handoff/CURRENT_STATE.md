@@ -28,7 +28,7 @@
 > deploying. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENTS_APPLY.md). Same day: a
 > `developer` role (admin access, invisible, unremovable) for Chris Vo — two more
 > migrations, also not applied. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
-> And a read-only **Bill** page — planned hours per project, by person, CSV — no SQL.
+> And a read-only **Bill** page — planned hours per project, by person — no SQL.
 > [`BILL_APPLY.md`](./BILL_APPLY.md).
 >
 > **2026-09-02:** Phase dates are **typed in**, not chained from durations; rejection offers
@@ -147,7 +147,7 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
 - Consultants directory + detail; attach from project sheet
 - Completed projects list (`/completed`)
 - Staff (`/staff`, admin): Team (with **weekly workload**). The Phase subscribers tab was removed 2026-09-01
-- Bill (`/bill`, everyone): planned hours per project grouped by the person holding each phase, filters, CSV export. Read-only — 2026-09-01
+- Bill (`/bill`, everyone): planned hours per project grouped by the person holding each phase, filters. Read-only — 2026-09-01
 
 ### Workload (2026-08-21, Slice 9)
 - A **This week** column on the Team table already on `/staff`, so it inherits the page's

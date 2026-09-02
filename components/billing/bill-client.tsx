@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Download } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -20,8 +19,6 @@ import {
   hoursByPerson,
   phaseRows,
   rollup,
-  toCsv,
-  type CsvRow,
 } from "@/lib/billing";
 import {
   COLUMN_LABELS,
@@ -89,35 +86,6 @@ export function BillClient({ live, completed, users }: BillClientProps) {
       if (!next.delete(key)) next.add(key);
       return next;
     });
-
-  // --- export -------------------------------------------------------------
-  const exportCsv = () => {
-    const out: CsvRow[] = filtered.map((r) => {
-      const project = projectsById.get(r.projectId);
-      return {
-        projectNumber: project?.project_number ?? "",
-        project: project?.name ?? "",
-        customer: project?.customer.name ?? "",
-        person: nameOf(r.assigneeId),
-        phase: r.phase,
-        status: r.status,
-        start: r.plannedStart,
-        end: r.plannedEnd,
-        hours: r.plannedHours,
-      };
-    });
-    const blob = new Blob([toCsv(out)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const scope =
-      projectId === ALL
-        ? "all-projects"
-        : (projectsById.get(projectId)?.project_number ?? "project");
-    a.href = url;
-    a.download = `merkhet-hours-${scope}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   // --- select items (Base UI renders the raw value without these) ---------
   const projectItems = useMemo(() => {
@@ -201,16 +169,6 @@ export function BillClient({ live, completed, users }: BillClientProps) {
             />
             Include completed
           </label>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-none border-rule-strong text-[13px] font-normal"
-            disabled={filtered.length === 0}
-            onClick={exportCsv}
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
-          </Button>
         </div>
       </header>
 

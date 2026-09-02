@@ -22,7 +22,7 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [EMAIL_REDIRECT_APPLY.md](./EMAIL_REDIRECT_APPLY.md) | **Client mail goes to the project owner** instead of sitting `held` |
 | [PHASE_RECIPIENTS_APPLY.md](./PHASE_RECIPIENTS_APPLY.md) | **Per-project notify lists replace phase subscribers** — SQL not yet applied |
 | [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md) | **`developer` role** — admin access, hidden everywhere, unremovable — SQL not yet applied |
-| [BILL_APPLY.md](./BILL_APPLY.md) | **Bill page** — planned hours per project, by person, CSV export. Read-only, no SQL |
+| [BILL_APPLY.md](./BILL_APPLY.md) | **Bill page** — planned hours per project, by person. Read-only, no SQL |
 | [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md) | **Explicit phase dates** — typed in, not chained; rejection offers a reflow — SQL not yet applied |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
@@ -66,7 +66,7 @@ trigger from deletion, deactivation and demotion. ⚠️ Two more migrations, **
 applied** — run the enum file first and alone. [DEVELOPER_ROLE_APPLY.md](./DEVELOPER_ROLE_APPLY.md)
 
 **A Bill page exists** (`/bill`, everyone): the planned hours already on each project's
-phases, grouped by project and by the person holding the phase, with a CSV export and an
+phases, grouped by project and by the person holding the phase, with an
 **Hours** button on the sheet that opens it filtered to that project. Read-only — hours are
 still set in Plan schedule — and **no SQL**. "Not planned" is never `0h` here either; totals
 say "At least" when any phase has no budget. `npm run check:billing` is in `npm run check`.

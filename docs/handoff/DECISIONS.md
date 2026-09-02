@@ -375,15 +375,14 @@ deactivate or demote it, and the app's actions refuse first with a sentence.
 
 **The hours the firm bills from are the ones already on the project** —
 `project_phases.planned_hours`, per assignee. The Bill page regroups them by project and
-person and exports CSV. It has no table, no form and no write path. A first cut with a
+person. It has no table, no form, no export and no write path. A first cut with a
 `time_entries` timesheet was built and removed the same day: the ask was easier *access* to
 the hours on a project, not another place to enter them. Do not reintroduce a log.
 
 - **Read-only, one editor.** Hours change in Plan schedule or on the sheet's phase row. A
   second editor for the same column is a second place for it to be wrong.
 - **"Not planned" is never `0h`** here either (rule below). Totals count only budgeted phases,
-  carry an `unplanned` count, and the headline reads **At least** when any is missing. The CSV
-  exports an empty cell, not `0`.
+  carry an `unplanned` count, and the headline reads **At least** when any is missing.
 - **Arithmetic is headless** (`lib/billing.ts`, `check:billing`). Sums round once to one
   decimal; ties sort by id so nothing reorders between renders.
 

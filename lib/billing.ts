@@ -1,5 +1,4 @@
 import {
-  COLUMN_LABELS,
   DELEGATED_PHASES,
   type DesignPhase,
   type PhaseStatus,
@@ -8,7 +7,8 @@ import {
 
 /**
  * Bill arithmetic: the hours already on each project's phases, rolled up by
- * project and by the person holding the phase.
+ * project and by the person holding the phase. (A CSV export lived here until
+ * 2026-09-02 and was removed at the firm's request.)
  *
  * There is no timesheet. The number the firm bills from is
  * `project_phases.planned_hours` — the budget set in Plan schedule — read
@@ -16,7 +16,7 @@ import {
  * here writes, and nothing here invents an hour.
  *
  * React-free, like `lib/workload.ts`, so `npm run check:billing` can exercise
- * every grouping and the CSV quoting without a browser (DECISIONS.md,
+ * every grouping without a browser (DECISIONS.md,
  * "Headless-checkable arithmetic").
  *
  * The honesty rule from the workload view holds here: a phase with no planned
@@ -174,55 +174,4 @@ export function hoursByPerson(
 /** `12`, `12.5` — no trailing zero, one decimal at most (`numeric(6,1)`). */
 export function formatHours(value: number): string {
   return String(round1(value));
-}
-
-export type CsvRow = {
-  projectNumber: string;
-  project: string;
-  customer: string;
-  person: string;
-  phase: DesignPhase;
-  status: PhaseStatus;
-  start: string | null;
-  end: string | null;
-  /** Null exports as an empty cell — never as `0`. */
-  hours: number | null;
-};
-
-/** RFC 4180: quote when needed, double the quotes inside. */
-export function csvCell(value: string | number | null): string {
-  const s = value == null ? "" : String(value);
-  return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
-}
-
-export const CSV_HEADER = [
-  "Project #",
-  "Project",
-  "Customer",
-  "Person",
-  "Phase",
-  "Status",
-  "Start",
-  "End",
-  "Planned hours",
-] as const;
-
-export function toCsv(rows: CsvRow[]): string {
-  const lines = [CSV_HEADER.join(",")];
-  for (const r of rows) {
-    lines.push(
-      [
-        csvCell(r.projectNumber),
-        csvCell(r.project),
-        csvCell(r.customer),
-        csvCell(r.person),
-        csvCell(COLUMN_LABELS[r.phase]),
-        csvCell(r.status.replaceAll("_", " ")),
-        csvCell(r.start),
-        csvCell(r.end),
-        csvCell(r.hours),
-      ].join(","),
-    );
-  }
-  return lines.join("\r\n") + "\r\n";
 }

@@ -20,7 +20,7 @@ Built, not applied, not clicked. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENT
    list you. [`DEVELOPER_ROLE_APPLY.md`](./DEVELOPER_ROLE_APPLY.md).
 5. **Bill page, same day.** Run `20260902100000_drop_time_entries.sql` — it removes the
    table from the abandoned first cut, which was applied by hand before the code was pulled.
-   Then open `/bill`, pick a project, expand a person, export the CSV, and click **Hours** on
+   Then open `/bill`, pick a project, expand a person, and click **Hours** on
    a project sheet to confirm it lands filtered. [`BILL_APPLY.md`](./BILL_APPLY.md).
 6. **Explicit phase dates, 2026-09-02.** Run `20260902110000_phase_dates.sql` (two check
    constraints, no data change). Then Plan schedule on a project: set Schematic design to

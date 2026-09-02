@@ -1,12 +1,10 @@
 import {
   UNASSIGNED,
-  csvCell,
   filterRows,
   formatHours,
   hoursByPerson,
   phaseRows,
   rollup,
-  toCsv,
   type PhaseRow,
 } from "../lib/billing";
 import type { DesignPhase, ProjectWithRelations } from "../lib/types";
@@ -142,53 +140,6 @@ check("whole hours", formatHours(12), "12");
 check("half hour", formatHours(12.5), "12.5");
 check("no float tail", formatHours(0.1 + 0.2), "0.3");
 check("rounds to one decimal", formatHours(1.25), "1.3");
-
-// --- csv -----------------------------------------------------------------
-check("plain cell", csvCell("Ortega"), "Ortega");
-check("comma is quoted", csvCell("Ortega, rear"), '"Ortega, rear"');
-check("quote is doubled", csvCell('12" beam'), '"12"" beam"');
-check("newline is quoted", csvCell("a\nb"), '"a\nb"');
-check("null is empty", csvCell(null), "");
-check("number passes through", csvCell(1.5), "1.5");
-
-const csv = toCsv([
-  {
-    projectNumber: "MK-0001",
-    project: "Ortega Residence, rear addition",
-    customer: "Ortega",
-    person: "Dana Whitfield",
-    phase: "schematic_design",
-    status: "in_progress",
-    start: "2026-09-01",
-    end: "2026-09-12",
-    hours: 20,
-  },
-  {
-    projectNumber: "MK-0001",
-    project: "Ortega Residence, rear addition",
-    customer: "Ortega",
-    person: "Unassigned",
-    phase: "permitting",
-    status: "not_started",
-    start: null,
-    end: null,
-    hours: null,
-  },
-]);
-const lines = csv.split("\r\n");
-check(
-  "csv header",
-  lines[0],
-  "Project #,Project,Customer,Person,Phase,Status,Start,End,Planned hours",
-);
-check(
-  "csv row",
-  lines[1],
-  'MK-0001,"Ortega Residence, rear addition",Ortega,Dana Whitfield,Schematic design,in progress,2026-09-01,2026-09-12,20',
-);
-check("unplanned exports as an empty cell, never 0", lines[2].endsWith(",,,"), true);
-check("csv ends with CRLF", csv.endsWith("\r\n"), true);
-check("empty csv is header only", toCsv([]).split("\r\n").length, 2);
 
 console.log(failures === 0 ? "\nbilling: all checks passed" : `\n${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);

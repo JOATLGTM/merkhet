@@ -2,7 +2,7 @@
 
 Decided 2026-09-01, revised the same day. The **Bill** page (`/bill`, everyone) shows the
 hours already on each project's phases — `project_phases.planned_hours`, the number set in
-Plan schedule — regrouped by project and by the person holding the phase, with a CSV export.
+Plan schedule — regrouped by project and by the person holding the phase.
 It reads; it does not write. **No SQL.**
 
 The first cut had a timesheet: a `time_entries` table and a "Log hours" form. It was the
@@ -24,8 +24,8 @@ depends on the table either way. It also explains the gap in the migration seque
 - **Filters:** project (the sheet's **Hours** button lands here with one preselected), person
   (including *Unassigned phases*), and an *Include completed* toggle that is on by default —
   billing usually happens after the work left the board.
-- **Export CSV** of exactly the rows in the current selection: project, customer, person,
-  phase, status, start, end, planned hours.
+- No export. A CSV button shipped on 2026-09-01 and was removed the next day at the firm's
+  request; the page is for looking, not for handing off.
 
 ## The honesty rule, carried over
 
@@ -35,14 +35,13 @@ DECISIONS.md, *What planned hours are for*: **not planned is never `0h`, in any 
 - Every total counts only the phases that carry a budget and shows how many do not. When any
   are missing, the headline label switches from **Total** to **At least**, and a line under
   it says how many phases have no hours and where to set them.
-- The CSV exports an empty cell for those, not `0`.
 - Review never appears: it is a gate — no person, no hours (WORKFLOW-2 §3).
 
 ## Where it lives
 
 | Concern | File |
 |---|---|
-| Arithmetic (pure) | `lib/billing.ts` — `phaseRows`, `filterRows`, `rollup`, `hoursByPerson`, `toCsv` |
+| Arithmetic (pure) | `lib/billing.ts` — `phaseRows`, `filterRows`, `rollup`, `hoursByPerson` |
 | Check | `scripts/check-billing.ts` (`npm run check:billing`, inside `npm run check`) |
 | Route | `app/(app)/bill/page.tsx` → `components/billing/bill-client.tsx` |
 | Nav | `Bill` link in `components/shell/nav-rail.tsx`, everyone |

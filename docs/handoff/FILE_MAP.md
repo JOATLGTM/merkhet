@@ -12,7 +12,7 @@
 | Consultant detail | `app/(app)/consultants/[id]/page.tsx` → `components/consultants/consultant-detail-client.tsx` |
 | Completed projects | `app/(app)/completed/page.tsx` → `components/projects/completed-projects-client.tsx` |
 | Staff (admin) | `app/(app)/staff/page.tsx` → `components/settings/settings-client.tsx` (Team) |
-| Bill | `app/(app)/bill/page.tsx` → `components/billing/bill-client.tsx` — planned hours by project and person, read-only, CSV |
+| Bill | `app/(app)/bill/page.tsx` → `components/billing/bill-client.tsx` — planned hours by project and person, read-only |
 | Settings redirect | `app/(app)/settings/page.tsx` → redirects to `/staff` |
 | Login | `app/(auth)/login/page.tsx` |
 | Shell layout | `app/(app)/layout.tsx` + `components/shell/nav-rail.tsx` |
@@ -46,7 +46,7 @@
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Per-staff weekly load (pure) | `lib/workload.ts` (checks: `npm run check:workload`) |
 | Project vs customer address/contact (pure) | `lib/contact.ts` (checks: `npm run check:contact`) |
-| Bill roll-ups + CSV (pure) | `lib/billing.ts` (checks: `npm run check:billing`) — reads `planned_hours` off hydrated projects, no table of its own |
+| Bill roll-ups (pure) | `lib/billing.ts` (checks: `npm run check:billing`) — reads `planned_hours` off hydrated projects, no table of its own |
 | Activity copy | `lib/activity.ts` |
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |
 | Gate + rework live check | `scripts/check-gates.ts` (`npm run check:gates` — **writes to hosted DB**) |
