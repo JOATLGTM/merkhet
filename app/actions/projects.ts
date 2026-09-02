@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { attempt } from "@/lib/action-result";
 import { requireUser } from "@/lib/auth/session";
 import { clearOverridesPatch } from "@/lib/contact";
 import { notifyGateRejected } from "@/lib/notifications";
@@ -39,35 +40,43 @@ export async function moveProjectAction(
   projectId: string,
   toColumn: BoardColumn,
 ) {
-  const user = await requireUser();
-  const project = await moveProject(projectId, toColumn, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await moveProject(projectId, toColumn, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function uploadContractAction(formData: FormData) {
-  const user = await requireUser();
-  const projectId = String(formData.get("projectId") ?? "");
-  const file = formData.get("file");
-  if (!projectId) throw new Error("Missing project.");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Choose a PDF to upload.");
-  }
-  const project = await uploadContractAndActivate(projectId, file, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const projectId = String(formData.get("projectId") ?? "");
+    const file = formData.get("file");
+    if (!projectId) throw new Error("Missing project.");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("Choose a PDF to upload.");
+    }
+    const project = await uploadContractAndActivate(projectId, file, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function getContractViewUrlAction(projectId: string) {
-  await requireUser();
-  return getContractViewUrl(projectId);
+  return attempt(async () => {
+    await requireUser();
+    return getContractViewUrl(projectId);
+  });
 }
 
 export async function markProjectCompleteAction(projectId: string) {
-  const user = await requireUser();
-  const project = await markProjectComplete(projectId, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await markProjectComplete(projectId, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 /**
@@ -106,14 +115,16 @@ export async function updateProjectFieldAction(
     | "project_contact_phone",
   value: string | number | null,
 ) {
-  const user = await requireUser();
-  const patch =
-    field === "hours_per_week"
-      ? { hours_per_week: value === null || value === "" ? null : Number(value) }
-      : { [field]: value === "" ? null : value };
-  const project = await updateProject(projectId, patch, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const patch =
+      field === "hours_per_week"
+        ? { hours_per_week: value === null || value === "" ? null : Number(value) }
+        : { [field]: value === "" ? null : value };
+    const project = await updateProject(projectId, patch, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 /**
@@ -123,14 +134,16 @@ export async function updateProjectFieldAction(
  * time would log four separate edits for a single decision.
  */
 export async function clearProjectContactAction(projectId: string) {
-  const user = await requireUser();
-  const project = await updateProject(
-    projectId,
-    clearOverridesPatch(),
-    user.id,
-  );
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await updateProject(
+      projectId,
+      clearOverridesPatch(),
+      user.id,
+    );
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function toggleHoldAction(
@@ -138,10 +151,12 @@ export async function toggleHoldAction(
   onHold: boolean,
   reason: string | null,
 ) {
-  const user = await requireUser();
-  const project = await toggleHold(projectId, onHold, reason, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await toggleHold(projectId, onHold, reason, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function updateAssigneeAction(
@@ -149,15 +164,17 @@ export async function updateAssigneeAction(
   phase: DesignPhase,
   assigneeId: string | null,
 ) {
-  const user = await requireUser();
-  const project = await updatePhaseAssignee(
-    projectId,
-    phase,
-    assigneeId,
-    user.id,
-  );
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await updatePhaseAssignee(
+      projectId,
+      phase,
+      assigneeId,
+      user.id,
+    );
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function updatePhaseDatesAction(
@@ -166,16 +183,18 @@ export async function updatePhaseDatesAction(
   planned_start: string | null,
   planned_end: string | null,
 ) {
-  const user = await requireUser();
-  const project = await updatePhaseDates(
-    projectId,
-    phase,
-    planned_start,
-    planned_end,
-    user.id,
-  );
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await updatePhaseDates(
+      projectId,
+      phase,
+      planned_start,
+      planned_end,
+      user.id,
+    );
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function updatePhaseHoursAction(
@@ -183,15 +202,17 @@ export async function updatePhaseHoursAction(
   phase: DesignPhase,
   plannedHours: number | null,
 ) {
-  const user = await requireUser();
-  const project = await updatePhaseHours(
-    projectId,
-    phase,
-    plannedHours,
-    user.id,
-  );
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await updatePhaseHours(
+      projectId,
+      phase,
+      plannedHours,
+      user.id,
+    );
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function setPhaseRecipientsAction(
@@ -199,10 +220,12 @@ export async function setPhaseRecipientsAction(
   phase: DesignPhase,
   userIds: string[],
 ) {
-  const user = await requireUser();
-  const project = await setPhaseRecipients(projectId, phase, userIds, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await setPhaseRecipients(projectId, phase, userIds, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function saveDelegationAction(
@@ -210,10 +233,12 @@ export async function saveDelegationAction(
   entries: DelegationEntry[],
   anchorDate: string,
 ) {
-  const user = await requireUser();
-  const project = await saveDelegation(projectId, entries, anchorDate, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await saveDelegation(projectId, entries, anchorDate, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function recordApprovalAction(
@@ -223,16 +248,18 @@ export async function recordApprovalAction(
   /** The chosen third: a staff member's id, or null for the client. */
   approverUserId: string | null = null,
 ) {
-  const user = await requireUser();
-  const project = await recordApproval(
-    projectId,
-    phase,
-    party,
-    user.id,
-    approverUserId,
-  );
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await recordApproval(
+      projectId,
+      phase,
+      party,
+      user.id,
+      approverUserId,
+    );
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function clearApprovalAction(
@@ -240,10 +267,12 @@ export async function clearApprovalAction(
   phase: GatePhase,
   party: ApprovalParty,
 ) {
-  const user = await requireUser();
-  const project = await clearApproval(projectId, phase, party, user.id);
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await clearApproval(projectId, phase, party, user.id);
+    revalidateAll();
+    return project;
+  });
 }
 
 export async function rejectGateAction(
@@ -252,24 +281,26 @@ export async function rejectGateAction(
   /** Re-date the not-started phases from today. Off keeps the entered dates. */
   reflow = false,
 ) {
-  const user = await requireUser();
-  const project = await rejectGate(projectId, phase, user.id, reflow);
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await rejectGate(projectId, phase, user.id, reflow);
 
-  await notifyGateRejected({
-    projectId: project.id,
-    projectName: project.name,
-    projectNumber: project.project_number,
-    gate: phase,
-    returnedTo: GATE_REJECT_TARGET[phase],
-    // The delegate of the phase being returned to (WORKFLOW-2 §4).
-    delegateId:
-      project.phases.find((p) => p.phase === GATE_REJECT_TARGET[phase])
-        ?.assignee_id ?? null,
-    actorId: user.id,
+    await notifyGateRejected({
+      projectId: project.id,
+      projectName: project.name,
+      projectNumber: project.project_number,
+      gate: phase,
+      returnedTo: GATE_REJECT_TARGET[phase],
+      // The delegate of the phase being returned to (WORKFLOW-2 §4).
+      delegateId:
+        project.phases.find((p) => p.phase === GATE_REJECT_TARGET[phase])
+          ?.assignee_id ?? null,
+      actorId: user.id,
+    });
+
+    revalidateAll();
+    return project;
   });
-
-  revalidateAll();
-  return project;
 }
 
 export async function createProjectAction(input: {
@@ -287,8 +318,10 @@ export async function createProjectAction(input: {
   project_contact_email?: string | null;
   project_contact_phone?: string | null;
 }) {
-  const user = await requireUser();
-  const project = await createProject({ ...input, actor_id: user.id });
-  revalidateAll();
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await createProject({ ...input, actor_id: user.id });
+    revalidateAll();
+    return project;
+  });
 }

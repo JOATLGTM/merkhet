@@ -38,6 +38,13 @@ lands on the end of Design development. Rejecting a gate **no longer re-dates an
 default**; the dialog offers a reflow checkbox. ⚠️ `20260902110000_phase_dates.sql` adds the
 two check constraints — **written, not applied**. [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md)
 
+**Production error toasts were React #441.** Every server action that threw lost its message
+in prod; the Pending → Active drag without a contract showed the code instead of "Upload an
+LOI or contract…". Actions now return `{ ok, error }` through `attempt()` and the client
+`unwrap`s or `report`s them (`lib/action-result.ts`). No SQL. Recorded in DECISIONS.md.
+
+**Delete project** now asks for the word `DELETE` instead of the project number.
+
 ## State as of 2026-09-01
 
 **Phase subscribers are gone; recipients are chosen per project.** The firm-wide list on

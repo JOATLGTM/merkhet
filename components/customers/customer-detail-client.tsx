@@ -8,6 +8,7 @@ import {
   deleteCustomerAction,
   updateCustomerAction,
 } from "@/app/actions/customers";
+import { report } from "@/lib/action-toast";
 import { PhaseRule } from "@/components/projects/phase-rule";
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
 import { Button } from "@/components/ui/button";
@@ -65,9 +66,9 @@ export function CustomerDetailClient({
     value: string,
   ) => {
     startTransition(async () => {
-      await updateCustomerAction(customer.id, {
+      report(await updateCustomerAction(customer.id, {
         [field]: value === "" ? null : value,
-      });
+      }));
       router.refresh();
     });
   };

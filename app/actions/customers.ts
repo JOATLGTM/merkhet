@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { attempt } from "@/lib/action-result";
 import { requireUser } from "@/lib/auth/session";
 import {
   createCustomer,
@@ -18,21 +19,23 @@ export async function createCustomerAction(input: {
   spouse_name?: string | null;
   notes?: string | null;
 }) {
-  await requireUser();
-  const customer = await createCustomer({
-    name: input.name,
-    address: input.address ?? null,
-    contact_name: input.contact_name ?? null,
-    contact_email: input.contact_email ?? null,
-    contact_phone: input.contact_phone ?? null,
-    spouse_name: input.spouse_name ?? null,
-    notes: input.notes ?? null,
+  return attempt(async () => {
+    await requireUser();
+    const customer = await createCustomer({
+      name: input.name,
+      address: input.address ?? null,
+      contact_name: input.contact_name ?? null,
+      contact_email: input.contact_email ?? null,
+      contact_phone: input.contact_phone ?? null,
+      spouse_name: input.spouse_name ?? null,
+      notes: input.notes ?? null,
+    });
+    revalidatePath("/customers");
+    // The board's New Project dialog can create customers too, so the board's
+    // own customer list (and the nav rail count) has to pick them up as well.
+    revalidatePath("/");
+    return customer;
   });
-  revalidatePath("/customers");
-  // The board's New Project dialog can create customers too, so the board's
-  // own customer list (and the nav rail count) has to pick them up as well.
-  revalidatePath("/");
-  return customer;
 }
 
 export async function updateCustomerAction(
@@ -47,12 +50,14 @@ export async function updateCustomerAction(
     notes?: string | null;
   },
 ) {
-  await requireUser();
-  const customer = await updateCustomer(id, patch);
-  revalidatePath("/customers");
-  revalidatePath(`/customers/${id}`);
-  revalidatePath("/");
-  return customer;
+  return attempt(async () => {
+    await requireUser();
+    const customer = await updateCustomer(id, patch);
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${id}`);
+    revalidatePath("/");
+    return customer;
+  });
 }
 
 export async function deleteCustomerAction(id: string) {

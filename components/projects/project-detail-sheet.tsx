@@ -20,6 +20,8 @@ import {
   createAndAttachConsultantAction,
   detachConsultantAction,
 } from "@/app/actions/consultants";
+import { unwrap } from "@/lib/action-result";
+import { report } from "@/lib/action-toast";
 import {
   clearApprovalAction,
   deleteProjectAction,
@@ -313,11 +315,11 @@ export function ProjectDetailSheet({
             onBlur={(e) => {
               if (e.target.value !== project.name) {
                 startTransition(async () => {
-                  await updateProjectFieldAction(
+                  report(await updateProjectFieldAction(
                     project.id,
                     "name",
                     e.target.value,
-                  );
+                  ));
                 });
               }
             }}
@@ -345,7 +347,7 @@ export function ProjectDetailSheet({
                     ? window.prompt("Reason (optional)") || null
                     : null;
                 startTransition(async () => {
-                  await toggleHoldAction(project.id, next, reason);
+                  report(await toggleHoldAction(project.id, next, reason));
                   toast.success(next ? "On hold" : "Off hold");
                 });
               }}
@@ -431,7 +433,7 @@ export function ProjectDetailSheet({
                 onClick={() => {
                   startTransition(async () => {
                     try {
-                      await markProjectCompleteAction(project.id);
+                      unwrap(await markProjectCompleteAction(project.id));
                       setCompleteOpen(false);
                       toast.success("Project marked complete");
                       onClose();
@@ -565,7 +567,7 @@ export function ProjectDetailSheet({
                   onClick={() => {
                     startTransition(async () => {
                       try {
-                        await rejectGateAction(project.id, gate, rejectReflow);
+                        unwrap(await rejectGateAction(project.id, gate, rejectReflow));
                         setRejectOpen(false);
                         setRejectReflow(false);
                         toast.success(
@@ -609,7 +611,7 @@ export function ProjectDetailSheet({
                       const fd = new FormData();
                       fd.set("projectId", project.id);
                       fd.set("file", file);
-                      await uploadContractAction(fd);
+                      unwrap(await uploadContractAction(fd));
                       toast.success("Contract uploaded — project is Active");
                       router.refresh();
                     } catch (err) {
@@ -650,9 +652,9 @@ export function ProjectDetailSheet({
                 onClick={() => {
                   startTransition(async () => {
                     try {
-                      const { url } = await getContractViewUrlAction(
+                      const { url } = unwrap(await getContractViewUrlAction(
                         project.id,
-                      );
+                      ));
                       window.open(url, "_blank", "noopener,noreferrer");
                     } catch (err) {
                       toast.error(
@@ -728,11 +730,11 @@ export function ProjectDetailSheet({
                           onClick={() => {
                             startTransition(async () => {
                               try {
-                                await clearApprovalAction(
+                                unwrap(await clearApprovalAction(
                                   project.id,
                                   gate,
                                   party,
-                                );
+                                ));
                                 toast.success(
                                   `${PARTY_LABELS[party]} sign-off cleared`,
                                 );
@@ -793,12 +795,12 @@ export function ProjectDetailSheet({
                                   : chosenApprover === CLIENT_APPROVER
                                     ? null
                                     : chosenApprover;
-                                await recordApprovalAction(
+                                unwrap(await recordApprovalAction(
                                   project.id,
                                   gate,
                                   party,
                                   approver,
-                                );
+                                ));
                                 setChosenApprover("none");
                                 toast.success(
                                   isChosen
@@ -857,11 +859,11 @@ export function ProjectDetailSheet({
                   multiline
                   placeholder="Add a description…"
                   onSave={async (value) => {
-                    await updateProjectFieldAction(
+                    report(await updateProjectFieldAction(
                       project.id,
                       "description",
                       value,
-                    );
+                    ));
                   }}
                 />
               </div>
@@ -878,11 +880,11 @@ export function ProjectDetailSheet({
                   onBlur={(e) => {
                     if (e.target.value !== (project.start_date ?? "")) {
                       startTransition(async () => {
-                        await updateProjectFieldAction(
+                        report(await updateProjectFieldAction(
                           project.id,
                           "start_date",
                           e.target.value || null,
-                        );
+                        ));
                       });
                     }
                   }}
@@ -898,11 +900,11 @@ export function ProjectDetailSheet({
                   onBlur={(e) => {
                     if (e.target.value !== (project.target_completion ?? "")) {
                       startTransition(async () => {
-                        await updateProjectFieldAction(
+                        report(await updateProjectFieldAction(
                           project.id,
                           "target_completion",
                           e.target.value || null,
-                        );
+                        ));
                       });
                     }
                   }}
@@ -993,7 +995,7 @@ export function ProjectDetailSheet({
                     onClick={() => {
                       startTransition(async () => {
                         try {
-                          await detachConsultantAction(project.id, c.id);
+                          unwrap(await detachConsultantAction(project.id, c.id));
                           toast.success("Consultant removed");
                           router.refresh();
                         } catch (e) {
@@ -1097,13 +1099,13 @@ export function ProjectDetailSheet({
                       }
                       startTransition(async () => {
                         try {
-                          await createAndAttachConsultantAction(project.id, {
+                          unwrap(await createAndAttachConsultantAction(project.id, {
                             name: newName.trim(),
                             discipline: newDiscipline.trim() || null,
                             company: newCompany.trim() || null,
                             email: newEmail.trim() || null,
                             phone: newPhone.trim() || null,
-                          });
+                          }));
                           setAttachId("none");
                           resetNewConsultant();
                           toast.success("Consultant added to project");
@@ -1131,7 +1133,7 @@ export function ProjectDetailSheet({
                   onClick={() => {
                     startTransition(async () => {
                       try {
-                        await attachConsultantAction(project.id, attachId);
+                        unwrap(await attachConsultantAction(project.id, attachId));
                         setAttachId("none");
                         toast.success("Consultant attached");
                         router.refresh();
@@ -1201,11 +1203,11 @@ export function ProjectDetailSheet({
                       value={phase.assignee_id ?? "none"}
                       onValueChange={(value) => {
                         startTransition(async () => {
-                          await updateAssigneeAction(
+                          report(await updateAssigneeAction(
                             project.id,
                             phase.phase as DesignPhase,
                             value === "none" ? null : value,
-                          );
+                          ));
                         });
                       }}
                     >
@@ -1289,11 +1291,11 @@ export function ProjectDetailSheet({
                             if (next === phase.planned_hours) return;
                             startTransition(async () => {
                               try {
-                                await updatePhaseHoursAction(
+                                unwrap(await updatePhaseHoursAction(
                                   project.id,
                                   phase.phase,
                                   next,
-                                );
+                                ));
                               } catch (err) {
                                 toast.error(
                                   err instanceof Error
@@ -1329,11 +1331,11 @@ export function ProjectDetailSheet({
                       onChange={(next) => {
                         startTransition(async () => {
                           try {
-                            await setPhaseRecipientsAction(
+                            unwrap(await setPhaseRecipientsAction(
                               project.id,
                               phase.phase as DesignPhase,
                               next,
-                            );
+                            ));
                           } catch (err) {
                             toast.error(
                               err instanceof Error

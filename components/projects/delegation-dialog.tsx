@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { saveDelegationAction } from "@/app/actions/projects";
+import { unwrap } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -209,7 +210,7 @@ export function DelegationDialog({
     if (problems.length > 0 || !anchor) return;
     startTransition(async () => {
       try {
-        await saveDelegationAction(
+        unwrap(await saveDelegationAction(
           project.id,
           DELEGATED_PHASES.map((phase) => ({
             phase,
@@ -227,7 +228,7 @@ export function DelegationDialog({
             ),
           })),
           anchor,
-        );
+        ));
         toast.success("Schedule planned");
         onOpenChange(false);
       } catch (e) {

@@ -24,6 +24,7 @@ import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { moveProjectAction } from "@/app/actions/projects";
+import { unwrap } from "@/lib/action-result";
 import { NewProjectDialog } from "@/components/projects/new-project-dialog";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectDetailSheet } from "@/components/projects/project-detail-sheet";
@@ -300,7 +301,7 @@ export function BoardView({
     startTransition(async () => {
       setOptimistic({ id, column: toColumn });
       try {
-        await moveProjectAction(id, toColumn);
+        unwrap(await moveProjectAction(id, toColumn));
         // Entering Active raises delegation (WORKFLOW-2 §3). Opening the sheet
         // is enough — it raises the dialog itself when planning is missing.
         if (toColumn === "active") openProject(id);

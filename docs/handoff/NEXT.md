@@ -28,6 +28,9 @@ Built, not applied, not clicked. [`PHASE_RECIPIENTS_APPLY.md`](./PHASE_RECIPIENT
    Review sits on the end of Design development. Edit a date on the sheet row and watch it
    save on blur. Reject a gate with the reflow box off and confirm nothing moved.
    [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
+7. **Error messages in prod.** After deploying, drag a Pending card to Active with no contract:
+   the toast should read "Upload an LOI or contract to move this project out of Pending",
+   not React #441. That one check proves the whole `attempt`/`unwrap` change.
 
 The "Found along the way" note under 2026-08-23 about `client_contact_id` is resolved: the
 field was dropped rather than built.

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updatePhaseDatesAction } from "@/app/actions/projects";
+import { unwrap } from "@/lib/action-result";
 import { Input } from "@/components/ui/input";
 import { phaseDateError } from "@/lib/dates";
 import type { DesignPhase, ProjectPhase } from "@/lib/types";
@@ -39,12 +40,12 @@ export function PhaseDates({
     if (!dirty || problem) return;
     startTransition(async () => {
       try {
-        await updatePhaseDatesAction(
+        unwrap(await updatePhaseDatesAction(
           projectId,
           phase.phase as DesignPhase,
           start || null,
           end || null,
-        );
+        ));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Could not save dates.");
         setStart(phase.planned_start ?? "");

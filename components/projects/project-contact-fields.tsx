@@ -8,6 +8,7 @@ import {
   clearProjectContactAction,
   updateProjectFieldAction,
 } from "@/app/actions/projects";
+import { unwrap } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ export function ProjectContactFields({
     if (next === (project[column] ?? null)) return;
     startTransition(async () => {
       try {
-        await updateProjectFieldAction(project.id, column, next);
+        unwrap(await updateProjectFieldAction(project.id, column, next));
         router.refresh();
       } catch (e) {
         toast.error(
@@ -70,7 +71,7 @@ export function ProjectContactFields({
   const clear = () => {
     startTransition(async () => {
       try {
-        await clearProjectContactAction(project.id);
+        unwrap(await clearProjectContactAction(project.id));
         setOpenedFor(null);
         setConfirmingClear(false);
         toast.success("Back on the customer's address and contact");

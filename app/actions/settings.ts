@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { attempt } from "@/lib/action-result";
 import { requireAdmin } from "@/lib/auth/session";
 import {
   deleteUser,
@@ -28,21 +29,25 @@ async function refuseDeveloper(userId: string) {
 }
 
 export async function updateRoleAction(userId: string, role: UserRole) {
-  await requireAdmin();
-  if (!assignable(role)) throw new Error("That role cannot be assigned.");
-  await refuseDeveloper(userId);
-  const user = await updateUserRole(userId, role);
-  revalidatePath("/staff");
-  return user;
+  return attempt(async () => {
+    await requireAdmin();
+    if (!assignable(role)) throw new Error("That role cannot be assigned.");
+    await refuseDeveloper(userId);
+    const user = await updateUserRole(userId, role);
+    revalidatePath("/staff");
+    return user;
+  });
 }
 
 export async function setActiveAction(userId: string, isActive: boolean) {
-  await requireAdmin();
-  await refuseDeveloper(userId);
-  const user = await setUserActive(userId, isActive);
-  revalidatePath("/staff");
-  revalidatePath("/");
-  return user;
+  return attempt(async () => {
+    await requireAdmin();
+    await refuseDeveloper(userId);
+    const user = await setUserActive(userId, isActive);
+    revalidatePath("/staff");
+    revalidatePath("/");
+    return user;
+  });
 }
 
 export type InviteResult = { ok: true } | { ok: false; error: string };

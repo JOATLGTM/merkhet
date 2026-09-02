@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createCustomerAction } from "@/app/actions/customers";
+import { report } from "@/lib/action-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -150,12 +151,13 @@ export function CustomersClient({ customers }: { customers: Row[] }) {
               className="rounded-none bg-phase-5 text-paper"
               onClick={() => {
                 startTransition(async () => {
-                  const customer = await createCustomerAction({
+                  const customer = report(await createCustomerAction({
                     name: name.trim(),
                     contact_name: contactName || null,
                     contact_email: contactEmail || null,
                     contact_phone: contactPhone || null,
-                  });
+                  }));
+                  if (!customer) return;
                   setName("");
                   setContactName("");
                   setContactEmail("");

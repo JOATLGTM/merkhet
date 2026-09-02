@@ -8,6 +8,7 @@ import {
   deleteConsultantAction,
   updateConsultantAction,
 } from "@/app/actions/consultants";
+import { report } from "@/lib/action-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,9 +28,9 @@ export function ConsultantDetailClient({
     value: string,
   ) => {
     startTransition(async () => {
-      await updateConsultantAction(consultant.id, {
+      report(await updateConsultantAction(consultant.id, {
         [field]: value === "" ? null : value,
-      });
+      }));
       router.refresh();
     });
   };

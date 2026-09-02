@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { attempt } from "@/lib/action-result";
 import { requireUser } from "@/lib/auth/session";
 import {
   attachConsultantToProject,
@@ -29,18 +30,20 @@ export async function createConsultantAction(input: {
   phone?: string | null;
   notes?: string | null;
 }) {
-  await requireUser();
-  if (!input.name.trim()) throw new Error("Name is required.");
-  const consultant = await createConsultant({
-    name: input.name.trim(),
-    company: input.company?.trim() || null,
-    discipline: input.discipline?.trim() || null,
-    email: input.email?.trim() || null,
-    phone: input.phone?.trim() || null,
-    notes: input.notes?.trim() || null,
+  return attempt(async () => {
+    await requireUser();
+    if (!input.name.trim()) throw new Error("Name is required.");
+    const consultant = await createConsultant({
+      name: input.name.trim(),
+      company: input.company?.trim() || null,
+      discipline: input.discipline?.trim() || null,
+      email: input.email?.trim() || null,
+      phone: input.phone?.trim() || null,
+      notes: input.notes?.trim() || null,
+    });
+    revalidateConsultantPaths();
+    return consultant;
   });
-  revalidateConsultantPaths();
-  return consultant;
 }
 
 /** Create a consultant and attach them to a project in one step. */
@@ -55,23 +58,25 @@ export async function createAndAttachConsultantAction(
     notes?: string | null;
   },
 ) {
-  const user = await requireUser();
-  if (!input.name.trim()) throw new Error("Name is required.");
-  const consultant = await createConsultant({
-    name: input.name.trim(),
-    company: input.company?.trim() || null,
-    discipline: input.discipline?.trim() || null,
-    email: input.email?.trim() || null,
-    phone: input.phone?.trim() || null,
-    notes: input.notes?.trim() || null,
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!input.name.trim()) throw new Error("Name is required.");
+    const consultant = await createConsultant({
+      name: input.name.trim(),
+      company: input.company?.trim() || null,
+      discipline: input.discipline?.trim() || null,
+      email: input.email?.trim() || null,
+      phone: input.phone?.trim() || null,
+      notes: input.notes?.trim() || null,
+    });
+    const project = await attachConsultantToProject(
+      projectId,
+      consultant.id,
+      user.id,
+    );
+    revalidateConsultantPaths(projectId);
+    return { consultant, project };
   });
-  const project = await attachConsultantToProject(
-    projectId,
-    consultant.id,
-    user.id,
-  );
-  revalidateConsultantPaths(projectId);
-  return { consultant, project };
 }
 
 export async function updateConsultantAction(
@@ -85,11 +90,13 @@ export async function updateConsultantAction(
     notes?: string | null;
   },
 ) {
-  await requireUser();
-  const consultant = await updateConsultant(id, patch);
-  revalidatePath(`/consultants/${id}`);
-  revalidateConsultantPaths();
-  return consultant;
+  return attempt(async () => {
+    await requireUser();
+    const consultant = await updateConsultant(id, patch);
+    revalidatePath(`/consultants/${id}`);
+    revalidateConsultantPaths();
+    return consultant;
+  });
 }
 
 export async function deleteConsultantAction(id: string) {
@@ -110,26 +117,30 @@ export async function attachConsultantAction(
   projectId: string,
   consultantId: string,
 ) {
-  const user = await requireUser();
-  const project = await attachConsultantToProject(
-    projectId,
-    consultantId,
-    user.id,
-  );
-  revalidateConsultantPaths(projectId);
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await attachConsultantToProject(
+      projectId,
+      consultantId,
+      user.id,
+    );
+    revalidateConsultantPaths(projectId);
+    return project;
+  });
 }
 
 export async function detachConsultantAction(
   projectId: string,
   consultantId: string,
 ) {
-  const user = await requireUser();
-  const project = await detachConsultantFromProject(
-    projectId,
-    consultantId,
-    user.id,
-  );
-  revalidateConsultantPaths(projectId);
-  return project;
+  return attempt(async () => {
+    const user = await requireUser();
+    const project = await detachConsultantFromProject(
+      projectId,
+      consultantId,
+      user.id,
+    );
+    revalidateConsultantPaths(projectId);
+    return project;
+  });
 }

@@ -27,7 +27,8 @@
 | Repository (Supabase) | `lib/db/repo.ts` |
 | Demo seed source only | `lib/db/demo-store.ts` + `scripts/seed-demo.ts` |
 | Supabase clients | `lib/supabase/{client,server,admin}.ts` |
-| Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` |
+| Server actions | `app/actions/{auth,projects,customers,consultants,settings}.ts` — bodies wrapped in `attempt()`; they return `{ ok, value \| error }` |
+| Action result plumbing | `lib/action-result.ts` (`attempt`, `unwrap`), `lib/action-toast.ts` (`report`) — why: React #441 in prod |
 | Session | `lib/auth/session.ts` — `requireAdmin` admits `admin` and `developer` via `isAdmin()` |
 | Roles | `UserRole`, `ASSIGNABLE_ROLES`, `isAdmin` in `lib/types.ts`; `developer` is hidden by `listUsers` and locked by the `users_protect_developer` trigger |
 | Notification call sites | `lib/notifications.ts` — resolves recipients, plans, enqueues. Never throws |

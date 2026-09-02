@@ -522,6 +522,23 @@ so a **deactivated** assignee or creator still renders `—`. The fix separates 
 name lookups" from "people you can assign" — it is not flipping the flag, because the same
 `users` prop feeds the assignee filter and the sheet's assignee selects.
 
+## Server actions return results, never throw to the client (Sep 2, 2026)
+
+**A thrown `Error` in a server action reaches production browsers as React error #441**
+("the specific message is omitted in production builds"). Every `toast.error(e.message)` in
+the app showed the real reason in `next dev` and a React code on merkhetdrafting.com —
+reported on dragging a Pending card to Active without a contract, where the code had been
+throwing "Upload an LOI or contract…" all along.
+
+- **Actions wrap their body in `attempt()`** (`lib/action-result.ts`) and return
+  `{ ok: true, value } | { ok: false, error }`. `redirect()` / `notFound()` are rethrown;
+  `UNAUTHORIZED` / `FORBIDDEN` from `requireUser` become sentences.
+- **Client sites call `unwrap(await …)`** where a `try / catch / toast` already exists, so the
+  catch sees the real message, or `report(await …)` (`lib/action-toast.ts`) where the call was
+  fire-and-forget and had no catch at all.
+- **Do not add a new action that throws.** Wrap it. The four action files are converted; the
+  ones that already returned `{ ok, error }` (invite, the three deletes) were left as they were.
+
 ## Destructive actions (Aug 22, 2026)
 
 Confirmation is graded by what is actually at stake, not applied uniformly:

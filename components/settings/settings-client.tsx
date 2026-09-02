@@ -11,6 +11,7 @@ import {
   setActiveAction,
   updateRoleAction,
 } from "@/app/actions/settings";
+import { report } from "@/lib/action-toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -150,7 +151,7 @@ export function SettingsClient({
                         value={user.role}
                         onValueChange={(value) => {
                           startTransition(async () => {
-                            await updateRoleAction(user.id, value as UserRole);
+                            report(await updateRoleAction(user.id, value as UserRole));
                             router.refresh();
                           });
                         }}
@@ -170,7 +171,7 @@ export function SettingsClient({
                         disabled={pending}
                         onCheckedChange={(checked) => {
                           startTransition(async () => {
-                            await setActiveAction(user.id, Boolean(checked));
+                            report(await setActiveAction(user.id, Boolean(checked)));
                             router.refresh();
                           });
                         }}

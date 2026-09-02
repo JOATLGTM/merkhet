@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { createCustomerAction } from "@/app/actions/customers";
+import { unwrap } from "@/lib/action-result";
 import { createProjectAction } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
 import {
@@ -152,17 +153,17 @@ export function NewProjectDialog({
 				// up in the Customers tab without a manual reload.
 				const targetCustomerId = creatingCustomer
 					? (
-							await createCustomerAction({
+							unwrap(await createCustomerAction({
 								name: newName.trim(),
 								address: newAddress.trim() || null,
 								contact_name: newContactName.trim() || null,
 								contact_email: email || null,
 								contact_phone: newContactPhone.trim() || null,
-							})
+							}))
 						).id
 					: customerId;
 
-				const project = await createProjectAction({
+				const project = unwrap(await createProjectAction({
 					name: name.trim(),
 					customer_id: targetCustomerId,
 					description: description.trim() || null,
@@ -180,7 +181,7 @@ export function NewProjectDialog({
 					project_contact_phone: sameAsCustomer
 						? null
 						: orNull(siteContactPhone),
-				});
+				}));
 
 				onOpenChange(false);
 				setName("");

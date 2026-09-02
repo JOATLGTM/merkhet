@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createConsultantAction } from "@/app/actions/consultants";
+import { unwrap } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -238,14 +239,14 @@ export function ConsultantsClient({
               onClick={() => {
                 startTransition(async () => {
                   try {
-                    const created = await createConsultantAction({
+                    const created = unwrap(await createConsultantAction({
                       name,
                       company,
                       discipline,
                       email,
                       phone,
                       notes,
-                    });
+                    }));
                     setOpen(false);
                     reset();
                     router.push(`/consultants/${created.id}`);

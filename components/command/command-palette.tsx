@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { moveProjectAction, toggleHoldAction } from "@/app/actions/projects";
+import { unwrap } from "@/lib/action-result";
+import { report } from "@/lib/action-toast";
 import { pushBoardProject } from "@/lib/board-url";
 import {
   Command,
@@ -109,7 +111,7 @@ export function CommandPalette({ projects, customers }: CommandPaletteProps) {
                       value={`hold ${p.name}`}
                       onSelect={() => {
                         startTransition(async () => {
-                          await toggleHoldAction(p.id, true, "From command palette");
+                          report(await toggleHoldAction(p.id, true, "From command palette"));
                           setOpen(false);
                         });
                       }}
@@ -128,7 +130,7 @@ export function CommandPalette({ projects, customers }: CommandPaletteProps) {
                   onSelect={() => {
                     startTransition(async () => {
                       try {
-                        await moveProjectAction(moveFor, column);
+                        unwrap(await moveProjectAction(moveFor, column));
                         setOpen(false);
                         setMoveFor(null);
                         // The action's revalidatePath("/") already streams the
