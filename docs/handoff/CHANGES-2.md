@@ -30,7 +30,9 @@ Hold until requirements are clarified. **Partly unblocked from the side (2026-08
 user asked directly for a project address and contact that can differ from the customer's, so
 `customers.address` and four `projects.project_contact_*`/`project_address` columns now exist
 and are surfaced. That is two of §3's intake fields, not the slice — the rest still waits on
-the client's field list. See `PROJECT_CONTACT_APPLY.md`.
+the client's field list. See `PROJECT_CONTACT_APPLY.md`. **Also from the side (2026-09-03):**
+the customer chosen at intake can now be changed on the detail sheet — a correction path, not
+an intake field, and no SQL. See `PROJECT_CUSTOMER_APPLY.md`.
 
 **Slice 4 (Delegation) skipped (2026-08-12)** — not needed for current client direction.
 Leftover Slice 4 files removed. **Un-skipped and re-scoped (2026-08-14)** — Slices 10 and 11

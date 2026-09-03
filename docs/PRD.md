@@ -454,7 +454,7 @@ Opens as a right-side slide-over, **not** a route change — the board stays vis
 
 1. **Header** — project number, project name (inline editable), customer name (links to customer detail), current phase badge, on-hold toggle
 2. **Details** — description, start date, target completion, hours/week. All inline editable.
-3. **Customer** — read-only summary of name, contact name, email, phone. Link to full customer record.
+3. **Customer** — name as a dropdown of every customer (changing it re-parents the project and logs `project.customer_changed`; the project's own address and contact are kept), then a read-only summary of address, contact name, email, phone. Link to full customer record. *Dropdown added 2026-09-03 — see `handoff/PROJECT_CUSTOMER_APPLY.md`.*
 4. **Phases** — a list of all five phases in order. Each row shows phase name, status, assignee (editable dropdown of active users), planned start and end dates (editable). The current phase is visually emphasized.
 5. **Activity** — reverse-chronological log, human-readable ("Chris moved this from Design development to Construction documents · 2 days ago")
 
@@ -465,6 +465,7 @@ Opens as a right-side slide-over, **not** a route change — the board stays vis
 - [ ] Every editable field saves on blur and shows a save indicator
 - [ ] Changing a phase assignee writes `phase.assignee_changed` to the activity log
 - [ ] Toggling on-hold prompts for an optional reason, sets or clears `on_hold_since`, and logs the change
+- [ ] Changing the customer moves the project between the two customers' detail pages, adjusts both project counts, and writes `project.customer_changed` to the activity log
 - [ ] Escape key and backdrop click close the panel
 
 ### 6.4 Customers (`/customers`)

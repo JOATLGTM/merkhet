@@ -1,6 +1,6 @@
 # Current state
 
-**Last updated: 2026-09-02**
+**Last updated: 2026-09-03**
 
 > **Resuming?** Start with [`NEXT.md`](./NEXT.md). The short version of what has changed
 > since the sections below were first written:
@@ -18,6 +18,8 @@
 > - **2026-09-02:** phase dates typed in per phase, rejection offers a reflow; server actions
 >   return results instead of throwing (React #441 in prod); Delete project asks for `DELETE`.
 >   [`PHASE_DATES_APPLY.md`](./PHASE_DATES_APPLY.md).
+> - **2026-09-03:** a project's customer can be changed from the detail sheet. No SQL.
+>   [`PROJECT_CUSTOMER_APPLY.md`](./PROJECT_CUSTOMER_APPLY.md).
 >
 > Live data on 2026-09-02: three users (Austin admin, Ryan admin, Chris developer), 20
 > projects — 15 Pending, 5 Active with a phase running.
@@ -105,6 +107,11 @@ Legacy names (`NEXT_PUBLIC_SUPABASE_URL`, etc.) still work as fallbacks in `lib/
   which came from the customer, and asks before discarding overrides. Migration
   `20260821100000_project_address_contact.sql` — **applied + verified**. See
   [`PROJECT_CONTACT_APPLY.md`](./PROJECT_CONTACT_APPLY.md)
+- **Change a project's customer** (2026-09-03): the sheet's **Customer → Name** row is a
+  dropdown of every customer. Picking one saves at once, logs "moved this project from *A*
+  to *B*", and leaves the project's own address and contact as entered — null fields resolve
+  to the new customer's on their own. Any status, no confirm, no SQL. **Not yet clicked.** See
+  [`PROJECT_CUSTOMER_APPLY.md`](./PROJECT_CUSTOMER_APPLY.md)
 
 ### Email templates (2026-08-18 — **wired since 2026-08-21**, see SLICE_6_APPLY)
 - `lib/email/` — four templates covering 11 events / 16 messages, each returning
