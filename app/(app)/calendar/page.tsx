@@ -2,18 +2,29 @@ import { Suspense } from "react";
 
 import { CalendarView } from "@/components/calendar/calendar-view";
 import Loader from "@/components/kokonutui/loader";
-import { listConsultants, listProjects, listUsers } from "@/lib/db/repo";
+import {
+  listConsultants,
+  listCustomers,
+  listProjects,
+  listUsers,
+} from "@/lib/db/repo";
 
 async function CalendarLoaded() {
-  const [projects, users, consultants] = await Promise.all([
+  const [projects, users, customers, consultants] = await Promise.all([
     listProjects(),
     listUsers(),
+    listCustomers(),
     listConsultants(),
   ]);
   const active = projects.filter((p) => p.status !== "completed");
 
   return (
-    <CalendarView projects={active} users={users} consultants={consultants} />
+    <CalendarView
+      projects={active}
+      users={users}
+      customers={customers}
+      consultants={consultants}
+    />
   );
 }
 

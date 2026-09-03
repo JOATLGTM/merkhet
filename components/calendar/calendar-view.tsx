@@ -28,6 +28,7 @@ import type { Mode, Zoom } from "@/lib/calendar";
 import { COLUMN_LABELS, DESIGN_PHASES, boardColumnOf } from "@/lib/types";
 import type {
   Consultant,
+  Customer,
   DesignPhase,
   ProjectPhase,
   ProjectWithRelations,
@@ -38,6 +39,7 @@ import { cn } from "@/lib/utils";
 type CalendarViewProps = {
   projects: ProjectWithRelations[];
   users: User[];
+  customers: Customer[];
   consultants: Consultant[];
 };
 
@@ -129,6 +131,7 @@ function usePersistedChoice<T extends string>(
 export function CalendarView({
   projects,
   users,
+  customers,
   consultants,
 }: CalendarViewProps) {
   const router = useRouter();
@@ -610,6 +613,7 @@ export function CalendarView({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        customers={customers}
         consultants={consultants}
         open={Boolean(selected)}
         onClose={() => {

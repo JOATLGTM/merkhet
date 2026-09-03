@@ -77,6 +77,11 @@ export function formatActivity(
       const fields = changed ? Object.keys(changed).join(", ") : "fields";
       return `${actor} updated ${fields} · ${when}`;
     }
+    case "project.customer_changed": {
+      const from = String(event.payload.from_customer_name ?? "another customer");
+      const to = String(event.payload.to_customer_name ?? "another customer");
+      return `${actor} moved this project from ${from} to ${to} · ${when}`;
+    }
     case "project.consultant_attached":
       return `${actor} attached a consultant · ${when}`;
     case "project.consultant_detached":

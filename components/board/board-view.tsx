@@ -421,6 +421,7 @@ export function BoardView({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        customers={customers}
         consultants={consultants}
         open={Boolean(selected)}
         onClose={closeProject}

@@ -5,19 +5,22 @@ import { CompletedProjectsClient } from "@/components/projects/completed-project
 import {
   listCompletedProjects,
   listConsultants,
+  listCustomers,
   listUsers,
 } from "@/lib/db/repo";
 
 async function CompletedLoaded() {
-  const [projects, users, consultants] = await Promise.all([
+  const [projects, users, customers, consultants] = await Promise.all([
     listCompletedProjects(),
     listUsers(),
+    listCustomers(),
     listConsultants(),
   ]);
   return (
     <CompletedProjectsClient
       projects={projects}
       users={users}
+      customers={customers}
       consultants={consultants}
     />
   );

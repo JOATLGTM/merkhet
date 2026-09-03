@@ -7,6 +7,7 @@ import Loader from "@/components/kokonutui/loader";
 import {
   getCustomer,
   listConsultants,
+  listCustomers,
   listProjects,
   listUsers,
 } from "@/lib/db/repo";
@@ -28,9 +29,10 @@ async function CustomerDetailLoaded({
   const customer = await getCustomer(id);
   if (!customer) notFound();
 
-  const [projects, users, consultants] = await Promise.all([
+  const [projects, users, customers, consultants] = await Promise.all([
     listProjects(),
     listUsers(),
+    listCustomers(),
     listConsultants(),
   ]);
   const related = projects.filter((p) => p.customer_id === id);
@@ -50,6 +52,7 @@ async function CustomerDetailLoaded({
         customer={customer}
         projects={related}
         users={users}
+        customers={customers}
         consultants={consultants}
         initialProjectId={sp.project ?? null}
       />

@@ -487,6 +487,21 @@ fields since the start. Same for the project address among the project fields.
 **This is not Slice 3.** Intake expansion stays on hold pending the client's field list. Two
 of its eventual fields now exist, which is a head start, not the slice.
 
+## Changing a project's customer (Sep 3, 2026)
+
+Full write-up in [`PROJECT_CUSTOMER_APPLY.md`](./PROJECT_CUSTOMER_APPLY.md).
+
+**Its own repo function, not `updateProjectFieldAction`.** The customer is a relation; the
+generic path would log `customer_id: [uuid, uuid]` and would not check the target exists.
+`changeProjectCustomer` logs `project.customer_changed` with both names.
+
+**The project's own address and contact survive the move.** They describe the site
+(`PROJECT_CONTACT_APPLY.md`), not the customer. Null fields resolve to the new customer's
+without any code — the per-field fallback doing what it was built for.
+
+**No confirm, any status.** Reversible by picking again, nothing destroyed — so a plain
+Select, per "Destructive actions" below.
+
 ## Board card avatar (Aug 22, 2026)
 
 **The circle is the current-phase assignee, falling back to the creator.** PRD §6.2 specified

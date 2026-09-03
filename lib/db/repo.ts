@@ -680,6 +680,51 @@ export async function updateProject(
   return (await getProject(id))!;
 }
 
+/**
+ * Re-parents a project onto another customer.
+ *
+ * Kept apart from `updateProject` because the customer is a relation, not a
+ * field: the generic path would log `customer_id: [uuid, uuid]`, which reads
+ * as nothing in the activity feed, and it would not check the target exists.
+ * The project's own address and contact (`project_*`) are left alone — they
+ * describe the site, not the customer, and null fields already resolve to the
+ * new customer's on their own (`lib/contact.ts`).
+ */
+export async function changeProjectCustomer(
+  id: string,
+  customerId: string,
+  actorId: string,
+): Promise<ProjectWithRelations> {
+  const supabase = await db();
+  const before = await getProject(id);
+  if (!before) throw new Error("Project not found");
+  if (before.customer_id === customerId) return before;
+
+  const next = await getCustomer(customerId);
+  if (!next) throw new Error("That customer no longer exists.");
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ customer_id: customerId })
+    .eq("id", id);
+  throwOn(error, "Failed to change the customer");
+
+  const { error: activityError } = await supabase.from("activity_log").insert({
+    project_id: id,
+    actor_id: actorId,
+    event_type: "project.customer_changed",
+    payload: {
+      from_customer_id: before.customer_id,
+      from_customer_name: before.customer.name,
+      to_customer_id: next.id,
+      to_customer_name: next.name,
+    },
+  });
+  throwOn(activityError, "Failed to log customer change");
+
+  return (await getProject(id))!;
+}
+
 export async function toggleHold(
   id: string,
   onHold: boolean,

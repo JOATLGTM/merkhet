@@ -15,6 +15,7 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [ACCOUNTS_APPLY.md](./ACCOUNTS_APPLY.md) | **Invite-only accounts, password reset, and the data wipe** |
 | [SLICE_6_APPLY.md](./SLICE_6_APPLY.md) | **Notifications, wired** — outbox, provider, call sites, client copy |
 | [PROJECT_CONTACT_APPLY.md](./PROJECT_CONTACT_APPLY.md) | Project vs customer address/contact |
+| [PROJECT_CUSTOMER_APPLY.md](./PROJECT_CUSTOMER_APPLY.md) | **Change a project's customer** from the sheet — no SQL, not yet clicked |
 | [GATE_PARTIES_APPLY.md](./GATE_PARTIES_APPLY.md) | Gate sign-offs = Austin · Ryan · chosen |
 | [SLICE_5_APPLY.md](./SLICE_5_APPLY.md) | Approval gates + rework loops — gate table, rework checklist |
 | [SLICE_6_TEMPLATES.md](./SLICE_6_TEMPLATES.md) | Email templates — routing decision, the three enforced rules, Gmail test result |
@@ -26,7 +27,14 @@ Start with [NEXT.md](./NEXT.md) — it opens with the resume state.
 | [PHASE_DATES_APPLY.md](./PHASE_DATES_APPLY.md) | **Explicit phase dates** — typed in, not chained; rejection offers a reflow — constraints unconfirmed |
 | `SLICE_*_APPLY.md` | Manual SQL / verify checklists per slice |
 
-## State as of 2026-09-02
+## State as of 2026-09-03
+
+**A project's customer can be changed from the sheet** (2026-09-03, uncommitted at time of
+writing). The Customer section's Name row is a dropdown; picking another customer saves at
+once, logs "moved this project from *A* to *B*", and leaves the project's own address and
+contact as entered. No SQL — the column and FK were always there; only the UI and an action
+were missing. Not yet clicked in a browser.
+[PROJECT_CUSTOMER_APPLY.md](./PROJECT_CUSTOMER_APPLY.md)
 
 Five things landed on 2026-09-01/02, all committed and pushed. Hosted Supabase was probed
 read-only on 2026-09-02: recipients, developer role and the timesheet drop are **applied**;

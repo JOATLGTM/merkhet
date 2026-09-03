@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { clearOverridesPatch } from "@/lib/contact";
 import { notifyGateRejected } from "@/lib/notifications";
 import {
+  changeProjectCustomer,
   clearApproval,
   createProject,
   deleteProject,
@@ -123,6 +124,27 @@ export async function updateProjectFieldAction(
         : { [field]: value === "" ? null : value };
     const project = await updateProject(projectId, patch, user.id);
     revalidateAll();
+    return project;
+  });
+}
+
+/**
+ * Moves a project to a different customer — the fix for picking the wrong one
+ * at intake. Reversible by picking again, so no confirm (DECISIONS.md,
+ * "Destructive actions").
+ */
+export async function changeProjectCustomerAction(
+  projectId: string,
+  customerId: string,
+) {
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!customerId) throw new Error("Choose a customer.");
+    const project = await changeProjectCustomer(projectId, customerId, user.id);
+    revalidateAll();
+    // Both the old and the new customer's own page list their projects from a
+    // dynamic segment, so the segment has to be named (as delete does).
+    revalidatePath("/customers/[id]", "page");
     return project;
   });
 }

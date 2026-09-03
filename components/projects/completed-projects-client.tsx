@@ -13,15 +13,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatFullDate } from "@/lib/dates";
-import type { Consultant, ProjectWithRelations, User } from "@/lib/types";
+import type {
+  Consultant,
+  Customer,
+  ProjectWithRelations,
+  User,
+} from "@/lib/types";
 
 export function CompletedProjectsClient({
   projects,
   users,
+  customers,
   consultants,
 }: {
   projects: ProjectWithRelations[];
   users: User[];
+  customers: Customer[];
   consultants: Consultant[];
 }) {
   const [query, setQuery] = useState("");
@@ -123,6 +130,7 @@ export function CompletedProjectsClient({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        customers={customers}
         consultants={consultants}
         open={Boolean(selected)}
         onClose={() => setProjectId(null)}

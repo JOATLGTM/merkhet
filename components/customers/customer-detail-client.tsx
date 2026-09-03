@@ -38,12 +38,15 @@ export function CustomerDetailClient({
   customer,
   projects,
   users,
+  customers,
   consultants,
   initialProjectId,
 }: {
   customer: Customer;
   projects: ProjectWithRelations[];
   users: User[];
+  /** All customers — the sheet lets a project be moved to another one. */
+  customers: Customer[];
   consultants: Consultant[];
   initialProjectId: string | null;
 }) {
@@ -190,6 +193,7 @@ export function CustomerDetailClient({
       <ProjectDetailSheet
         project={selected}
         users={users}
+        customers={customers}
         consultants={consultants}
         open={Boolean(selected)}
         onClose={() => setProjectId(null)}

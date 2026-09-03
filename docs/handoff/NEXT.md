@@ -2,9 +2,14 @@
 
 Not committed as a formal backlog — use as a resume checklist.
 
-**Last updated: 2026-09-02**
+**Last updated: 2026-09-03**
 
-## Resume state — 2026-09-02
+## Resume state — 2026-09-03
+
+**Added 2026-09-03, uncommitted:** a project's customer can be changed from the detail
+sheet (Customer section → Name row is now a dropdown). No migration. Browser check is item 7
+below; the full list of what to expect is in
+[`PROJECT_CUSTOMER_APPLY.md`](./PROJECT_CUSTOMER_APPLY.md).
 
 Everything from 2026-09-01/02 is **committed and pushed** (`c77ff58` … `05229f4`). Applied to
 hosted Supabase, confirmed read-only on 2026-09-02: `project_phase_recipients` exists,
@@ -31,6 +36,10 @@ Nothing built this week has been clicked in a browser. In order of what proves t
 5. **Bill.** Open `/bill`, pick a project, expand a person, then **Hours** on a sheet lands
    filtered. [`BILL_APPLY.md`](./BILL_APPLY.md)
 6. **Delete project** asks for the word `DELETE`.
+7. **Change customer.** Open a card, Customer section, pick a different customer from the
+   Name dropdown. Toast "Moved to …", the header link changes, Activity gains a line, and
+   `/customers` counts shift by one each way. Put it back the same way.
+   [`PROJECT_CUSTOMER_APPLY.md`](./PROJECT_CUSTOMER_APPLY.md)
 
 **Still open from before:** the three design phases mail nobody internally on any project
 where the phase has no assignee and no notify list (`check:recipients` lists them);

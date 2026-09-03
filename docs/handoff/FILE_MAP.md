@@ -46,6 +46,7 @@
 | Calendar geometry (zoom, window, bars) | `lib/calendar.ts` (checks: `npm run check:calendar`) |
 | Per-staff weekly load (pure) | `lib/workload.ts` (checks: `npm run check:workload`) |
 | Project vs customer address/contact (pure) | `lib/contact.ts` (checks: `npm run check:contact`) |
+| Change a project's customer | `changeProjectCustomer` in `lib/db/repo.ts` → `changeProjectCustomerAction`; Select in the sheet's Customer section (`PROJECT_CUSTOMER_APPLY.md`) |
 | Bill roll-ups (pure) | `lib/billing.ts` (checks: `npm run check:billing`) — reads `planned_hours` off hydrated projects, no table of its own |
 | Activity copy | `lib/activity.ts` |
 | Approval gates / rework helpers | `lib/types.ts` (`GATE_PARTIES`, `GATE_REJECT_TARGET`, `gateSatisfied`) |

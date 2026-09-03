@@ -23,6 +23,7 @@ import {
 import { unwrap } from "@/lib/action-result";
 import { report } from "@/lib/action-toast";
 import {
+  changeProjectCustomerAction,
   clearApprovalAction,
   deleteProjectAction,
   getContractViewUrlAction,
@@ -83,6 +84,7 @@ import {
 import type {
   ApprovalParty,
   Consultant,
+  Customer,
   DesignPhase,
   GatePhase,
   ProjectWithRelations,
@@ -94,6 +96,8 @@ import { cn } from "@/lib/utils";
 type ProjectDetailSheetProps = {
   project: ProjectWithRelations | null;
   users: User[];
+  /** Every customer, for re-parenting a project filed under the wrong one. */
+  customers: Customer[];
   consultants: Consultant[];
   open: boolean;
   onClose: () => void;
@@ -162,6 +166,7 @@ function InlineText({
 export function ProjectDetailSheet({
   project,
   users,
+  customers,
   consultants,
   open,
   onClose,
@@ -232,6 +237,32 @@ export function ProjectDetailSheet({
     })),
     { label: "+ New consultant", value: NEW_CONSULTANT },
   ];
+
+  // The current customer is always offered, even if the list handed in is
+  // stale and no longer carries it, so the trigger never renders blank.
+  const customerItems = (
+    customers.some((c) => c.id === project.customer_id)
+      ? customers
+      : [project.customer, ...customers]
+  ).map((c) => ({ label: c.name, value: c.id }));
+
+  const changeCustomer = (customerId: string | null) => {
+    if (!customerId || customerId === project.customer_id) return;
+    const target = customers.find((c) => c.id === customerId);
+    startTransition(async () => {
+      try {
+        unwrap(await changeProjectCustomerAction(project.id, customerId));
+        toast.success(
+          target ? `Moved to ${target.name}` : "Customer changed",
+        );
+        router.refresh();
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not change the customer.",
+        );
+      }
+    });
+  };
 
   const resetNewConsultant = () => {
     setNewName("");
@@ -924,10 +955,34 @@ export function ProjectDetailSheet({
 
           <section className="border-b border-rule py-5">
             <FieldLabel>Customer</FieldLabel>
+            <p className="mt-2 text-[12px] text-ink-soft">
+              Filed under the wrong customer? Pick the right one here. The
+              project&rsquo;s own address and contact stay as entered.
+            </p>
             <dl className="mt-4 space-y-2.5 text-[13px]">
-              <div className="grid grid-cols-[88px_1fr] gap-3">
+              <div className="grid grid-cols-[88px_1fr] items-center gap-3">
                 <dt className="text-ink-soft">Name</dt>
-                <dd className="text-ink">{project.customer.name}</dd>
+                <dd>
+                  <Select
+                    items={customerItems}
+                    value={project.customer_id}
+                    onValueChange={changeCustomer}
+                  >
+                    <SelectTrigger
+                      aria-label="Customer"
+                      className="h-9 w-full rounded-none border-rule-strong text-[13px]"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customerItems.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </dd>
               </div>
               <div className="grid grid-cols-[88px_1fr] gap-3">
                 <dt className="text-ink-soft">Address</dt>
