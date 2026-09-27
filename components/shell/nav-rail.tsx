@@ -52,7 +52,7 @@ export function NavRail({ user }: NavRailProps) {
       aria-label="Main"
       className={cn(
         "sticky top-0 flex h-screen shrink-0 flex-col border-r border-rule bg-sidebar transition-[width] duration-200",
-        collapsed ? "w-14" : "w-52",
+        collapsed ? "w-14" : "w-64",
       )}
     >
       <div
@@ -67,7 +67,7 @@ export function NavRail({ user }: NavRailProps) {
         >
           M
         </span>
-        {!collapsed && <span className="label-caps text-ink">Merkhet</span>}
+        {!collapsed && <span className="label-caps whitespace-nowrap text-ink">Merkhet &amp; Kolbkrenzel</span>}
       </div>
 
       <ul className="flex-1 space-y-0.5 p-2">
