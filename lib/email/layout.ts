@@ -55,11 +55,7 @@ function wordmark(): string {
 function footer(audience: Audience): string {
   const lines =
     audience === "customer"
-      ? [
-          `${FIRM.name}`,
-          ...FIRM.addressLines,
-          `${FIRM.phone} &middot; ${FIRM.replyTo}`,
-        ]
+      ? [`${FIRM.name}`]
       : audience === "account"
         ? [
             `${FIRM.name} &middot; project tracking`,

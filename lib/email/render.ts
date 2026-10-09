@@ -117,8 +117,6 @@ export function textFooter(audience: EmailAudience): string {
       "",
       TEXT_RULE,
       FIRM.name,
-      ...FIRM.addressLines,
-      `${FIRM.phone} · ${FIRM.replyTo}`,
       "",
       "Replying to this message reaches your project team directly.",
     );

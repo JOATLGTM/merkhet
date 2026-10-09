@@ -51,12 +51,13 @@ export const WIDTH = 600;
 /**
  * Firm details for the footer. Single source so a signature change is one
  * edit rather than four. Swap these for the real values before any send.
+ *
+ * The footer shows only the firm name — no address, phone or email.
+ * `replyTo` is kept for the customer "Reply to your project team" button.
  */
 export const FIRM = {
   name: "Merkhet Architecture",
   shortName: "Merkhet",
-  addressLines: ["1200 Congress Avenue, Suite 400", "Austin, TX 78701"],
-  phone: "(512) 555-0142",
   replyTo: "studio@merkhet.studio",
 } as const;
 
